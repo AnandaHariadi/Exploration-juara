@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 80" fill="none">
+  <rect width="260" height="80" rx="8" fill="transparent"/>
+  <!-- Emblem / Icon -->
+  <g transform="translate(18, 18)">
+    <rect x="0" y="0" width="44" height="44" rx="8" fill="#F4F4F5" stroke="#E4E4E7" stroke-width="1.5"/>
+    <circle cx="22" cy="22" r="13" stroke="#2563EB" stroke-width="1.5" stroke-dasharray="3 2"/>
+    <path d="M16 22H28M22 16V28" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+  <!-- Institutional Typography -->
+  <text x="74" y="38" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#18181B" letter-spacing="0.05em">INSTANSI MITRA 02</text>
+  <text x="74" y="52" font-family="system-ui, -apple-system, sans-serif" font-size="10.5" font-weight="500" fill="#71717A" letter-spacing="0.02em">Pusat Inkubasi Bisnis</text>
+</svg>
