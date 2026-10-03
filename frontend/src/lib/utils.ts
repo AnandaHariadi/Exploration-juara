@@ -37,3 +37,6 @@ export function formatDate(dateString: string): string {
     return dateString;
   }
 }
+
+/** Open = still needs attention. RESOLVED and SUPERSEDED are history. */
+export const isOpenAlert = (a: { status: string }) => a.status === 'NEW' || a.status === 'ACKNOWLEDGED';
