@@ -97,7 +97,7 @@ export function DraftCard({ draft, run, projectName, defaultOpen = false }: { dr
           </>
         )}
         {(draft.status === 'APPROVED' || draft.status === 'EXPORTED') && (
-          <button type="button" disabled={busy !== null} onClick={() => void act('export', () => dataClient.exportDraft(draft.projectId, draft.id), (name) => `Diekspor: ${name}. Kirim dokumen ini melalui saluran resmi Anda — CLARA tidak mengirimkannya.`)} className={btn.primary}>
+          <button type="button" disabled={busy !== null} onClick={async () => { setBusy('export'); await run(() => dataClient.exportDraft(draft.projectId, draft.id), (name: string) => `Diekspor: ${name}. Kirim dokumen ini melalui saluran resmi Anda — CLARA tidak mengirimkannya.`); setBusy(null); }} className={btn.primary}>
             <Download className="h-4 w-4" />{busy === 'export' ? 'Mengekspor…' : 'Ekspor PDF untuk dikirim'}
           </button>
         )}
