@@ -212,7 +212,7 @@ export default function FinancePage() {
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-amber-300 bg-amber-50/40">
-          <span className="text-xs font-bold uppercase text-amber-800">Siap, belum ditagih</span>
+          <span className="text-xs font-bold uppercase text-amber-800">Belum ditagih</span>
           <p className="text-xl font-bold text-amber-900 mt-1">{formatCompactRupiah(totalUnbilled)}</p>
           <span className="text-xs text-amber-700 font-semibold mt-1 block">Tahap selesai tanpa tagihan</span>
         </div>
@@ -352,7 +352,7 @@ export default function FinancePage() {
 
       {/* Pre-Download Financial Report Live Preview Modal */}
       {showPreviewModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-transparent animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-900/15 backdrop-blur-md transition-all animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] border border-zinc-200/90 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="px-6 py-5 border-b border-zinc-200 flex items-center justify-between bg-zinc-50/80 shrink-0">

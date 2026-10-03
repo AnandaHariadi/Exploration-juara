@@ -63,7 +63,7 @@ export default function DashboardPage() {
       <section aria-label="Angka seluruh proyek" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Nilai kontrak" value={formatCompactRupiah(total('contractValue'))} detail={`Total dari ${projects.length} proyek dalam data demo`} href="/projects" />
         <MetricCard label="Biaya tercatat" value={formatCompactRupiah(actualCost)} detail={`Rencana biaya ${formatCompactRupiah(plannedCost)} · selisih ${formatCompactRupiah(actualCost - plannedCost)}`} href="/finance" />
-        <MetricCard label="Siap, belum ditagih" value={formatCompactRupiah(unbilled)} detail="Nilai tahap selesai yang belum dibuatkan tagihan" href="/finance" />
+        <MetricCard label="Belum ditagih" value={formatCompactRupiah(unbilled)} detail="Nilai tahap selesai yang belum dibuatkan tagihan" href="/finance" />
         <MetricCard label="Sudah dibayar" value={formatCompactRupiah(total('paidValue'))} detail={`Dari tagihan ${formatCompactRupiah(billed)} yang telah dibuat`} href="/finance" />
       </section>
 
