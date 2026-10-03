@@ -53,7 +53,7 @@ function useResource<T>(load: () => Promise<T>, subscribe: (listener: () => void
   return { data, refresh, loading, error };
 }
 
-const processing = (p?: Project) => Boolean(p && (p.documents.some((d) => d.status === 'PROCESSING') || p.extraction?.status === 'PROCESSING'));
+const processing = (p?: Project) => Boolean(p && ((p.documents ?? []).some((d) => d.status === 'PROCESSING') || p.extraction?.status === 'PROCESSING'));
 
 const subscribeData = (listener: () => void) => dataClient.subscribeData(listener);
 const subscribePersona = (listener: () => void) => dataClient.subscribePersona(listener);

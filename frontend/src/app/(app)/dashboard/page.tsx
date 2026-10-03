@@ -38,12 +38,12 @@ export default function DashboardPage() {
   // Persona work queue: CLARA surfaces what each role must act on.
   type Task = { key: string; title: string; detail: string; href: string };
   const tasks: Task[] = [];
-  const crs = projects.flatMap((p) => p.changeRequests.map((c) => ({ p, c })));
+  const crs = projects.flatMap((p) => (p.changeRequests ?? []).map((c) => ({ p, c })));
   const finAlerts = openAlerts.filter((a) => ['FINANCIAL_ANOMALY', 'BILLING_VARIANCE', 'BUDGET_VARIANCE', 'POTENTIAL_IRREGULARITY'].includes(a.type));
   if (personaId === 'BUDI' || personaId === 'ADMIN') {
     for (const { p, c } of crs.filter(({ c }) => ['DRAFT', 'REJECTED', 'CLIENT_REJECTED'].includes(c.status))) tasks.push({ key: `cr-${c.id}`, title: `${c.status === 'DRAFT' ? 'Lengkapi & ajukan' : 'Revisi & ajukan ulang'} ${c.crNumber}`, detail: `${p.name} · ${c.title}${c.origin === 'AI_DRAFT' ? ' · disiapkan CLARA' : ''}`, href: `/projects/${p.id}?tab=change-requests` });
     for (const { p, c } of crs.filter(({ c }) => c.status === 'INTERNAL_APPROVED')) tasks.push({ key: `cl-${c.id}`, title: `Catat bukti persetujuan klien ${c.crNumber}`, detail: `${p.name} · sudah disetujui internal`, href: `/projects/${p.id}?tab=change-requests` });
-    for (const p of projects) for (const d of p.documents.filter((d) => d.status === 'NEEDS_REVIEW' || d.status === 'FAILED')) if (p.metrics.hasBaseline) tasks.push({ key: `doc-${d.id}`, title: `${d.status === 'FAILED' ? 'Analisis gagal' : 'Tinjau hasil analisis'}: ${d.fileName}`, detail: p.name, href: `/projects/${p.id}?tab=documents` });
+    for (const p of projects) for (const d of (p.documents ?? []).filter((d) => d.status === 'NEEDS_REVIEW' || d.status === 'FAILED')) if (p.metrics?.hasBaseline) tasks.push({ key: `doc-${d.id}`, title: `${d.status === 'FAILED' ? 'Analisis gagal' : 'Tinjau hasil analisis'}: ${d.fileName}`, detail: p.name, href: `/projects/${p.id}?tab=documents` });
     for (const a of openAlerts.filter((a) => ['REVISION_LIMIT', 'SCOPE_VARIANCE', 'DEADLINE_RISK'].includes(a.type))) tasks.push({ key: `al-${a.id}`, title: a.title, detail: `${a.projectName} · CLARA dapat menyiapkan permintaan perubahan`, href: `/projects/${a.projectId}?tab=alerts` });
   }
   if (personaId === 'SITI' || personaId === 'ADMIN') {
@@ -146,7 +146,7 @@ export default function DashboardPage() {
                 <span className="text-xs font-semibold text-red-700">
                   {alert.status === 'NEW' ? 'Baru' : 'Sudah dibaca'}
                 </span>
-                <span className="text-xs font-mono text-zinc-400">{alert.detectedAt ? alert.detectedAt.slice(0, 10) : ''}</span>
+                <span className="text-xs font-mono text-zinc-400">{alert.createdAt ? alert.createdAt.slice(0, 10) : ''}</span>
               </div>
               <strong className="mt-1 block text-sm text-zinc-900">{alert.title}</strong>
               <span className="mt-0.5 block text-xs text-zinc-500">{alert.projectName}</span>

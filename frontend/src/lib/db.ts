@@ -1,6 +1,10 @@
 import path from 'path';
 import fs from 'fs';
-import { Project, UserPersonaId, USER_PERSONAS, Alert } from '../types/index';
+import type { Alert, PortfolioSummary, Project, UserPersonaId } from '../types/index';
+import { USER_PERSONAS } from '../types/index';
+import { actorFor, randomId, type Ctx } from './domain';
+import { notFound } from './api';
+import { reconcile } from './engine';
 
 // Ensure data folder exists
 const dataDir = path.join(process.cwd(), 'data');
@@ -112,8 +116,62 @@ export const SAMPLE_CONSISTENT_PROJECT: Project = {
       author: 'Budi Santoso (PM)',
     },
   ],
+  documents: [],
+  extraction: null,
+  baselines: [],
+  payments: [
+    {
+      id: 'PAY-2026-001',
+      projectId: 'PRJ-101',
+      invoiceId: 'INV-2026-001',
+      invoiceNumber: 'INV/2026/08/ASL-001',
+      amount: 30000000,
+      date: '2026-08-25',
+      recordedBy: 'Siti Rahma',
+    },
+  ],
   changeRequests: [],
+  drafts: [],
   alerts: [],
+  reconciliation: [],
+  metrics: {
+    hasBaseline: true,
+    baselineVersion: 'V1.0',
+    contractValue: 120000000,
+    plannedCost: 75000000,
+    actualCost: 64000000,
+    budgetVariance: -11000000,
+    budgetUtilization: 85.3,
+    progress: 45,
+    billableValue: 30000000,
+    billedValue: 30000000,
+    paidValue: 30000000,
+    unbilledValue: 0,
+    outstandingReceivable: 0,
+    plannedProfit: 45000000,
+    actualProfit: 56000000,
+    actualProfitNote: 'Margin laba aman',
+    includedRevisions: 3,
+    actualRevisions: 2,
+    revisionVariance: 0,
+    deadline: '2026-12-31',
+    projectedFinish: '2026-12-28',
+    deadlineVarianceDays: 3,
+    openAlerts: 0,
+    newAlerts: 0,
+    alertsByType: {
+      BUDGET_VARIANCE: 0,
+      SCOPE_VARIANCE: 0,
+      BILLING_VARIANCE: 0,
+      REVISION_LIMIT: 0,
+      DEADLINE_RISK: 0,
+      CONTRACT_RISK: 0,
+      FINANCIAL_ANOMALY: 0,
+      DOCUMENT_INCONSISTENCY: 0,
+      POTENTIAL_IRREGULARITY: 0,
+    },
+    computedAt: '2026-10-01T08:00:00.000Z',
+  },
 };
 
 interface ClaraStoreData {
@@ -121,6 +179,62 @@ interface ClaraStoreData {
   demoUsers: Record<string, unknown>[];
   projects: Project[];
   meta: Record<string, string>;
+}
+
+function sanitizeProject(p: any): Project {
+  if (!p) return p;
+  p.documents = Array.isArray(p.documents) ? p.documents : [];
+  p.baselines = Array.isArray(p.baselines) ? p.baselines : [];
+  p.actualCosts = Array.isArray(p.actualCosts) ? p.actualCosts : [];
+  p.invoices = Array.isArray(p.invoices) ? p.invoices : [];
+  p.payments = Array.isArray(p.payments) ? p.payments : [];
+  p.events = Array.isArray(p.events) ? p.events : [];
+  p.changeRequests = Array.isArray(p.changeRequests) ? p.changeRequests : [];
+  p.drafts = Array.isArray(p.drafts) ? p.drafts : [];
+  p.alerts = Array.isArray(p.alerts) ? p.alerts : [];
+  p.reconciliation = Array.isArray(p.reconciliation) ? p.reconciliation : [];
+  p.extraction = p.extraction ?? null;
+  if (!p.metrics) {
+    p.metrics = {
+      hasBaseline: Boolean(p.agreementBaseline),
+      baselineVersion: p.baselineVersion || 'V1.0',
+      contractValue: p.contractValue || 0,
+      plannedCost: p.plannedCost || 0,
+      actualCost: p.actualCost || 0,
+      budgetVariance: (p.actualCost || 0) - (p.plannedCost || 0),
+      budgetUtilization: p.plannedCost ? Math.round(((p.actualCost || 0) / p.plannedCost) * 1000) / 10 : null,
+      progress: p.progress || 0,
+      billableValue: p.billableValue || 0,
+      billedValue: p.billedValue || 0,
+      paidValue: p.paidValue || 0,
+      unbilledValue: Math.max(0, (p.billableValue || 0) - (p.billedValue || 0)),
+      outstandingReceivable: Math.max(0, (p.billedValue || 0) - (p.paidValue || 0)),
+      plannedProfit: (p.contractValue || 0) - (p.plannedCost || 0),
+      actualProfit: (p.contractValue || 0) - (p.actualCost || 0),
+      actualProfitNote: 'Margin laba terkontrol',
+      includedRevisions: p.agreementBaseline?.revisionLimit ?? 3,
+      actualRevisions: p.activeRevisionCount || 0,
+      revisionVariance: Math.max(0, (p.activeRevisionCount || 0) - (p.agreementBaseline?.revisionLimit ?? 3)),
+      deadline: p.agreementBaseline?.deadline || p.endDate || null,
+      projectedFinish: p.endDate || null,
+      deadlineVarianceDays: 0,
+      openAlerts: p.alerts.length,
+      newAlerts: p.alerts.filter((a: any) => a.status === 'NEW').length,
+      alertsByType: {
+        BUDGET_VARIANCE: 0,
+        SCOPE_VARIANCE: 0,
+        BILLING_VARIANCE: 0,
+        REVISION_LIMIT: 0,
+        DEADLINE_RISK: 0,
+        CONTRACT_RISK: 0,
+        FINANCIAL_ANOMALY: 0,
+        DOCUMENT_INCONSISTENCY: 0,
+        POTENTIAL_IRREGULARITY: 0,
+      },
+      computedAt: new Date().toISOString(),
+    };
+  }
+  return p as Project;
 }
 
 function getInitialStore(): ClaraStoreData {
@@ -147,7 +261,11 @@ function loadStore(): ClaraStoreData {
   try {
     if (fs.existsSync(storePath)) {
       const raw = fs.readFileSync(storePath, 'utf8');
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed.projects)) {
+        parsed.projects = parsed.projects.map(sanitizeProject);
+      }
+      return parsed;
     }
   } catch (err) {
     console.error('Failed reading store file, falling back to initial store:', err);
@@ -163,6 +281,10 @@ function saveStore(data: ClaraStoreData): void {
   } catch (err) {
     console.error('Failed writing store file:', err);
   }
+}
+
+export function makeCtx(): Ctx {
+  return { now: new Date().toISOString(), actor: actorFor(claraDb.getActivePersona()), nextId: randomId };
 }
 
 // Database helper functions with identical API
@@ -193,6 +315,12 @@ export const claraDb = {
     return store.projects.find((p) => p.id === id);
   },
 
+  requireProject(id: string): Project {
+    const project = this.getProject(id);
+    if (!project) throw notFound('Proyek tidak ditemukan.', 'PROJECT_NOT_FOUND');
+    return project;
+  },
+
   saveProject(project: Project): void {
     const store = loadStore();
     const index = store.projects.findIndex((p) => p.id === project.id);
@@ -204,10 +332,34 @@ export const claraDb = {
     saveStore(store);
   },
 
+  createProject(project: Project): Project {
+    const reconciled = reconcile(project, new Date().toISOString());
+    this.saveProject(reconciled);
+    return reconciled;
+  },
+
+  mutate<T>(id: string, mutateFn: (project: Project) => T): { project: Project; result: T } {
+    const store = loadStore();
+    const index = store.projects.findIndex((p) => p.id === id);
+    if (index === -1) throw notFound('Proyek tidak ditemukan.', 'PROJECT_NOT_FOUND');
+    const project = store.projects[index];
+    const result = mutateFn(project);
+    const reconciled = reconcile(project, new Date().toISOString());
+    store.projects[index] = reconciled;
+    saveStore(store);
+    return { project: reconciled, result };
+  },
+
   deleteProject(id: string): void {
     const store = loadStore();
     store.projects = store.projects.filter((p) => p.id !== id);
     saveStore(store);
+  },
+
+  findAlertProject(alertId: string): Project {
+    const project = this.getProjects().find((p) => (p.alerts ?? []).some((a) => a.id === alertId));
+    if (!project) throw notFound('Peringatan tidak ditemukan.', 'ALERT_NOT_FOUND');
+    return project;
   },
 
   getAllAlerts(): Alert[] {
@@ -217,6 +369,41 @@ export const claraDb = {
       if (p.alerts) alerts.push(...p.alerts);
     });
     return alerts;
+  },
+
+  portfolioSummary(): PortfolioSummary {
+    const projects = this.getProjects();
+    const active = projects.filter((p) => p.metrics?.hasBaseline);
+    const sum = (pick: (p: Project) => number) => active.reduce((s, p) => s + (pick(p) || 0), 0);
+    const planned = sum((p) => p.metrics?.plannedCost ?? 0);
+    const actual = sum((p) => p.metrics?.actualCost ?? 0);
+    return {
+      projectCount: projects.length,
+      activeProjectCount: active.length,
+      contractValue: sum((p) => p.metrics?.contractValue ?? 0),
+      plannedCost: planned,
+      actualCost: actual,
+      budgetUtilization: planned > 0 ? Math.round((actual / planned) * 1000) / 10 : null,
+      billableValue: sum((p) => p.metrics?.billableValue ?? 0),
+      billedValue: sum((p) => p.metrics?.billedValue ?? 0),
+      paidValue: sum((p) => p.metrics?.paidValue ?? 0),
+      unbilledValue: sum((p) => p.metrics?.unbilledValue ?? 0),
+      averageProgress: active.length ? Math.round(sum((p) => p.metrics?.progress ?? 0) / active.length) : null,
+      openAlerts: projects.reduce((s, p) => s + (p.metrics?.openAlerts ?? 0), 0),
+      newAlerts: projects.reduce((s, p) => s + (p.metrics?.newAlerts ?? 0), 0),
+      projects: projects.map((p) => ({
+        id: p.id,
+        name: p.name,
+        client: p.client,
+        status: p.status,
+        progress: p.metrics?.progress ?? 0,
+        contractValue: p.metrics?.contractValue ?? 0,
+        unbilledValue: p.metrics?.unbilledValue ?? 0,
+        openAlerts: p.metrics?.openAlerts ?? 0,
+        baselineVersion: p.metrics?.baselineVersion ?? '-',
+      })),
+      computedAt: new Date().toISOString(),
+    };
   },
 
   resetDemoData(withSeed: boolean = true): void {
