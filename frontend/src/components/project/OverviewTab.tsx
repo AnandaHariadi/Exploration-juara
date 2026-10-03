@@ -84,7 +84,7 @@ export function OverviewTab({ project, onOpenAlert }: { project: Project; onOpen
                 <th className="py-2 pr-3">Aktual</th>
                 <th className="py-2 pr-3">Selisih</th>
                 <th className="py-2 pr-3">Status</th>
-                <th className="py-2"><span className="sr-only">Aksi</span></th>
+                <th className="py-2 text-right">Bukti</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
