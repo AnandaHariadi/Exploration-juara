@@ -111,7 +111,7 @@ export function ChangeRequestCard({ cr, project, run, showProject = false }: { c
       ) : (
         <>
           <dl className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-zinc-50 p-3 text-sm md:grid-cols-4">
-            <div><dt className="text-xs text-zinc-500">Tambahan nilai</dt><dd className="font-semibold">+{formatRupiah(cr.additionalValue)}</dd><dd className="text-[11px] text-zinc-500">→ {formatRupiah((cr.status === 'APPROVED' ? 0 : base.contractValue) + (cr.status === 'APPROVED' ? 0 : cr.additionalValue)) === 'Rp 0' ? '' : formatRupiah(base.contractValue + cr.additionalValue)}</dd></div>
+            <div><dt className="text-xs text-zinc-500">Tambahan nilai</dt><dd className="font-semibold">+{formatRupiah(cr.additionalValue)}</dd>{cr.status !== 'APPROVED' && cr.additionalValue > 0 && <dd className="text-[11px] text-zinc-500">→ nilai kontrak {formatRupiah(base.contractValue + cr.additionalValue)}</dd>}</div>
             <div><dt className="text-xs text-zinc-500">Tambahan revisi</dt><dd className="font-semibold">+{cr.additionalRevisions}</dd></div>
             <div><dt className="text-xs text-zinc-500">Perpanjangan</dt><dd className="font-semibold">+{cr.deadlineExtensionDays} hari</dd></div>
             <div><dt className="text-xs text-zinc-500">Pekerjaan</dt><dd className="font-semibold">{cr.additionalScope.length ? cr.additionalScope.join(', ') : '-'}</dd></div>
