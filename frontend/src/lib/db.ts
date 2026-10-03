@@ -1,4 +1,3 @@
-import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { Project, UserPersonaId, USER_PERSONAS, Alert } from '../types/index';
@@ -9,73 +8,7 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const dbPath = path.join(dataDir, 'clara.db');
-const db = new Database(dbPath);
-
-// Enable WAL mode for better concurrency
-db.pragma('journal_mode = WAL');
-
-// Jalankan berkas migrasi SQL di data/migrations secara berurutan, tepat satu kali.
-const migrationsDir = path.join(dataDir, 'migrations');
-db.exec(`
-  CREATE TABLE IF NOT EXISTS schema_migrations (
-    version TEXT PRIMARY KEY,
-    applied_at TEXT NOT NULL
-  );
-`);
-
-if (!fs.existsSync(migrationsDir)) {
-  throw new Error(`Folder migrasi SQLite tidak ditemukan: ${migrationsDir}`);
-}
-
-const appliedVersions = new Set(
-  (db.prepare('SELECT version FROM schema_migrations').all() as { version: string }[]).map((r) => r.version)
-);
-
-fs.readdirSync(migrationsDir)
-  .filter((file) => file.endsWith('.sql'))
-  .sort()
-  .forEach((file) => {
-    if (appliedVersions.has(file)) return;
-    const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
-    db.transaction(() => {
-      db.exec(sql);
-      db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)').run(file, new Date().toISOString());
-    })();
-  });
-
-// Seed Demo Users if not present
-const countUsers = db.prepare('SELECT COUNT(*) as count FROM demo_users').get() as { count: number };
-if (countUsers.count === 0) {
-  const insertUser = db.prepare(`
-    INSERT INTO demo_users (id, name, role_title, department, initials, avatar_bg, badge_bg, badge_text, description, primary_focus)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  Object.values(USER_PERSONAS).forEach((p) => {
-    insertUser.run(
-      p.id,
-      p.name,
-      p.roleTitle,
-      p.department,
-      p.initials,
-      p.avatarBg,
-      p.badgeBg,
-      p.badgeText,
-      p.description,
-      p.primaryFocus
-    );
-  });
-}
-
-// Seed Active Session if not present
-const session = db.prepare('SELECT * FROM demo_session WHERE id = 1').get();
-if (!session) {
-  db.prepare(`
-    INSERT INTO demo_session (id, active_user_id, updated_at)
-    VALUES (1, 'BUDI', ?)
-  `).run(new Date().toISOString());
-}
+const storePath = path.join(dataDir, 'clara_store.json');
 
 /**
  * Standard project sample from PRD for consistent testing
@@ -183,99 +116,98 @@ export const SAMPLE_CONSISTENT_PROJECT: Project = {
   alerts: [],
 };
 
-// Database helper functions
+interface ClaraStoreData {
+  activePersona: UserPersonaId;
+  demoUsers: Record<string, unknown>[];
+  projects: Project[];
+  meta: Record<string, string>;
+}
+
+function getInitialStore(): ClaraStoreData {
+  return {
+    activePersona: 'BUDI',
+    demoUsers: Object.values(USER_PERSONAS).map((p) => ({
+      id: p.id,
+      name: p.name,
+      role_title: p.roleTitle,
+      department: p.department,
+      initials: p.initials,
+      avatar_bg: p.avatarBg,
+      badge_bg: p.badgeBg,
+      badge_text: p.badgeText,
+      description: p.description,
+      primary_focus: p.primaryFocus,
+    })),
+    projects: [SAMPLE_CONSISTENT_PROJECT],
+    meta: { sample_seeded: '1' },
+  };
+}
+
+function loadStore(): ClaraStoreData {
+  try {
+    if (fs.existsSync(storePath)) {
+      const raw = fs.readFileSync(storePath, 'utf8');
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error('Failed reading store file, falling back to initial store:', err);
+  }
+  const initial = getInitialStore();
+  saveStore(initial);
+  return initial;
+}
+
+function saveStore(data: ClaraStoreData): void {
+  try {
+    fs.writeFileSync(storePath, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Failed writing store file:', err);
+  }
+}
+
+// Database helper functions with identical API
 export const claraDb = {
-  // Demo Users & Session
   getDemoUsers() {
-    return db.prepare('SELECT * FROM demo_users').all();
+    const store = loadStore();
+    return store.demoUsers;
   },
 
   getActivePersona(): UserPersonaId {
-    const row = db.prepare('SELECT active_user_id FROM demo_session WHERE id = 1').get() as { active_user_id: UserPersonaId } | undefined;
-    return row?.active_user_id || 'BUDI';
+    const store = loadStore();
+    return store.activePersona || 'BUDI';
   },
 
-  setActivePersona(personaId: UserPersonaId) {
-    db.prepare('UPDATE demo_session SET active_user_id = ?, updated_at = ? WHERE id = 1').run(
-      personaId,
-      new Date().toISOString()
-    );
+  setActivePersona(personaId: UserPersonaId): void {
+    const store = loadStore();
+    store.activePersona = personaId;
+    saveStore(store);
   },
 
-  // Projects
   getProjects(): Project[] {
-    const rows = db.prepare('SELECT data_json FROM projects ORDER BY rowid DESC').all() as { data_json: string }[];
-    return rows.map((r) => JSON.parse(r.data_json));
+    const store = loadStore();
+    return store.projects || [];
   },
 
   getProject(id: string): Project | undefined {
-    const row = db.prepare('SELECT data_json FROM projects WHERE id = ?').get(id) as { data_json: string } | undefined;
-    return row ? JSON.parse(row.data_json) : undefined;
+    const store = loadStore();
+    return store.projects.find((p) => p.id === id);
   },
 
   saveProject(project: Project): void {
-    const existing = db.prepare('SELECT id FROM projects WHERE id = ?').get(project.id);
-    const jsonStr = JSON.stringify(project);
-
-    if (existing) {
-      db.prepare(`
-        UPDATE projects SET
-          name = ?, client = ?, status = ?, contract_value = ?, planned_cost = ?,
-          actual_cost = ?, billable_value = ?, billed_value = ?, paid_value = ?,
-          progress = ?, baseline_version = ?, start_date = ?, end_date = ?,
-          revision_limit = ?, active_revision_count = ?, data_json = ?
-        WHERE id = ?
-      `).run(
-        project.name,
-        project.client,
-        project.status,
-        project.contractValue,
-        project.plannedCost,
-        project.actualCost,
-        project.billableValue,
-        project.billedValue,
-        project.paidValue,
-        project.progress,
-        project.baselineVersion,
-        project.startDate,
-        project.endDate,
-        project.agreementBaseline?.revisionLimit || 3,
-        project.activeRevisionCount,
-        jsonStr,
-        project.id
-      );
+    const store = loadStore();
+    const index = store.projects.findIndex((p) => p.id === project.id);
+    if (index >= 0) {
+      store.projects[index] = project;
     } else {
-      db.prepare(`
-        INSERT INTO projects (
-          id, name, client, status, contract_value, planned_cost,
-          actual_cost, billable_value, billed_value, paid_value,
-          progress, baseline_version, start_date, end_date,
-          revision_limit, active_revision_count, data_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        project.id,
-        project.name,
-        project.client,
-        project.status,
-        project.contractValue,
-        project.plannedCost,
-        project.actualCost,
-        project.billableValue,
-        project.billedValue,
-        project.paidValue,
-        project.progress,
-        project.baselineVersion,
-        project.startDate,
-        project.endDate,
-        project.agreementBaseline?.revisionLimit || 3,
-        project.activeRevisionCount,
-        jsonStr
-      );
+      store.projects.push(project);
     }
+    saveStore(store);
   },
 
   deleteProject(id: string): void {
-    db.prepare('DELETE FROM projects WHERE id = ?').run(id);
+    const store = loadStore();
+    store.projects = store.projects.filter((p) => p.id !== id);
+    saveStore(store);
   },
 
   getAllAlerts(): Alert[] {
@@ -287,29 +219,11 @@ export const claraDb = {
     return alerts;
   },
 
-  // Reset demo dataset. Default: kembalikan ke proyek contoh yang konsisten.
-  // withSeed=false mengosongkan semua proyek untuk memulai dari nol.
   resetDemoData(withSeed: boolean = true): void {
-    db.transaction(() => {
-      db.prepare('DELETE FROM projects').run();
-      this.setActivePersona('BUDI');
-
-      if (withSeed) {
-        this.saveProject(SAMPLE_CONSISTENT_PROJECT);
-      }
-      db.prepare("INSERT OR REPLACE INTO demo_meta (key, value) VALUES ('sample_seeded', '1')").run();
-    })();
+    const store = loadStore();
+    store.projects = withSeed ? [SAMPLE_CONSISTENT_PROJECT] : [];
+    store.activePersona = 'BUDI';
+    store.meta.sample_seeded = '1';
+    saveStore(store);
   },
 };
-
-// Seed proyek contoh sekali saja pada database yang baru dibuat, agar demo siap
-// dipakai tanpa langkah manual. Proyek yang dihapus pengguna tidak di-seed ulang;
-// gunakan reset demo untuk mengembalikannya.
-const sampleSeeded = db.prepare("SELECT value FROM demo_meta WHERE key = 'sample_seeded'").get();
-if (!sampleSeeded) {
-  const projectCount = db.prepare('SELECT COUNT(*) as count FROM projects').get() as { count: number };
-  if (projectCount.count === 0) {
-    claraDb.saveProject(SAMPLE_CONSISTENT_PROJECT);
-  }
-  db.prepare("INSERT OR REPLACE INTO demo_meta (key, value) VALUES ('sample_seeded', '1')").run();
-}

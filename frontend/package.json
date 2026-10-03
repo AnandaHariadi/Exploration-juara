@@ -10,7 +10,6 @@
     "test:task2": "node scripts/test-task2.mjs"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -21,7 +20,6 @@
     "tailwind-merge": "^2.5.5"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^9.6.0",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^19",
