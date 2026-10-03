@@ -19,7 +19,11 @@ const GOOGLE_CALLBACK_URL =
 
 const JWT_SECRET = process.env.JWT_SECRET ?? "change_me_in_production";
 
-passport.use(
+// Google OAuth is only for the legacy standalone CLARA frontend. Without
+// credentials the strategy is skipped so the AI service still starts.
+export const googleOAuthEnabled = Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
+
+if (googleOAuthEnabled) passport.use(
     new GoogleStrategy(
         {
             clientID: GOOGLE_CLIENT_ID,
