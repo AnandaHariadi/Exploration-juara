@@ -2,14 +2,13 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Plus, Search, FolderGit2, AlertTriangle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Plus, Search, FolderGit2, AlertTriangle, ArrowRight } from 'lucide-react';
 import { useProjects } from '@/hooks/useClaraData';
-import { Project } from '@/types';
-import { formatCompactRupiah, formatRupiah, formatDate } from '@/lib/utils';
+import { formatCompactRupiah, formatDate } from '@/lib/utils';
 import { StatusBadge } from '@/components/shared/Badge';
 
 export default function ProjectsPage() {
-  const { projects, loading, error } = useProjects();
+  const { projects, loading, error, refreshProjects } = useProjects();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<string>('ALL');
 
@@ -57,9 +56,11 @@ export default function ProjectsPage() {
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
-          {['ALL', 'ACTIVE', 'AT_RISK', 'BASELINE_PENDING'].map((status) => (
+          {['ALL', 'ACTIVE', 'AT_RISK', 'BASELINE_PENDING', 'DRAFT', 'COMPLETED'].map((status) => (
             <button
               key={status}
+              type="button"
+              aria-pressed={statusFilter === status}
               onClick={() => setStatusFilter(status)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
                 statusFilter === status
@@ -67,14 +68,14 @@ export default function ProjectsPage() {
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {status === 'ALL' ? 'Semua' : status === 'ACTIVE' ? 'Berjalan' : status === 'AT_RISK' ? 'Perlu perhatian' : 'Menunggu persetujuan'}
+              {status === 'ALL' ? 'Semua' : status === 'ACTIVE' ? 'Berjalan' : status === 'AT_RISK' ? 'Perlu perhatian' : status === 'BASELINE_PENDING' ? 'Menunggu persetujuan' : status === 'DRAFT' ? 'Draf' : 'Selesai'}
             </button>
           ))}
         </div>
       </div>
 
       {/* Projects Grid / Table or Empty State */}
-      {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">Gagal memuat proyek: {error}</p>}
+      {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-red-50 p-4 text-sm text-red-700"><span>Gagal memuat proyek: {error}</span><button type="button" onClick={() => void refreshProjects()} className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold">Coba lagi</button></div>}
       {loading ? <p className="rounded-xl bg-white p-6 text-sm text-zinc-500">Memuat proyek…</p> : filteredProjects.length === 0 ? (
         <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
@@ -122,6 +123,11 @@ export default function ProjectsPage() {
                   <StatusBadge status={project.status} />
                 </div>
 
+                {!project.metrics.hasBaseline ? (
+                  <div className="rounded-xl border border-orange-200 bg-orange-50 p-3 text-xs text-orange-900">
+                    Acuan proyek belum disetujui. {project.documents.length} dokumen terlampir{project.extraction?.status === 'READY' ? ' · hasil analisis menunggu tinjauan' : ''}.
+                  </div>
+                ) : (<>
                 {/* Financial Summary */}
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 grid grid-cols-2 gap-2 text-xs">
                   <div>
@@ -135,8 +141,8 @@ export default function ProjectsPage() {
                     </p>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-xs uppercase font-semibold">Sudah ditagih</span>
-                    <p className="font-semibold text-emerald-700">{formatCompactRupiah(project.billedValue || 0)}</p>
+                    <span className="text-slate-500 text-xs uppercase font-semibold">Belum ditagih</span>
+                    <p className={`font-semibold ${project.metrics.unbilledValue ? 'text-amber-700' : 'text-slate-800'}`}>{formatCompactRupiah(project.metrics.unbilledValue)}</p>
                   </div>
                   <div>
                     <span className="text-slate-500 text-xs uppercase font-semibold">Versi acuan</span>
@@ -159,6 +165,7 @@ export default function ProjectsPage() {
                     />
                   </div>
                 </div>
+                </>)}
 
                 {/* Alerts indicator if any */}
                 {activeAlerts.length > 0 && (
@@ -174,13 +181,13 @@ export default function ProjectsPage() {
               {/* Action Footer */}
               <div className="p-4 px-6 bg-slate-50/70 border-t border-slate-100 rounded-b-2xl flex items-center justify-between">
                 <span className="text-xs text-slate-400">
-                  Tenggat: {formatDate(project.endDate)}
+                  {project.metrics.hasBaseline ? `Tenggat: ${formatDate(project.endDate)}` : 'Draf'}
                 </span>
                 <Link
                   href={`/projects/${project.id}`}
                   className="flex items-center gap-1.5 text-xs font-bold text-red-600 hover:text-red-700 group transition-colors"
                 >
-                  <span>Buka proyek</span>
+                  <span>{project.metrics.hasBaseline ? 'Buka proyek' : 'Siapkan acuan'}</span>
                   <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
