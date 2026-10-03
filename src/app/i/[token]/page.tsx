@@ -132,7 +132,7 @@ export default function PublicInvoicePage() {
             <div className="w-6 h-6 rounded-full bg-gradient-to-r from-orange-500 to-rose-600 flex items-center justify-center text-white">
               <Sparkles className="w-3.5 h-3.5" />
             </div>
-            <span className="font-heading font-extrabold text-sm text-zinc-900">YUPIENS</span>
+            <span className="font-heading font-extrabold text-sm text-zinc-900">CLARA</span>
             <span className="text-[11px] text-zinc-400">| Tautan Resmi Pembayaran Klien</span>
           </div>
 

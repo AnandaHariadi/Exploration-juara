@@ -23,7 +23,7 @@ const faqs: FaqItem[] = [
     id: "q2",
     number: "02",
     question: "Bagaimana jika sistem salah mengidentifikasi nominal proyek atau nama mitra?",
-    answer: "YUPIENS menerapkan standar pengesahan mandiri (Human-in-the-loop) yang ketat. Sebelum lembar tagihan resmi diterbitkan atau dikirimkan ke mitra kerja, sistem selalu menampilkan peninjauan draft terlebih dahulu. Anda memegang kendali penuh 100% untuk mengoreksi nama, nilai kontrak, maupun persentase uang muka (DP)."
+    answer: "CLARA menerapkan standar pengesahan mandiri (Human-in-the-loop) yang ketat. Sebelum lembar tagihan resmi diterbitkan atau dikirimkan ke mitra kerja, sistem selalu menampilkan peninjauan draft terlebih dahulu. Anda memegang kendali penuh 100% untuk mengoreksi nama, nilai kontrak, maupun persentase uang muka (DP)."
   },
   {
     id: "q3",
@@ -58,7 +58,7 @@ export function FaqSection() {
       <div className="absolute left-0 sm:left-2 lg:left-4 xl:left-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-60 sm:opacity-70 transition-opacity">
         <Image
           src="/images/shapes/shape_faq_left.svg"
-          alt="Yupiens Shield Crest Left"
+          alt="Clara Shield Crest Left"
           width={450}
           height={800}
           className="w-full h-auto object-contain"
@@ -69,7 +69,7 @@ export function FaqSection() {
       <div className="absolute right-0 sm:right-2 lg:right-4 xl:right-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-60 sm:opacity-70 transition-opacity">
         <Image
           src="/images/shapes/shape_faq_right.svg"
-          alt="Yupiens Serpentine Ribbon Right"
+          alt="Clara Serpentine Ribbon Right"
           width={450}
           height={850}
           className="w-full h-auto object-contain"
@@ -90,7 +90,7 @@ export function FaqSection() {
               Pertanyaan yang Sering Diajukan
             </h2>
             <p className="text-base text-zinc-600 leading-relaxed font-normal mb-8">
-              Informasi mendasar seputar tata cara penagihan, keamanan transaksi, dan integrasi pembayaran resmi YUPIENS.
+              Informasi mendasar seputar tata cara penagihan, keamanan transaksi, dan integrasi pembayaran resmi CLARA.
             </p>
 
             {/* Direct Consultation Card */}

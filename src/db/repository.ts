@@ -83,7 +83,7 @@ export function createInvoiceFromDraft(payload: {
     status: "issued",
     issuedAt: new Date().toISOString(),
     publicToken,
-    notes: payload.notes || "Dibuat otomatis oleh Asisten Keuangan AI YUPIENS",
+    notes: payload.notes || "Dibuat otomatis oleh Asisten Keuangan AI CLARA",
     items: [
       {
         id: `item_${invoiceId}_1`,

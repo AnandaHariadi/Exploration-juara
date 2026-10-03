@@ -1,5 +1,5 @@
 -- ============================================================================
--- YUPIENS FINTECH PLATFORM - INITIAL SCHEMA MIGRATION (0001_initial.sql)
+-- CLARA FINTECH PLATFORM - INITIAL SCHEMA MIGRATION (0001_initial.sql)
 -- Generated for PostgreSQL / SQLite / Supabase
 -- ============================================================================
 

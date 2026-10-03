@@ -1,6 +1,6 @@
-# 🗄️ Dokumentasi Layer Database — Yupiens Platform
+# 🗄️ Dokumentasi Layer Database — Clara Platform
 
-Folder `src/db/` merupakan pusat seluruh arsitektur data dan persistensi platform **Yupiens**. Struktur ini dirancang modular agar memudahkan pengembangan lokal maupun transisi ke database produksi berskala besar.
+Folder `src/db/` merupakan pusat seluruh arsitektur data dan persistensi platform **Clara**. Struktur ini dirancang modular agar memudahkan pengembangan lokal maupun transisi ke database produksi berskala besar.
 
 ---
 
@@ -39,7 +39,7 @@ Platform sudah disiapkan untuk langsung terhubung dengan:
 [users] ──(1:N)──> [clients] ──(1:N)──> [invoices] ──(1:N)──> [installments] ──(1:1)──> [payments]
 ```
 
-1. **`users`**: Profil pengguna utama Yupiens (nama, email, studio/usaha).
+1. **`users`**: Profil pengguna utama Clara (nama, email, studio/usaha).
 2. **`clients`**: Kategori klien (`campus`, `agency`, `corporate`, `general`).
 3. **`invoices`**: Data tagihan, nomor faktur unik, skema pembayaran (`full`, `dp`, `installment`), dan token publik unik klien.
 4. **`installments`**: Pembagian termin otomatis (Down Payment, Termin Tengah, Pelunasan).

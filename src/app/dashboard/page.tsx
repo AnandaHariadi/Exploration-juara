@@ -134,7 +134,7 @@ export default function DashboardPage() {
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 via-rose-500 to-red-600 flex items-center justify-center text-white shadow-sm">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <span className="font-heading font-extrabold text-lg text-zinc-900 tracking-tight">YUPIENS</span>
+              <span className="font-heading font-extrabold text-lg text-zinc-900 tracking-tight">CLARA</span>
             </Link>
             <span className="hidden sm:inline-block text-zinc-300">/</span>
             <span className="hidden sm:inline-block text-xs font-medium text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-md">

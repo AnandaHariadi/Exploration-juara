@@ -9,7 +9,7 @@ export function AboutSection() {
       <div className="absolute left-0 sm:left-2 lg:left-4 xl:left-8 top-16 sm:top-24 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-70 sm:opacity-80 transition-opacity">
         <Image
           src="/images/shapes/shape_tentang_left.svg"
-          alt="Yupiens Cascade Wave Left"
+          alt="Clara Cascade Wave Left"
           width={400}
           height={800}
           className="w-full h-auto object-contain"
@@ -20,7 +20,7 @@ export function AboutSection() {
       <div className="absolute right-0 sm:right-2 lg:right-4 xl:right-8 top-16 sm:top-24 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-70 sm:opacity-80 transition-opacity">
         <Image
           src="/images/shapes/shape_tentang_right.svg"
-          alt="Yupiens 3D Helix Loop Right"
+          alt="Clara 3D Helix Loop Right"
           width={500}
           height={750}
           className="w-full h-auto object-contain"
@@ -33,14 +33,14 @@ export function AboutSection() {
           <div className="flex items-center gap-3 mb-4">
             <span className="w-8 h-[2px] bg-red-600 inline-block" />
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
-              Tentang Yupiens
+              Tentang Clara
             </span>
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-bold text-zinc-950 tracking-tight mb-4">
             Standar Baru Tata Kelola Finansial Talenta Mandiri
           </h2>
           <p className="text-base sm:text-lg text-zinc-600 leading-relaxed font-normal">
-            Platform otomasi penagihan dan rekonsiliasi pembayaran yang dirancang oleh Yupiens untuk menjembatani profesional lepas dengan standar transaksi komersial resmi di Indonesia.
+            Platform otomasi penagihan dan rekonsiliasi pembayaran yang dirancang oleh Clara untuk menjembatani profesional lepas dengan standar transaksi komersial resmi di Indonesia.
           </p>
         </div>
 
@@ -53,7 +53,7 @@ export function AboutSection() {
                 Banyak talenta digital dan profesional independen memiliki kapabilitas keahlian tinggi, namun menghadapi hambatan operasional: ketiadaan departemen keuangan khusus, pencatatan piutang yang tercecer, hingga proses penagihan manual yang memakan waktu dan berisiko terlambat.
               </p>
               <p>
-                <strong>Yupiens</strong> hadir sebagai infrastruktur finansial mandiri yang mengotomasi seluruh siklus penagihan. Melalui konversi instruksi percakapan menjadi dokumen resmi, penataan uang muka (DP), dan verifikasi pembayaran seketika, setiap penyelesaian proyek terkonversi menjadi arus kas yang tepat waktu dan akuntabel.
+                <strong>Clara</strong> hadir sebagai infrastruktur finansial mandiri yang mengotomasi seluruh siklus penagihan. Melalui konversi instruksi percakapan menjadi dokumen resmi, penataan uang muka (DP), dan verifikasi pembayaran seketika, setiap penyelesaian proyek terkonversi menjadi arus kas yang tepat waktu dan akuntabel.
               </p>
               <div className="pt-1">
                 <Link
@@ -70,7 +70,7 @@ export function AboutSection() {
             <div className="relative h-60 sm:h-64 lg:h-72 w-full rounded-3xl overflow-hidden border border-zinc-200/90 shadow-sm mt-4">
               <Image
                 src="/images/corporate_fintech_ops.jpg"
-                alt="Operasional Finansial Yupiens"
+                alt="Operasional Finansial Clara"
                 fill
                 className="object-cover object-center"
               />
@@ -147,7 +147,7 @@ export function AboutSection() {
           <div className="absolute inset-x-0 -top-12 h-44 pointer-events-none select-none opacity-35 z-0 overflow-hidden">
             <Image
               src="/images/shapes/yupiens_ribbon_horizon.svg"
-              alt="Yupiens Brand Horizon Wave"
+              alt="Clara Brand Horizon Wave"
               fill
               className="object-cover object-center"
             />
@@ -170,7 +170,7 @@ export function AboutSection() {
             <div className="lg:col-span-7 space-y-6">
               <div>
                 <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono block mb-2">
-                  MISI STRATEGIS YUPIENS
+                  MISI STRATEGIS CLARA
                 </span>
                 <h3 className="text-2xl font-heading font-bold text-zinc-950 tracking-tight">
                   Tiga Komitmen Pembangunan Berkelanjutan
@@ -231,7 +231,7 @@ export function AboutSection() {
               PUSAT RISET &amp; OPERASIONAL
             </span>
             <h3 className="text-2xl sm:text-3xl font-heading font-bold text-zinc-950 tracking-tight">
-              Basis Operasional &amp; Rekayasa Teknologi Yupiens
+              Basis Operasional &amp; Rekayasa Teknologi Clara
             </h3>
           </div>
 
@@ -246,7 +246,7 @@ export function AboutSection() {
                 <div className="relative w-full h-full flex items-center justify-center">
                   <Image
                     src="/images/yupiens_office_transparent.png"
-                    alt="Visual Gedung Kantor Yupiens"
+                    alt="Visual Gedung Kantor Clara"
                     fill
                     className="object-contain object-center filter drop-shadow-2xl scale-110 sm:scale-120"
                     priority
@@ -262,8 +262,8 @@ export function AboutSection() {
                   </span>
                   <div className="my-4 sm:my-5">
                     <Image
-                      src="/images/yupiens_aveton_logo.png"
-                      alt="Yupiens"
+                      src="/images/clara_logo.svg"
+                      alt="Clara"
                       width={400}
                       height={120}
                       className="h-16 sm:h-20 md:h-24 w-auto object-contain filter drop-shadow-xs"
@@ -305,10 +305,10 @@ export function AboutSection() {
                       <span>Korespondensi Resmi</span>
                     </div>
                     <p className="text-xs sm:text-sm font-semibold text-zinc-900 font-mono">
-                      corporate@yupiens.id
+                      corporate@clara.id
                     </p>
                     <p className="text-xs text-zinc-500 leading-relaxed">
-                      Kemitraan: partnership@yupiens.id
+                      Kemitraan: partnership@clara.id
                     </p>
                   </div>
 

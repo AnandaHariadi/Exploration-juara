@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "YUPIENS — Infrastruktur Finansial & Otomasi Penagihan Profesional",
-  description: "Platform otomasi penagihan independen dari YUPIENS untuk talenta mandiri: Ekstraksi instruksi bahasa alami, tata kelola termin bertahap, serta integrasi QRIS & Virtual Account perbankan nasional.",
+  title: "CLARA — Infrastruktur Finansial & Otomasi Penagihan Profesional",
+  description: "Platform otomasi penagihan independen dari CLARA untuk talenta mandiri: Ekstraksi instruksi bahasa alami, tata kelola termin bertahap, serta integrasi QRIS & Virtual Account perbankan nasional.",
   icons: {
     icon: "/favicon.ico",
   },

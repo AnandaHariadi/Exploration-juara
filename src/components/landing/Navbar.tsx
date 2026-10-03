@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 
 const navItems = [
   { id: "beranda", label: "Beranda", href: "#beranda" },
-  { id: "tentang", label: "Tentang Yupiens", href: "#tentang" },
+  { id: "tentang", label: "Tentang Clara", href: "#tentang" },
   { id: "kategori", label: "Kategori Klien", href: "#kategori" },
   { id: "alur", label: "Alur Penagihan", href: "#alur" },
   { id: "faq", label: "FAQ", href: "#faq" },
@@ -39,18 +39,18 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-6">
-        {/* Brand Identity - Aveton-Style Elegant Logo */}
+        {/* Brand Identity - Clara Elegant Logo */}
         <div className="flex items-center shrink-0">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-600 via-rose-600 to-red-600 flex items-center justify-center text-white font-heading font-black text-lg shadow-sm group-hover:scale-105 transition-transform shrink-0">
-              Y
+              C
             </div>
             <div className="flex items-center">
               <Image
-                src="/images/yupiens_aveton_logo.png"
-                alt="Yupiens"
-                width={130}
-                height={38}
+                src="/images/clara_logo.svg"
+                alt="Clara"
+                width={120}
+                height={36}
                 className="h-7 sm:h-8 w-auto object-contain"
                 priority
               />

@@ -83,7 +83,7 @@ export function WorkflowSteps() {
       <div className="absolute left-0 sm:left-2 lg:left-4 xl:left-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-65 sm:opacity-75 transition-opacity">
         <Image
           src="/images/shapes/shape_alur_left.svg"
-          alt="Yupiens Stepped Wave Left"
+          alt="Clara Stepped Wave Left"
           width={450}
           height={850}
           className="w-full h-auto object-contain"
@@ -94,7 +94,7 @@ export function WorkflowSteps() {
       <div className="absolute right-0 sm:right-2 lg:right-4 xl:right-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-65 sm:opacity-75 transition-opacity">
         <Image
           src="/images/shapes/shape_alur_right.svg"
-          alt="Yupiens Milestone Orbit Right"
+          alt="Clara Milestone Orbit Right"
           width={500}
           height={800}
           className="w-full h-auto object-contain"

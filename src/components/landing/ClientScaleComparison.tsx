@@ -10,7 +10,7 @@ export function ClientScaleComparison() {
       <div className="absolute left-0 sm:left-2 lg:left-4 xl:left-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-65 sm:opacity-75 transition-opacity">
         <Image
           src="/images/shapes/shape_kategori_left.svg"
-          alt="Yupiens Architectural Wing Left"
+          alt="Clara Architectural Wing Left"
           width={450}
           height={800}
           className="w-full h-auto object-contain"
@@ -21,7 +21,7 @@ export function ClientScaleComparison() {
       <div className="absolute right-0 sm:right-2 lg:right-4 xl:right-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-65 sm:opacity-75 transition-opacity">
         <Image
           src="/images/shapes/shape_kategori_right.svg"
-          alt="Yupiens Horizon Arch Right"
+          alt="Clara Horizon Arch Right"
           width={500}
           height={800}
           className="w-full h-auto object-contain"
@@ -41,7 +41,7 @@ export function ClientScaleComparison() {
             Dua Jalur Penagihan Adaptif
           </h2>
           <p className="text-base sm:text-lg text-zinc-600 leading-relaxed font-normal">
-            Sistem YUPIENS secara cerdas menyesuaikan kanal transaksi, format dokumen, dan tata bahasa pengingat berdasarkan profil badan hukum mitra kerja Anda.
+            Sistem CLARA secara cerdas menyesuaikan kanal transaksi, format dokumen, dan tata bahasa pengingat berdasarkan profil badan hukum mitra kerja Anda.
           </p>
         </div>
 

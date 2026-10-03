@@ -15,7 +15,7 @@ interface OfficeSlide {
 const officeSlides: OfficeSlide[] = [
   {
     src: "/images/yupiens_hq.jpg",
-    badge: "GEDUNG PUSAT YUPIENS",
+    badge: "GEDUNG PUSAT CLARA",
     caption: "Pusat Inovasi Finansial",
     title: "Infrastruktur Transaksi Mandiri Terintegrasi",
   },
@@ -63,11 +63,11 @@ export function HeroSection() {
           className="object-cover object-center"
         />
       </div>
-      {/* Yupiens Executive Monumental Ribbon (Left Flank - 3D Architectural Flow & Radiant Aura) */}
+      {/* Clara Executive Monumental Ribbon (Left Flank - 3D Architectural Flow & Radiant Aura) */}
       <div className="absolute -left-6 sm:-left-4 lg:left-0 xl:left-2 top-0 sm:top-2 lg:top-4 w-36 sm:w-56 md:w-72 lg:w-96 xl:w-[440px] h-auto pointer-events-none select-none z-[1] opacity-85 sm:opacity-95 transition-all">
         <Image
           src="/images/shapes/hero_ribbon_monument_left.svg"
-          alt="Yupiens Executive Ribbon Left"
+          alt="Clara Executive Ribbon Left"
           width={650}
           height={1000}
           className="w-full h-auto object-contain"
@@ -75,11 +75,11 @@ export function HeroSection() {
         />
       </div>
 
-      {/* Yupiens Executive Monumental Ribbon (Right Flank - 3D Upward Momentum & FinTech Strata) */}
+      {/* Clara Executive Monumental Ribbon (Right Flank - 3D Upward Momentum & FinTech Strata) */}
       <div className="absolute -right-6 sm:-right-4 lg:right-0 xl:right-2 top-0 sm:top-2 lg:top-4 w-36 sm:w-56 md:w-72 lg:w-96 xl:w-[440px] h-auto pointer-events-none select-none z-[1] opacity-85 sm:opacity-95 transition-all">
         <Image
           src="/images/shapes/hero_ribbon_monument_right.svg"
-          alt="Yupiens Executive Ribbon Right"
+          alt="Clara Executive Ribbon Right"
           width={650}
           height={1000}
           className="w-full h-auto object-contain"
@@ -90,22 +90,22 @@ export function HeroSection() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Editorial Header - Perfectly Center-Aligned */}
         <div className="text-center max-w-4xl mx-auto mb-16 relative z-10">
-          {/* Astra-Style Centered Corporate Kicker - Elevating Yupiens */}
+          {/* Astra-Style Centered Corporate Kicker - Elevating Clara */}
           <div className="inline-flex items-center justify-center gap-3 mb-6">
             <span className="w-8 h-[2px] bg-red-600 inline-block" />
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
-              Ekosistem Teknologi Finansial Yupiens
+              Ekosistem Teknologi Finansial Clara
             </span>
             <span className="w-8 h-[2px] bg-red-600 inline-block" />
           </div>
 
-          {/* Grand Commanding Yupiens Aveton Wordmark (Main Brand Focal Point) */}
+          {/* Grand Commanding Clara Wordmark (Main Brand Focal Point) */}
           <div className="flex justify-center items-center my-6 sm:my-8">
             <Image
-              src="/images/yupiens_aveton_logo.png"
-              alt="Yupiens"
+              src="/images/clara_logo.svg"
+              alt="Clara"
               width={900}
-              height={261}
+              height={270}
               priority
               className="h-28 sm:h-36 md:h-44 lg:h-52 xl:h-60 w-auto object-contain filter drop-shadow-xs"
             />
@@ -116,9 +116,9 @@ export function HeroSection() {
             Infrastruktur Finansial &amp; Otomasi Penagihan Profesional
           </h1>
 
-          {/* Elevating Yupiens Company Copy - Corporate, Visionary & Prestigious */}
+          {/* Elevating Clara Company Copy - Corporate, Visionary & Prestigious */}
           <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-3xl mx-auto">
-            Sebagai pelopor otomasi administrasi digital, Yupiens membangun infrastruktur cerdas terintegrasi yang mentransformasi efisiensi transaksi, melindungi arus kas operasional, dan menghadirkan keunggulan bisnis berdaya saing tinggi bagi para profesional mandiri di seluruh Indonesia.
+            Sebagai pelopor otomasi administrasi digital, Clara membangun infrastruktur cerdas terintegrasi yang mentransformasi efisiensi transaksi, melindungi arus kas operasional, dan menghadirkan keunggulan bisnis berdaya saing tinggi bagi para profesional mandiri di seluruh Indonesia.
           </p>
 
           {/* Action Buttons - Centered */}
@@ -230,7 +230,7 @@ export function HeroSection() {
           </div>
         </div>
 
-        {/* Clean, Neat Astra-Style 3-Column Trust Bar (Elevating Yupiens Core Architectural Values) */}
+        {/* Clean, Neat Astra-Style 3-Column Trust Bar (Elevating Clara Core Architectural Values) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8 border-t border-zinc-200">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-lg bg-zinc-100 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
