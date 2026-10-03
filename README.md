@@ -1,21 +1,41 @@
 # CLARA — Contract Intelligence for Business Value
 
-> What we agreed · What we planned · What actually happened · What we realized.
-> AI understands language. Backend calculates facts. Frontend explains the state. Human confirms the truth.
+> CLARA doesn't just read contracts. It watches what happens after the contract is signed.
+> **Detect → Explain → Quantify → Resolve → Approve → Monitor.**
+> AI interprets. The deterministic engine calculates. Humans decide.
 
 ## Architecture
 
 ```
 Browser ──► Next.js app (frontend/, :3000)
-              ├─ API routes ──► SQLite (frontend/data/clara.db)   ← single source of truth for business data
-              │                 deterministic engine (src/lib/engine.ts): metrics, reconciliation, alerts, evidence
-              └─ server-side AI client (src/lib/ai.ts) ──► CLARA AI service (backend/, :3001)
-                                                            OCR · extraction · evidence check · legal RAG (Gemini, optional Neo4j)
+              ├─ API routes ──► SQLite (frontend/data/clara.db) — single source of truth for business data
+              │     ├─ engine.ts      deterministic metrics, reconciliation, alerts, cross-document checks, evidence
+              │     ├─ domain.ts      baseline versions, events, finance, change-request governance, drafts
+              │     ├─ guardian.ts    Document Guardian: automatic analysis of every uploaded document
+              │     └─ remediation.ts Remediation Copilot: CR proposals, drafting, self-review, explanations
+              └─ server-side AI client (ai.ts) ──► CLARA AI service (backend/, :3001)
+                                                    OCR · extraction · evidence check · guardrails · legal RAG · drafting · PDF
 ```
 
-- The browser only calls `/api/*` on the Next.js app. It never sees the AI service URL, Gemini key, or Neo4j credentials.
-- AI output is validated twice (AI service + Next.js) and only ever becomes a **candidate**. A human confirms it into baseline **V1**.
-- Only an **approved** change request creates a new baseline version (V2, V3…). Old versions are archived, never edited.
+- The browser only calls `/api/*`. It never sees the AI service URL, Gemini key, or Neo4j credentials.
+- AI output is validated twice and only ever becomes a **candidate**, a **finding**, or a **draft**. Numbers (billing, variance, exposure, rate differences) are calculated by the engine.
+- Every finding is labelled **Perhitungan terverifikasi** (engine), **Temuan AI** (AI interpretation) or **Dicatat pengguna**. Exposure is never presented as a loss.
+- Change requests are governed: PIC submits → Finance reviews impact → Decision maker approves internally → client approval evidence → new baseline version (V2, V3…). Older versions are archived, never edited. Alerts explained by an approved change become **SUPERSEDED**.
+
+## AI capabilities
+
+| Capability | Where |
+| --- | --- |
+| Automatic analysis on upload (contract, RAB, invoice, addendum, client approval, supporting docs) | Upload anywhere → Document Guardian; status UPLOADED → PROCESSING → ANALYZED / NEEDS_REVIEW / FAILED |
+| Extraction of value, dates, revisions, milestones, scope, rates, revision price, penalties, with page-verified quotes | Project setup review, Dokumen & AI tab |
+| Contract risk findings (AI + legacy CLARA guardrails) | Dokumen & AI tab, Peringatan (risk ≥ medium) |
+| Cross-document checks: invoice rate vs contract, arithmetic, entitlement, billing before trigger, revisions charged vs baseline, potential duplicates, addendum vs baseline | Engine on every reconcile |
+| Plain-language explanation of an alert | Evidence drawer → "Jelaskan dampak bisnis (AI)" |
+| Generate change request from an alert (numbers from contract terms) + addendum draft | Evidence drawer → "Buat permintaan perubahan (AI)" |
+| Document Studio: addendum, CR, clause revision, MoU, LoI, PKS, anomaly follow-up; AI revise; self-review; approve; export PDF | /studio, Dokumen & AI tab |
+| Legal Q&A with RAG + project context | /legal-ai |
+
+AI unavailable → documents stay stored with status FAILED and a retry; business data and dashboards keep working; drafts fall back to a clearly labelled template.
 
 ## Run locally
 
@@ -53,8 +73,10 @@ No `NEXT_PUBLIC_*` variables are used. Never commit `.env` files.
 
 ```bash
 npm --prefix backend test                    # unit tests (guardrails, retrieval)
-npm --prefix frontend run test:api           # 69-check API scenario of the full pitch flow (app must be running)
-E2E_MODE=AI npm --prefix frontend run test:api   # same, through real AI extraction
+npm --prefix frontend run test:api           # full pitch scenario via API, AI unavailable path (app must be running)
+E2E_MODE=AI npm --prefix frontend run test:api   # same with automatic AI analysis, invoice cross-checks, explanations
+# Without a Gemini key, AI paths can be tested with the stub:
+#   node backend/scripts/gemini-stub.mjs & GOOGLE_AI_API_KEY=stub GEMINI_BASE_URL=http://localhost:3999 npm run dev:ai
 npx --prefix frontend playwright install chromium  # once
 npm --prefix frontend run test:ui            # browser: full pitch flow by clicking + all routes at 1440/1280/390 px
 ```
@@ -63,16 +85,34 @@ All tests start with a demo reset and can be rerun.
 
 ## Pitch demo script
 
-1. Sidebar → **Atur ulang data demo** (confirm). Header → choose **Budi Santoso**.
-2. Dashboard → **Siapkan acuan** → *Sistem Manajemen Armada & Logistik* (contract PDF + RAB CSV already attached; *Buka sumber* opens them).
-3. **Analisis dengan AI** (or **Muat data contoh (tanpa AI)** if AI is unavailable).
-4. Review: Rp120.000.000 · RAB Rp75.000.000 · deadline 30 Nov 2026 · 3 revisions · UAT 25% — each with the quoted clause and page.
-5. **Setujui sebagai acuan V1** → planned profit Rp45.000.000.
-6. Pemantauan: progres **60** → Simpan. Keuangan: biaya **64000000** → Catat biaya (85,3% of RAB).
-7. Pemantauan: **UAT diterima** → Tandai selesai. Do not create an invoice.
-8. Pemantauan: revisi **5** → Catat.
-9. Peringatan → *UAT diterima selesai, belum ditagih* → **Lihat bukti**: Pasal 4.1 (hal. 2), UAT event, no invoice, 25% × Rp120.000.000 = Rp30.000.000 belum ditagih.
-10. *2 revisi di luar acuan V1* → bukti 5 − 3 = 2.
-11. Perubahan → **Isi otomatis** (+2 revisi) → nilai **4000000**, hari **5** → Ajukan → **Setujui perubahan**.
-12. Acuan proyek tab: **V2 aktif** Rp124.000.000, 5 revisi, tenggat 5 Des 2026; **V1 diarsipkan**. The revision alert is resolved automatically; the Rp30.000.000 billing alert stays open.
-13. Optional: Siti → Keuangan → **Buat tagihan** → **Catat pembayaran**; dashboard updates. Hendra → Peringatan.
+Start: sidebar → **Atur ulang data demo** (confirm). Header persona → **Budi Santoso**.
+
+**A. Project start (Budi)**
+1. **Proyek baru** → name *Sistem Manajemen Armada*, client *PT Astra Sahabat Logistik* → **Gunakan berkas contoh (demo)** → **Buat proyek & lanjut ke analisis**.
+2. CLARA analyzes the contract automatically (no button). If AI is unavailable, click **Muat data contoh (tanpa AI)**.
+3. Review: Rp120.000.000 · RAB Rp75.000.000 · 30 Nov 2026 · 3 revisions · UAT 25% · Rp2.000.000/extra revision · Rp500.000/hour — each with the quoted clause and page (*Buka sumber*).
+4. **4 · Setujui sebagai acuan V1** (planned profit Rp45.000.000).
+
+**B–C. Monitoring and anomalies**
+5. Pemantauan: progres **60** → Simpan. Keuangan: biaya **64000000** → Catat biaya (85,3% of RAB).
+6. Pemantauan: **UAT diterima** → Tandai selesai (no invoice). Catat revisi **5**.
+7. Peringatan → *UAT diterima selesai, belum ditagih* → **Lihat bukti**: clause 4.1 p.2, UAT event, no invoice, 25% × Rp120.000.000 = Rp30.000.000 (belum ditagih, bukan kerugian). Optional: **Jelaskan dampak bisnis (AI)**.
+8. *2 revisi di luar acuan V1* → bukti 5 − 3 = 2 · nilai menurut tarif kontrak Rp4.000.000.
+
+**D. AI remediation**
+9. In that drawer: **Buat permintaan perubahan (AI)** → CR drafted: +2 revisi, +Rp4.000.000 (2 × Rp2.000.000, Pasal 5), +5 hari, with an addendum draft that passed self-review.
+10. **Ajukan untuk persetujuan internal**.
+
+**E–F. Finance and decision**
+11. Persona **Siti** → Dashboard → *Tinjau dampak keuangan CR/…* → **Konfirmasi dampak & teruskan**.
+12. Persona **Hendra** → Dashboard → *Putuskan CR/…* → **Setujui internal**. Baseline is still V1 (client approval required).
+
+**G. Official change**
+13. Persona **Budi** → tab **Dokumen & AI** → **Surat persetujuan klien** (sample) — CLARA reads it as approval 045/ASL-PROC/X/2026.
+14. Tab **Perubahan** → choose that document → **Catat persetujuan klien & resmikan** → **V2**: Rp124.000.000, 5 revisions, 5 Des 2026.
+
+**H. Close the loop**
+15. Acuan proyek: V2 active, V1 archived with the change list. Peringatan: revision alert gone (show resolved → *Dijelaskan perubahan resmi*); Rp30.000.000 billing alert stays open.
+16. Dokumen & AI: approve the addendum draft → **Ekspor PDF untuk dikirim** (CLARA never sends documents itself).
+17. Optional cross-document demo: Dokumen & AI → **Invoice pekerjaan tambahan** → CLARA flags Rp650.000 vs Rp500.000/hour (Rp6.000.000 verified difference), 8 revisions charged vs 5 allowed, and billing before the addendum milestone is done.
+18. Dashboard / **Pusat AI**: summary, priorities, analyzed documents, prepared actions.
