@@ -11,7 +11,7 @@
  *      numbers come from the page markers, not from the model.
  */
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { env, aiConfigured } from "../../config/env";
+import { env, aiConfigured, geminiRequestOptions } from "../../config/env";
 import { applyOcrCorrections } from "../ocr/ocrService";
 
 export class AiNotConfiguredError extends Error {
@@ -67,7 +67,7 @@ function model(json = false) {
   return genAI.getGenerativeModel({
     model: env.GEMINI_MODEL,
     generationConfig: json ? { temperature: 0, responseMimeType: "application/json" } : { temperature: 0 },
-  });
+  }, geminiRequestOptions());
 }
 
 async function ocrWithPages(buffer: Buffer, mimeType: string): Promise<string> {
