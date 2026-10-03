@@ -66,14 +66,14 @@ const args = process.argv.slice(2);
 const isWatchMode = args.includes('--watch') || args.includes('-w');
 const isDryRun = args.includes('--dry-run');
 const noPush = args.includes('--no-push');
-const intervalArg = args.find((a) => a.startsWith('--interval=') || a === '-i');
-let pollInterval = 10; // seconds
+const intervalArg = args.find((a) => a.startsWith('--interval=') || a === '--interval' || a === '-i');
+let pollInterval = 5; // default 5 seconds for fast watch
 if (intervalArg) {
   if (intervalArg.startsWith('--interval=')) {
-    pollInterval = parseInt(intervalArg.split('=')[1], 10) || 10;
+    pollInterval = parseInt(intervalArg.split('=')[1], 10) || 5;
   } else {
-    const idx = args.indexOf('-i');
-    if (idx !== -1 && args[idx + 1]) pollInterval = parseInt(args[idx + 1], 10) || 10;
+    const idx = args.findIndex((a) => a === '--interval' || a === '-i');
+    if (idx !== -1 && args[idx + 1]) pollInterval = parseInt(args[idx + 1], 10) || 5;
   }
 }
 
