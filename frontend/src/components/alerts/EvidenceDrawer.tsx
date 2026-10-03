@@ -2,10 +2,12 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, Calculator, CheckCircle2, ExternalLink, FileText, Flag, GitPullRequest, Receipt, ShieldAlert, Wallet, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowRight, Bot, Calculator, CheckCircle2, ExternalLink, FileText, Flag, GitPullRequest, Receipt, ShieldAlert, Wallet, X } from 'lucide-react';
 import type { Alert, EvidenceItem } from '@/types';
 import { SeverityBadge } from '@/components/shared/Badge';
 import { InsightBadge, btn, inputClass } from '@/components/shared/ui';
+import { BasisBadge } from '@/components/shared/labels';
 import { formatDate, formatRupiah, isOpenAlert } from '@/lib/utils';
 import { dataClient, documentUrl } from '@/services/dataClient';
 
@@ -47,6 +49,10 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, 
   const [error, setError] = React.useState<string | null>(null);
   const [resolving, setResolving] = React.useState(false);
   const [note, setNote] = React.useState('');
+  const [explanation, setExplanation] = React.useState<Alert['aiExplanation']>();
+  const [aiBusy, setAiBusy] = React.useState<string | null>(null);
+  const [aiError, setAiError] = React.useState<string | null>(null);
+  const router = useRouter();
   const closeButton = React.useRef<HTMLButtonElement>(null);
   const dialog = React.useRef<HTMLDivElement>(null);
   const closeRef = React.useRef(onClose);
@@ -57,7 +63,10 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, 
     setResolving(false);
     setNote('');
     setBusy(false);
-  }, [alert?.id]);
+    setExplanation(alert?.aiExplanation);
+    setAiBusy(null);
+    setAiError(null);
+  }, [alert?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
     if (!alert) return;
@@ -98,6 +107,36 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, 
     }
   };
 
+  const remediate = async (key: string, action: () => Promise<unknown>, tab: string) => {
+    setAiBusy(key);
+    setAiError(null);
+    try {
+      await action();
+      onActionComplete?.();
+      onClose();
+      router.push(`/projects/${alert.projectId}?tab=${tab}`);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'Gagal menyiapkan tindakan.');
+      setAiBusy(null);
+    }
+  };
+  const explain = async () => {
+    setAiBusy('explain');
+    setAiError(null);
+    try {
+      const updated = await dataClient.explainAlert(alert.id);
+      setExplanation(updated.aiExplanation);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'Penjelasan AI gagal.');
+    } finally {
+      setAiBusy(null);
+    }
+  };
+  const open = isOpenAlert(alert);
+  const canProposeChange = open && (['REVISION_LIMIT', 'SCOPE_VARIANCE', 'DEADLINE_RISK'].includes(alert.type) || (alert.type === 'DOCUMENT_INCONSISTENCY' && alert.id.includes('-ADDM-')));
+  const canRespond = open && (['FINANCIAL_ANOMALY', 'POTENTIAL_IRREGULARITY'].includes(alert.type) || (alert.type === 'DOCUMENT_INCONSISTENCY' && !alert.id.includes('-ADDM-')));
+  const canReviseClause = open && alert.type === 'CONTRACT_RISK';
+
   const statusLabel = alert.status === 'NEW' ? 'Baru' : alert.status === 'ACKNOWLEDGED' ? 'Sudah dibaca · belum selesai' : 'Selesai';
 
   return (
@@ -109,6 +148,7 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, 
             <div>
               <div className="mb-1.5 flex flex-wrap items-center gap-2">
                 <InsightBadge status={alert.classification} />
+                <BasisBadge basis={alert.basis} />
                 <SeverityBadge severity={alert.severity} />
                 <span className="text-xs text-zinc-500">{statusLabel}</span>
               </div>
@@ -178,6 +218,40 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, 
             <h5 className="mb-1 text-sm font-bold text-orange-950">Yang perlu ditinjau</h5>
             <p className="text-sm leading-relaxed text-orange-900">{alert.recommendedAction}</p>
             <p className="mt-2 text-xs text-orange-800">CLARA tidak mengambil keputusan atau mengirim tagihan otomatis. Keputusan tetap di tangan Anda.</p>
+          </div>
+
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h5 className="flex items-center gap-1.5 text-sm font-bold text-indigo-950"><Bot className="h-4 w-4" />CLARA Copilot</h5>
+              {!explanation && <button type="button" disabled={aiBusy !== null} onClick={() => void explain()} className="text-xs font-semibold text-indigo-700 underline disabled:opacity-50">{aiBusy === 'explain' ? 'Menyusun penjelasan…' : 'Jelaskan dampak bisnis (AI)'}</button>}
+            </div>
+            {explanation && (
+              <div className="mt-2 rounded-lg bg-white p-3 text-sm leading-relaxed text-zinc-800">
+                <p className="whitespace-pre-wrap">{explanation.text}</p>
+                <p className="mt-2 text-[11px] text-indigo-700">Temuan AI ({explanation.engine}) · angka berasal dari perhitungan terverifikasi, bukan dari AI.</p>
+              </div>
+            )}
+            {(canProposeChange || canRespond || canReviseClause) && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {canProposeChange && (
+                  <button type="button" disabled={aiBusy !== null} onClick={() => void remediate('cr', () => dataClient.draftChangeRequestFromAlert(alert.projectId, alert.id), 'change-requests')} className={btn.primary}>
+                    {aiBusy === 'cr' ? 'Menyiapkan…' : 'Buat permintaan perubahan (AI)'}
+                  </button>
+                )}
+                {canRespond && (
+                  <button type="button" disabled={aiBusy !== null} onClick={() => void remediate('respond', () => dataClient.generateDocument({ projectId: alert.projectId, type: 'ANOMALY_RESPONSE', alertId: alert.id }), 'documents')} className={btn.primary}>
+                    {aiBusy === 'respond' ? 'Menyiapkan…' : 'Buat tindak lanjut (AI)'}
+                  </button>
+                )}
+                {canReviseClause && (
+                  <button type="button" disabled={aiBusy !== null} onClick={() => void remediate('clause', () => dataClient.generateDocument({ projectId: alert.projectId, type: 'CLAUSE_REVISION', alertId: alert.id }), 'documents')} className={btn.primary}>
+                    {aiBusy === 'clause' ? 'Menyiapkan…' : 'Usulkan revisi klausul (AI)'}
+                  </button>
+                )}
+              </div>
+            )}
+            {aiError && <p role="alert" className="mt-2 text-xs text-red-700">{aiError}</p>}
+            <p className="mt-2 text-[11px] text-indigo-800">Semua yang disiapkan CLARA berstatus draf dan memerlukan persetujuan manusia.</p>
           </div>
 
           {alert.resolution && (
