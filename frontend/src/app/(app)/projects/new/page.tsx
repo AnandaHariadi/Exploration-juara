@@ -65,13 +65,6 @@ export default function NewProjectFlowPage() {
 
     setTimeout(() => {
       setStep(3);
-      if (contractValue === 0) setContractValue(750000000);
-      if (plannedCost === 0) setPlannedCost(500000000);
-      if (!deadline) {
-        const d = new Date();
-        d.setMonth(d.getMonth() + 6);
-        setDeadline(d.toISOString().split('T')[0]);
-      }
     }, 3800);
   };
 

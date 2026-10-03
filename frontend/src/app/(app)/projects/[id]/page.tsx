@@ -158,7 +158,7 @@ export default function ProjectDetailPage() {
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{project.name}</h1>
           <p className="text-xs text-slate-500 mt-1">
-            Klien: <strong className="text-slate-700">{project.client}</strong> • No. Kontrak: {project.agreementBaseline?.contractNumber || 'PKS-SAMPLE-01'}
+            Klien: <strong className="text-slate-700">{project.client}</strong> • No. Kontrak: {project.agreementBaseline?.contractNumber || '-'}
           </p>
         </div>
 

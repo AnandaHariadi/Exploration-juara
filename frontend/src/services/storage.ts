@@ -3,18 +3,29 @@
 import { Project, Alert, ProjectEvent, ActualCostItem, ChangeRequest, InvoiceItem } from '@/types';
 import { INITIAL_PROJECTS } from './mockData';
 
-const STORAGE_KEY = 'clara_projects_db';
+const STORAGE_KEY = 'clara_projects_v2';
 
 export const storageService = {
   getProjects(): Project[] {
     if (typeof window === 'undefined') return [];
     try {
+      // Clean legacy mock data from user's browser
+      if (localStorage.getItem('clara_projects_db')) {
+        localStorage.removeItem('clara_projects_db');
+      }
+
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
         return [];
       }
-      return JSON.parse(stored);
+      const parsed: Project[] = JSON.parse(stored);
+      // Filter out any legacy dummy projects if present
+      const cleaned = parsed.filter((p) => !['PRJ-001', 'PRJ-002', 'PRJ-003'].includes(p.id));
+      if (cleaned.length !== parsed.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+      }
+      return cleaned;
     } catch {
       return [];
     }
