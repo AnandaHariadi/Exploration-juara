@@ -33,14 +33,14 @@ export function AboutSection() {
           <div className="flex items-center gap-3 mb-4">
             <span className="w-8 h-[2px] bg-red-600 inline-block" />
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
-              Tentang CLARA
+              PROFIL &amp; REKAYASA KORPORASI CLARA
             </span>
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-bold text-zinc-950 tracking-tight mb-4">
-            Mengubah Dokumen Kontrak Menjadi Intelijen Bisnis Aktif
+            Menegakkan Kedaulatan Nilai Bisnis Melalui Intelijen Kontrak Terpadu
           </h2>
           <p className="text-base sm:text-lg text-zinc-600 leading-relaxed font-normal">
-            Bisnis berbasis proyek kerap menghadapi data yang terfragmentasi: kontrak di legal, RAB di spreadsheet, progress di PM tracker, dan invoice di finance. CLARA menyatukan semuanya dalam satu baseline rekonsiliasi deterministik.
+            Sebagai pelopor platform Contract Intelligence di Indonesia, CLARA memadukan ketajaman pemahaman hukum dengan rekayasa presisi analitik data—mentransformasi setiap klausul komersial menjadi benteng perlindungan margin, kepatuhan operasional, dan pertumbuhan bisnis yang akuntabel.
           </p>
         </div>
 
@@ -50,17 +50,17 @@ export function AboutSection() {
           <div className="lg:col-span-6 flex flex-col justify-between h-full space-y-6">
             <div className="space-y-5 text-zinc-700 leading-relaxed text-sm sm:text-base font-normal">
               <p>
-                Kontrak adalah apa yang disepakati. RAB adalah apa yang direncanakan. Progress dan actual cost adalah apa yang terjadi di lapangan. Invoice adalah apa yang sudah direalisasikan menjadi uang. Masalahnya, data tersebut jarang dibandingkan secara konsisten sehingga memicu klausul terlewat, milestone unbilled, hingga budget overrun.
+                Di lanskap industri modern, kontrak bukan sekadar lembar arsip hukum pasif. Kontrak adalah komitmen finansial hidup yang menentukan kepastian arus kas, integritas pengerjaan, dan kredibilitas jangka panjang perusahaan. Namun selama bertahun-tahun, banyak bisnis berbasis proyek menghadapi jurang data: kesepakatan tertahan di divisi legal, kalkulasi rencana terkunci di spreadsheet, dinamika tim terisolasi di lapangan, dan penagihan tertunda di meja keuangan.
               </p>
               <p>
-                <strong>CLARA</strong> hadir sebagai platform Contract Intelligence yang bekerja pada dua fase: <strong>Before Signing</strong> untuk menganalisis risiko, kewajiban, dan financial exposure kontrak; serta <strong>After Signing</strong> untuk memantau apakah pengerjaan, scope, biaya, dan penagihan tetap selaras dengan baseline resmi yang disepakati.
+                <strong>CLARA</strong> dibangun dengan satu misi strategis: <strong>menghubungkan seluruh sumber kebenaran bisnis dalam satu ekosistem deterministik yang transparan</strong>. Mulai dari mitigasi risiko liabilitas sebelum penandatanganan (Before Signing) hingga pemantauan kepatuhan eksekusi pengerjaan (After Signing), CLARA memberdayakan para pemangku kepentingan untuk memimpin dengan wawasan berbasis data, menghentikan kebocoran margin, dan memastikan setiap rupiah kesepakatan terealisasi utuh menjadi nilai bisnis nyata.
               </p>
               <div className="pt-1">
                 <Link
                   href="/dashboard"
                   className="inline-flex items-center gap-2 text-sm font-heading font-bold text-red-600 hover:text-red-700 transition-colors"
                 >
-                  <span>Eksplorasi Dashboard Rekonsiliasi</span>
+                  <span>Pelajari Ekosistem &amp; Fitur Rekonsiliasi</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -70,17 +70,17 @@ export function AboutSection() {
             <div className="relative h-60 sm:h-64 lg:h-72 w-full rounded-3xl overflow-hidden border border-zinc-200/90 shadow-sm mt-4">
               <Image
                 src="/images/corporate_fintech_ops.jpg"
-                alt="Operasional Finansial CLARA"
+                alt="Operasional Contract Intelligence CLARA"
                 fill
                 className="object-cover object-center"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
               <div className="absolute bottom-4 left-5 right-5 text-white">
-                <p className="text-xs font-medium text-zinc-200">
-                  Pusat Rekonsiliasi Multidimensi
+                <p className="text-xs font-medium text-zinc-300">
+                  Pusat Operasional &amp; Tata Kelola Finansial
                 </p>
                 <p className="text-sm font-heading font-bold text-white">
-                  Determinisme Bisnis Berbasis 4 Sumber Kebenaran
+                  Infrastruktur Pengamanan Nilai Kontrak &amp; Eksekusi Proyek Berdaya Saing Global
                 </p>
               </div>
             </div>
@@ -96,10 +96,10 @@ export function AboutSection() {
                 </div>
                 <div>
                   <h4 className="font-heading font-bold text-base text-zinc-950 mb-1.5">
-                    Ekstraksi Kontrak &amp; Baseline V1
+                    Integritas Baseline Berstandar Institusional
                   </h4>
                   <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                    Mengonversi dokumen PKS, SOW, dan RAB menjadi format data terstruktur. Pengesahan mandiri (Human-in-the-loop) mengunci Baseline V1 sebagai standar kebenaran proyek.
+                    Menerjemahkan dokumen PKS, SOW, dan struktur RAB kompleks menjadi format data baku terstruktur yang disahkan langsung oleh pemangku kepentingan sebagai standar kebenaran proyek.
                   </p>
                 </div>
               </div>
@@ -113,10 +113,10 @@ export function AboutSection() {
                 </div>
                 <div>
                   <h4 className="font-heading font-bold text-base text-zinc-950 mb-1.5">
-                    Engine Rekonsiliasi Multidimensi
+                    Deteksi Deviasi &amp; Rekonsiliasi Multidimensi
                   </h4>
                   <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                    Mendeteksi Scope Variance (fitur di luar SOW), Budget Variance (biaya melampaui RAB), dan Billing Gap (pekerjaan selesai namun belum ditagihkan) secara real-time.
+                    Engine deterministik yang secara proaktif memitigasi risiko pembengkakan biaya anggaran (budget overrun), pekerjaan di luar kesepakatan (scope creep), dan milestone unbilled.
                   </p>
                 </div>
               </div>
@@ -130,10 +130,10 @@ export function AboutSection() {
                 </div>
                 <div>
                   <h4 className="font-heading font-bold text-base text-zinc-950 mb-1.5">
-                    Change Request &amp; Baseline Versioning
+                    Kepatuhan Hukum &amp; Kedaulatan Audit Trail
                   </h4>
                   <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                    Setiap penambahan atau adendum resmi yang disetujui otomatis memperbarui baseline proyek menjadi V2, V3 dengan riwayat audit trail yang akuntabel.
+                    Mencatat setiap addendum, perubahan scope, dan versi baseline proyek (V1, V2, V3) secara kronologis dengan standar pembuktian akuntabel guna melindungi bisnis dari risiko sengketa.
                   </p>
                 </div>
               </div>
