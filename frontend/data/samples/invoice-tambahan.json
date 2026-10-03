@@ -1,0 +1,24 @@
+{
+  "fileName": "Invoice-ASL-Tambahan.pdf",
+  "title": "INVOICE",
+  "pages": [
+    [
+      "INVOICE",
+      "Nomor: INV/KDN/2026/032",
+      "Tanggal: 20 Oktober 2026",
+      "",
+      "Dari: PT Karya Digital Nusantara",
+      "Kepada: PT Astra Sahabat Logistik",
+      "Rujukan kontrak: PKS/ASL/2026/089",
+      "",
+      "Termin: Pekerjaan tambahan dan revisi",
+      "",
+      "1. Pekerjaan tambahan integrasi notifikasi - 40 jam x Rp650.000 = Rp26.000.000",
+      "2. Revisi dashboard putaran 4 sampai 8 (total 8 putaran revisi) - 5 putaran x Rp2.000.000 = Rp10.000.000",
+      "",
+      "Total tagihan: Rp36.000.000",
+      "",
+      "DOKUMEN CONTOH UNTUK DEMO CLARA - BUKAN INVOICE SUNGGUHAN"
+    ]
+  ]
+}
