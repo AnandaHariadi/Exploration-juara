@@ -11,7 +11,7 @@
  * All responses must include statutory references (Pasal / UU / PP / Permenaker).
  */
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { env } from "../../config/env";
+import { env, geminiRequestOptions } from "../../config/env";
 import type { RetrievalResult } from "../retrieval/denseRetrieval";
 
 const genAI = new GoogleGenerativeAI(env.GOOGLE_AI_API_KEY);
@@ -82,7 +82,7 @@ async function generatePath(
     model: env.GEMINI_MODEL,
     systemInstruction,
     generationConfig: { temperature },
-  });
+  }, geminiRequestOptions());
   const result = await model.generateContent(prompt);
   return result.response.text().trim();
 }
