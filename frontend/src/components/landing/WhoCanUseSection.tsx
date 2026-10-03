@@ -39,7 +39,7 @@ export function WhoCanUseSection() {
             Siapa yang Menggunakan Tagih.ai?
           </h2>
           <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal">
-            Dirancang khusus untuk ekosistem kerja independen di Indonesia — dari pengerjaan proyek kampus hingga kolaborasi industri.
+            Dirancang khusus untuk ekosistem kerja independen di Indonesia, dari pengerjaan proyek kampus hingga kolaborasi industri.
           </p>
         </div>
 

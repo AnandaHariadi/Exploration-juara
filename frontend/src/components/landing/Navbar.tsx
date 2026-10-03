@@ -10,6 +10,7 @@ const navItems = [
   { id: "tentang", label: "Tentang CLARA", href: "#tentang" },
   { id: "kategori", label: "Target Industri", href: "#kategori" },
   { id: "alur", label: "Alur Rekonsiliasi", href: "#alur" },
+  { id: "paket", label: "Paket & Harga", href: "#paket" },
   { id: "faq", label: "FAQ", href: "#faq" },
 ];
 

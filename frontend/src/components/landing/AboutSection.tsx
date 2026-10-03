@@ -40,7 +40,7 @@ export function AboutSection() {
             Menegakkan Kedaulatan Nilai Bisnis Melalui Intelijen Kontrak Terpadu
           </h2>
           <p className="text-base sm:text-lg text-zinc-600 leading-relaxed font-normal">
-            Sebagai pelopor platform Contract Intelligence di Indonesia, CLARA memadukan ketajaman pemahaman hukum dengan rekayasa presisi analitik data—mentransformasi setiap klausul komersial menjadi benteng perlindungan margin, kepatuhan operasional, dan pertumbuhan bisnis yang akuntabel.
+            Sebagai pelopor platform Contract Intelligence di Indonesia, CLARA memadukan ketajaman pemahaman hukum dengan rekayasa presisi analitik data yang mentransformasi setiap klausul komersial menjadi benteng perlindungan margin, kepatuhan operasional, dan pertumbuhan bisnis yang akuntabel.
           </p>
         </div>
 
@@ -293,7 +293,7 @@ export function AboutSection() {
                       <span>Layanan Rekonsiliasi &amp; Dukungan</span>
                     </div>
                     <p className="text-xs sm:text-sm font-semibold text-zinc-900">
-                      Senin – Jumat: 08.30 – 17.30 WIB
+                      Senin - Jumat: 08.30 - 17.30 WIB
                     </p>
                     <p className="text-xs text-zinc-500 leading-relaxed whitespace-nowrap">
                       Sistem ekstraksi AI &amp; monitoring aktif 24/7

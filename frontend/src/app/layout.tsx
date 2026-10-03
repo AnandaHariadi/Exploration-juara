@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'CLARA — Contract Intelligence & Value Assurance Platform',
+  title: 'CLARA · Contract Intelligence & Value Assurance Platform',
   description: 'Turn Contracts into Living Business Intelligence. Rekonsiliasi presisi antara Kontrak, RAB, Progress Lapangan, dan Invoice.',
   icons: {
     icon: '/images/clara_icon.png',
