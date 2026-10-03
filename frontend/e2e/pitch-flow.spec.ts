@@ -144,7 +144,7 @@ test('pitch: reset → V1 → monitoring → alerts with evidence → CR → V2 
   // Dashboard reflects the same numbers
   await page.getByRole('link', { name: 'Dashboard' }).first().click();
   await expect(page.getByText('Belum ditagih', { exact: true })).toBeVisible();
-  await expect(page.locator('div', { hasText: /^Belum ditagihRp 30\.0 Jt/ }).first()).toBeVisible();
+  await expect(page.locator('div', { hasText: /^Belum ditagihRp 30 Jt/ }).first()).toBeVisible();
 
   expect(errors, errors.join('\n')).toEqual([]);
 });
