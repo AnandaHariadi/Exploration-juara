@@ -1,38 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { claraDb } from '@/lib/db';
-
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    const project = claraDb.getProject(id);
+import { NextRequest } from 'next/server';
+import { claraDb } from '@/lib/db';
+import { ok, readJson, route } from '@/lib/api';
+import { updateProjectInfo } from '@/lib/domain';
+import { projectIdFrom, type ProjectParams } from '@/lib/routeParams';
 
-    if (!project) {
-      return NextResponse.json(
-        { success: false, error: 'Project not found.' },
-        { status: 404 }
-      );
-    }
+export const GET = route('GET /api/projects/[id]', async (_req: NextRequest, ctx: ProjectParams) => ok(claraDb.requireProject(await projectIdFrom(ctx))));
 
-    return NextResponse.json({ success: true, data: project });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
-}
+export const PATCH = route('PATCH /api/projects/[id]', async (req: NextRequest, ctx: ProjectParams) => {
+  const id = await projectIdFrom(ctx);
+  const body = await readJson(req);
+  return ok(claraDb.mutate(id, (p) => updateProjectInfo(p, body)).project);
+});
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    claraDb.deleteProject(id);
-    return NextResponse.json({ success: true, message: `Project ${id} deleted.` });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
-}
+export const DELETE = route('DELETE /api/projects/[id]', async (_req: NextRequest, ctx: ProjectParams) => {
+  const id = await projectIdFrom(ctx);
+  claraDb.deleteProject(id);
+  return ok({ id }, 200, 'Proyek dihapus.');
+});
