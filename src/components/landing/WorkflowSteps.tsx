@@ -165,33 +165,25 @@ export function WorkflowSteps() {
             </p>
           </div>
 
-          {/* 4 Partner Logo Cards */}
+          {/* 4 Partner Logo Cards (Pure Logos, Enlarged & Clean) */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {partners.map((partner) => (
               <div
                 key={partner.id}
-                className="group relative bg-zinc-50/70 hover:bg-white rounded-xl border border-zinc-200/90 hover:border-red-600/60 p-5 sm:p-6 transition-all duration-300 hover:shadow-md flex flex-col items-center justify-center min-h-[140px] text-center overflow-hidden"
+                className="group relative bg-zinc-50/70 hover:bg-white rounded-2xl border border-zinc-200/90 hover:border-red-600/50 p-6 sm:p-8 transition-all duration-300 hover:shadow-xl flex items-center justify-center h-32 sm:h-36 md:h-40 overflow-hidden"
               >
                 {/* Red hover accent bar on top */}
-                <span className="absolute top-0 left-0 right-0 h-[2px] bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <span className="absolute top-0 left-0 right-0 h-[2.5px] bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                {/* Logo slot */}
-                <div className="w-full h-14 sm:h-16 flex items-center justify-center mb-3">
+                {/* Prominent Enlarged Logo Slot */}
+                <div className="relative w-full h-full flex items-center justify-center">
                   <Image
                     src={partner.logo}
                     alt={partner.alt}
-                    width={220}
-                    height={70}
-                    className="max-h-full max-w-[85%] w-auto object-contain opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
+                    width={260}
+                    height={120}
+                    className="max-h-full max-w-[90%] w-auto h-auto object-contain opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 drop-shadow-xs"
                   />
-                </div>
-
-                {/* Subtitle / Role Badge */}
-                <div className="mt-auto pt-2 border-t border-zinc-200/60 w-full flex items-center justify-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 group-hover:bg-red-600 transition-colors" />
-                  <span className="text-[11px] font-mono font-medium text-zinc-500 group-hover:text-zinc-800 transition-colors truncate">
-                    {partner.category}
-                  </span>
                 </div>
               </div>
             ))}
