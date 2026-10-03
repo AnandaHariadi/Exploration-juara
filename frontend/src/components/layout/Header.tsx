@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Bot, ChevronDown, Menu, Plus, X } from 'lucide-react';
@@ -48,9 +49,19 @@ export function Header({ mobileSidebarOpen, onToggleSidebar }: HeaderProps) {
   return <header className="sticky top-0 z-40 border-b-2 border-zinc-200 bg-white">
     <div className="grid h-28 grid-cols-[1fr_auto] grid-rows-[3.5rem_3.5rem] items-center gap-x-3 px-4 sm:px-6 lg:h-20 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:grid-rows-1 lg:px-8">
       <div className="col-start-1 row-start-1 flex items-center gap-3">
-        <Link href="/dashboard" className="flex w-fit items-center gap-3" aria-label="CLARA, buka ringkasan">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 font-heading text-lg font-extrabold text-white">C</span>
-          <span className="font-heading text-lg font-extrabold tracking-wide text-zinc-950">CLARA</span>
+        <Link
+          href="/dashboard"
+          className="flex w-fit items-center group transition-transform duration-300 hover:scale-105"
+          aria-label="CLARA, buka ringkasan"
+        >
+          <Image
+            src="/images/clara_logo_full.png"
+            alt="CLARA"
+            width={140}
+            height={32}
+            className="h-7 sm:h-8 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+            priority
+          />
         </Link>
       </div>
 
