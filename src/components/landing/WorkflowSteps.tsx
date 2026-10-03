@@ -62,10 +62,10 @@ const partners: PartnerItem[] = [
   },
   {
     id: 3,
-    name: "Media Partner 03",
-    category: "Portal Finansial Nasional",
-    logo: "/images/partners/partner_3.svg",
-    alt: "Logo Media Partner",
+    name: "Jagoan Hosting",
+    category: "Infrastruktur Cloud & Hosting",
+    logo: "/images/partners/logo_jagoanhosting.png",
+    alt: "Logo Jagoan Hosting",
   },
   {
     id: 4,
