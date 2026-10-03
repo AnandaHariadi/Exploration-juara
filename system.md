@@ -1,244 +1,2332 @@
-# SYSTEM.md — Asisten Keuangan AI untuk Freelancer
+# CLARA — System Documentation
 
-> Versi: 0.1 · 27 September 2026 · Status: blueprint MVP
->
-> Pitch: **“Fokus kerja, urusan invoice dan tagihan biar AI yang tangani.”**
+> Contract Business Intelligence & Monitoring Platform  
+> Hackathon MVP System Specification  
+> Frontend: Next.js  
+> Backend: Node.js + Express + TypeScript  
+> AI: Gemini / LLM + Embeddings + OCR / Document Parsing  
+> Status: MVP — authentication and authorization are intentionally deferred
 
-## 1. Tujuan produk
+---
 
-Aplikasi membantu freelancer membuat invoice, mengatur DP dan termin, menerima pembayaran, memantau piutang, serta mengingatkan klien lewat alur chat sederhana. Pemilik usaha tetap meninjau detail sebelum invoice atau pesan tagihan dikirim. Sasaran awal ialah freelancer dan solopreneur Indonesia yang menagih dalam rupiah.
+# 1. Product Definition
 
-**Hasil MVP yang harus bisa didemokan:** ketik instruksi → AI mengusulkan data terstruktur → freelancer mengoreksi dan mengonfirmasi → invoice serta jadwal DP/termin dibuat → klien membuka tautan publik dan membayar lewat hosted checkout Xendit sandbox → webhook memperbarui pembayaran → dashboard dan kuitansi ikut berubah.
+CLARA adalah **Contract Business Intelligence & Monitoring Platform** yang mengubah kontrak dari dokumen pasif menjadi baseline bisnis yang dapat dipantau selama project berjalan.
 
-### Batas MVP
+CLARA membantu bisnis menjawab empat pertanyaan utama:
 
-| Masuk MVP | Tahap berikutnya |
-| --- | --- |
-| Landing page dengan demo parsing tanpa login; Google sign-in; profil freelancer; klien; invoice full/DP/termin; PDF; tautan invoice; Xendit sandbox; webhook; dashboard; pengingat email | Voice note, bot WhatsApp/Telegram dua arah, pengiriman WhatsApp otomatis, pajak lanjutan, multi mata uang, rekonsiliasi bank, pengeluaran, pembukuan akuntansi lengkap |
+1. **Apa yang kita sepakati?**
+2. **Apa yang kita rencanakan?**
+3. **Apa yang benar-benar terjadi?**
+4. **Apakah nilai kontrak sudah terealisasi?**
 
-Demo publik hanya menghasilkan **preview**, tanpa menyimpan atau mengirim tagihan. Di mode produksi, label “preview” harus jelas agar contoh tidak tampak seperti transaksi nyata.
+Core statement:
 
-## 2. Stack yang disepakati
+> **What we agreed. What we planned. What actually happened. What we realized.**
 
-| Lapisan | Pilihan | Catatan |
-| --- | --- | --- |
-| Web dan API | Next.js App Router + TypeScript | Server Actions untuk aksi UI; Route Handlers untuk webhook dan endpoint publik. |
-| UI | Tailwind CSS, shadcn/ui, Lucide React | Responsif untuk ponsel. |
-| Grafik | Recharts melalui komponen chart shadcn/ui | Cukup untuk ringkasan bulanan. |
-| Validasi | Zod; React Hook Form untuk form profil/koreksi | Validasi ulang di server; hasil LLM tidak dipercaya begitu saja. |
-| AI | AI SDK + satu penyedia LLM yang dipilih saat implementasi | Structured output untuk intent; provider dan model lewat konfigurasi. |
-| Data lokal | SQLite + Drizzle ORM | File lokal untuk development dan demo lokal. |
-| Data produksi | Supabase PostgreSQL + Drizzle ORM | Migrasi schema dan data dilakukan eksplisit. |
-| Login | Supabase Auth + Google OAuth | Supabase Auth dapat digunakan dari aplikasi lokal; hanya database bisnisnya yang SQLite selama development. |
-| Pembayaran | Xendit Payment Sessions, mode `PAYMENT_LINK` | Hosted checkout; mulai dengan sandbox dan metode yang aktif pada akun. |
-| PDF | `@react-pdf/renderer` | Menghasilkan invoice/kuitansi. Tambahkan PDF.js hanya jika viewer PDF khusus benar-benar diperlukan. |
-| Job | Trigger.dev | Jadwal pengingat dan retry pengiriman; adapter job lokal/mock untuk demo tanpa layanan ini. |
-| Email | Resend | Pengiriman invoice, pengingat, dan kuitansi. |
-| WhatsApp | Meta WhatsApp Cloud API, fase berikutnya | Aktivasi, template, consent, dan biaya perlu dicek sebelum dipakai. |
-| Tanggal | date-fns + timezone `Asia/Jakarta` | Simpan timestamp UTC; tampilkan tanggal dalam zona waktu pengguna. |
-| Deployment | Vercel + Supabase | Jangan gunakan file SQLite lokal sebagai database deployment serverless. |
+Prinsip utama:
 
-**Keputusan penting:** Drizzle memudahkan query dan model domain, tetapi `sqlite-core` dan `pg-core` memiliki definisi schema serta migrasi masing-masing. Jangan berasumsi SQL migrasi SQLite bisa langsung dijalankan di PostgreSQL. Pertahankan tipe domain dan aturan bisnis bersama; buat mapping dan migrasi per dialek.
+> **AI understands language.**  
+> **Backend calculates facts.**  
+> **Frontend explains the state.**  
+> **Human confirms the truth.**
 
-## 3. Peran dan halaman
+---
 
-| Peran | Akses |
-| --- | --- |
-| Pengunjung | Landing page, demo parsing terbatas. |
-| Freelancer | Profil, daftar klien, dashboard, chat perintah, draft, jadwal pembayaran, invoice, pengingat, transaksi. |
-| Klien | Halaman invoice lewat token acak tanpa login, hosted checkout, unduh invoice/kuitansi yang sesuai. |
-| Sistem | LLM, scheduler, email, webhook Xendit; tidak memiliki akses UI manusia. |
+# 2. Product Scope
 
-Rute usulan: `/`, `/login`, `/onboarding`, `/dashboard`, `/invoices`, `/invoices/new`, `/invoices/[id]`, `/clients`, `/settings`, `/i/[token]`, `/api/ai/parse`, `/api/webhooks/xendit`.
+CLARA memiliki dua lapisan besar.
 
-## 4. Alur utama
+## 2.1 Existing CLARA Legal Intelligence
 
-1. Freelancer masuk dengan Google dan melengkapi nama usaha, email pengirim, serta identitas pembayaran sesuai kebutuhan onboarding Xendit. Data rekening tidak dijadikan instruksi transfer manual bila checkout Xendit aktif.
-2. Freelancer mengetik, misalnya: **“Tagihkan 1 juta ke Himatifa buat website, DP 30%, sisanya dua minggu.”**
-3. Server meminta AI mengubah pesan menjadi proposal JSON. Jika “dua minggu” ambigu (sejak hari ini atau setelah DP/proyek selesai), UI meminta tanggal pasti. Nama klien, kontak, tanggal jatuh tempo, dan nilai wajib dilengkapi sebelum terbit.
-4. UI menampilkan draft yang bisa diedit. Backend menghitung nominal: total Rp1.000.000, DP Rp300.000, sisa Rp700.000. AI tidak menghitung nilai final dan tidak boleh menerbitkan invoice sendiri.
-5. Setelah konfirmasi, backend menyimpan invoice induk dan dua tagihan termin. Setiap termin yang siap dibayar memiliki satu checkout Xendit tersendiri sebesar nominal termin itu; tautan pembayaran dibuat server-side.
-6. Sistem mengirim invoice setelah pengguna menekan **Kirim**. Klien membuka `/i/[token]`, melihat rincian dan menekan **Bayar** untuk menuju checkout Xendit. QRIS/VA ditampilkan oleh checkout sesuai metode yang tersedia; jangan membuat QRIS sendiri dari nomor rekening.
-7. Webhook terverifikasi mencatat pembayaran pada termin yang sesuai. Ketika DP lunas, invoice induk menjadi `partially_paid`; ketika semua termin lunas, `paid`. Kuitansi untuk pembayaran yang sukses dikirim sekali.
-8. Job pengingat membaca termin yang masih perlu dibayar, memeriksa aturan pengiriman, lalu mengirim email pada H-3, H-1, H, H+3, dan H+7. Job membatalkan pengingat apabila status telah lunas/batal sebelum eksekusi.
+Kemampuan yang sudah ada dan dapat direuse:
 
-### Aturan full, DP, dan termin
+- Contract OCR / document parsing
+- Contract risk review
+- Legal clause detection
+- Legal RAG
+- Legal Q&A
+- Evidence / citations
+- Document drafting
+- Knowledge graph / retrieval jika masih digunakan
 
-- `full`: satu termin 100%.
-- `dp`: DP dan satu termin pelunasan; persentase DP 1–99, total termin **harus sama** dengan total invoice. Tanggal pelunasan harus konkret; milestone manual boleh diset setelah proyek selesai.
-- `installment`: dua termin atau lebih, masing-masing nominal dan due date. UI menolak total termin yang tidak cocok.
-- Nominal disimpan sebagai **integer rupiah** (IDR tanpa pecahan). Semua perhitungan dilakukan di backend dengan pembulatan eksplisit; selisih pembulatan diberikan ke termin terakhir.
-- Invoice induk mengikat kontrak/tagihan keseluruhan; tiap termin punya nomor dan status sendiri. Jangan menerbitkan ulang nomor invoice setelah final.
+## 2.2 New CLARA Business Monitoring Layer
 
-## 5. Arsitektur komponen
+Fokus utama MVP hackathon:
 
-```mermaid
-flowchart TD
-  U["Freelancer dan klien"] --> W["Next.js UI dan Route Handlers"]
-  W --> S["Service domain: invoice, pembayaran, reminder"]
-  S --> D["Drizzle + SQLite lokal / PostgreSQL produksi"]
-  W --> A["AI SDK + LLM"]
-  S --> X["Xendit Payment Sessions"]
-  X --> H["Webhook terverifikasi"]
-  H --> S
-  S --> J["Trigger.dev + Resend"]
-```
+- Contract + RAB extraction
+- Baseline creation
+- Baseline confirmation
+- Project monitoring
+- Actual cost tracking
+- Invoice tracking
+- Change Request
+- Baseline versioning
+- Budget variance
+- Scope variance
+- Billing variance
+- Contract value realization
+- Evidence-based alerts
+- Business impact dashboard
 
-Lapisan domain menangani invoice, total termin, hak akses, dan status pembayaran. Handler HTTP, AI, Xendit, serta scheduler memanggil domain service yang sama. Integrasi eksternal dibungkus adapter agar bisa memakai fake adapter di demo lokal tanpa mengubah logika invoice.
+---
 
-### Struktur folder usulan
+# 3. System Philosophy
+
+CLARA tidak boleh menjadi:
 
 ```text
-src/app/                 # halaman dan route handler Next.js
-src/components/          # UI, form, chart, invoice preview
-src/features/ai/         # schema intent, prompt, parser
-src/features/invoices/   # aturan invoice dan termin
-src/features/payments/   # Xendit adapter, webhook, status
-src/features/reminders/  # kebijakan jadwal dan template
-src/db/sqlite/            # schema dan migrations SQLite
-src/db/postgres/          # schema dan migrations PostgreSQL
-src/db/repositories/      # antarmuka akses data
-src/lib/auth/             # Supabase Auth + otorisasi user
-src/lib/pdf/              # template invoice dan kuitansi
+Upload PDF
+↓
+AI membaca
+↓
+AI bebas memberi kesimpulan
 ```
 
-## 6. Model data minimum
+CLARA harus menggunakan alur:
 
-Semua tabel bisnis memiliki `owner_user_id` dan aksesnya selalu dibatasi ke pemilik. `users.id` memakai UUID dari Supabase Auth; data profil aplikasi disimpan terpisah dari identitas auth.
+```text
+DOCUMENT
+↓
+AI UNDERSTANDING
+↓
+STRUCTURED DATA
+↓
+USER CONFIRMATION
+↓
+CONFIRMED BASELINE
+↓
+ACTUAL PROJECT DATA
+↓
+DETERMINISTIC RECONCILIATION
+↓
+ALERT + FINANCIAL IMPACT
+↓
+AI EXPLANATION
+↓
+HUMAN DECISION
+```
 
-| Tabel | Field penting | Aturan |
-| --- | --- | --- |
-| `profiles` | `user_id`, `brand_name`, `contact_email`, `timezone`, `onboarded_at` | Satu profil per user. |
-| `clients` | `id`, `owner_user_id`, `name`, `email`, `phone`, `created_at` | Kontak untuk pengiriman harus divalidasi. |
-| `invoices` | `id`, `owner_user_id`, `client_id`, `number`, `title`, `currency`, `total_amount`, `scheme`, `status`, `issued_at`, `public_token_hash`, `cancelled_at` | Nomor unik per pemilik; token publik acak, tidak dari nama klien. |
-| `invoice_items` | `id`, `invoice_id`, `description`, `quantity`, `unit_amount`, `line_total` | Total item cocok dengan total invoice. |
-| `installments` | `id`, `invoice_id`, `sequence`, `label`, `amount`, `due_at`, `status`, `paid_amount` | Jumlah seluruh termin = total invoice. |
-| `checkout_sessions` | `id`, `installment_id`, `provider`, `external_reference`, `provider_session_id`, `payment_link_url`, `expires_at`, `status` | Simpan satu referensi internal unik; link dapat diganti jika kedaluwarsa. |
-| `payments` | `id`, `installment_id`, `provider_payment_id`, `amount`, `currency`, `status`, `paid_at`, `raw_event_id` | `provider_payment_id` unik bila tersedia; jangan mencatat duplikat. |
-| `webhook_events` | `id`, `provider`, `event_key`, `event_type`, `received_at`, `processed_at`, `status` | Kunci deduplikasi unik; simpan payload minimum yang diperlukan. |
-| `reminders` | `id`, `installment_id`, `rule`, `channel`, `scheduled_at`, `sent_at`, `status`, `provider_message_id` | Kombinasi termin + rule + channel unik. |
-| `outbound_messages` | `id`, `owner_user_id`, `invoice_id`, `channel`, `kind`, `recipient`, `status`, `created_at` | Jejak kirim, kegagalan, dan retry. |
+---
 
-`ai_conversations` opsional dan sebaiknya hanya menyimpan metadata minimal serta pesan dengan masa retensi yang jelas. Catatan status berasal dari pembayaran terverifikasi; dashboard tidak mengambil angka dari output AI.
+# 4. Core Business Model
 
-### Status dan invariants
+CLARA menggunakan empat sumber kebenaran utama.
 
-| Objek | Status | Sumber perubahan |
-| --- | --- | --- |
-| Invoice | `draft`, `issued`, `partially_paid`, `paid`, `cancelled` | Domain service menghitung dari termin. `overdue` adalah kondisi turunan saat ada termin belum lunas melewati due date. |
-| Termin | `scheduled`, `pending`, `partially_paid`, `paid`, `cancelled` | `scheduled` saat belum boleh ditagih; `pending` setelah diterbitkan. |
-| Checkout | `created`, `active`, `completed`, `expired`, `failed` | Respons API dan webhook Xendit. |
-| Pembayaran | `pending`, `succeeded`, `failed`, `refunded` | Event provider yang tervalidasi; refund harus memutakhirkan saldo sesuai aturan domain. |
+## 4.1 Agreement
 
-Nominal bayar yang melebihi sisa termin, beda mata uang, referensi tidak dikenal, atau status yang mundur ditahan untuk investigasi. Tidak ada perubahan `paid` hanya karena browser klien kembali dari checkout.
+Berasal dari:
 
-## 7. Kontrak AI dan validasi
+- Contract
+- PKS
+- SPK
+- SOW
+- MoU jika memang memiliki detail yang cukup
+- Addendum
 
-AI menerima teks, locale `id-ID`, dan tanggal sekarang dari server. Output usulan:
+Menjawab:
+
+> Apa yang disepakati?
+
+Contoh data:
+
+- contract value
+- deadline
+- scope
+- milestone
+- payment terms
+- billing trigger
+- revision limit
+- rate
+- penalty
+- obligations
+
+---
+
+## 4.2 Plan
+
+Berasal dari:
+
+- RAB
+- Budget Plan
+- Quotation
+- Cost Proposal
+
+Menjawab:
+
+> Apa yang direncanakan?
+
+Contoh data:
+
+- UI/UX budget
+- Development budget
+- Infrastructure budget
+- Vendor budget
+- Other planned cost
+- Total planned cost
+
+RAB adalah **planned cost**, bukan actual cost.
+
+---
+
+## 4.3 Actual Project
+
+Berasal dari:
+
+- milestone updates
+- progress updates
+- actual tasks
+- revision count
+- actual scope
+- actual project events
+
+Menjawab:
+
+> Apa yang benar-benar terjadi?
+
+---
+
+## 4.4 Finance
+
+Berasal dari:
+
+- actual cost
+- invoice
+- payment
+
+Menjawab:
+
+> Apa yang benar-benar keluar dan masuk secara finansial?
+
+---
+
+# 5. Primary System Flow
+
+```text
+CREATE PROJECT
+      ↓
+UPLOAD CONTRACT + RAB
+      ↓
+DOCUMENT PARSING / OCR
+      ↓
+AI EXTRACTION
+      ↓
+STRUCTURED CANDIDATE DATA
+      ↓
+USER REVIEW & CONFIRMATION
+      ↓
+ACTIVE BASELINE V1
+      │
+      ├── Project Events
+      ├── Milestone Updates
+      ├── Actual Cost
+      ├── Invoice
+      ├── Payment
+      └── Change Request
+               ↓
+       APPROVED CHANGE?
+          YES ↓
+       BASELINE V2/V3
+               ↓
+      RECONCILIATION ENGINE
+               ↓
+    ┌──────────┼──────────┐
+    ↓          ↓          ↓
+  Budget      Scope      Billing
+ Variance    Variance    Variance
+    │          │          │
+    └──────────┼──────────┘
+               ↓
+       BUSINESS IMPACT
+               ↓
+           EVIDENCE
+               ↓
+       AI EXPLANATION
+               ↓
+          HUMAN REVIEW
+```
+
+---
+
+# 6. Current MVP Roles
+
+Authentication belum menjadi prioritas.
+
+Tidak perlu membuat:
+
+- login flow
+- auth middleware
+- permission middleware
+- RBAC kompleks
+- JWT enforcement
+
+Untuk MVP, hanya gunakan **logical role** pada desain product:
+
+## Project / Owner
+
+Mengelola:
+
+- project
+- contract
+- RAB
+- baseline
+- milestone
+- progress
+- scope
+- Change Request
+
+## Finance
+
+Mengelola:
+
+- actual cost
+- invoice
+- payment
+
+Untuk hackathon satu user dapat mengakses seluruh fitur.
+
+---
+
+# 7. Recommended Tech Stack
+
+## 7.1 Frontend
+
+```text
+Next.js
+TypeScript
+Tailwind CSS
+shadcn/ui
+Lucide Icons
+Motion
+PDF.js
+React Hook Form
+Zod
+Axios / fetch wrapper
+```
+
+Optional:
+
+```text
+TanStack Query
+Recharts
+Sonner
+date-fns
+```
+
+### Purpose
+
+**Next.js**
+- application framework
+- routing
+- page composition
+- server/client component separation
+
+**shadcn/ui**
+- reusable UI primitives
+- dialog
+- sheet
+- dropdown
+- tabs
+- table
+- form
+- alert
+- card
+
+**Lucide Icons**
+- consistent icon system
+
+**Motion**
+- page transitions
+- loading states
+- subtle interaction animation
+- alert transitions
+
+**PDF.js**
+- render contract/RAB/invoice preview
+- navigate PDF pages
+- support evidence highlighting
+
+**Zod**
+- frontend validation
+- shared API response validation if needed
+
+---
+
+## 7.2 Backend
+
+```text
+Node.js
+Express.js
+TypeScript
+Controller → Service → Repository pattern
+Zod
+Database
+```
+
+Database dapat menyesuaikan existing CLARA.
+
+Jika existing CLARA masih menggunakan Neo4j:
+
+```text
+Neo4j
+```
+
+Jika ingin lebih cepat untuk operational business entities:
+
+```text
+PostgreSQL
+```
+
+Namun untuk hackathon jangan migrasi stack hanya demi ideal architecture jika existing CLARA sudah stabil.
+
+---
+
+## 7.3 AI Layer
+
+```text
+Gemini / compatible LLM
+Embedding Model
+OCR / PDF Parsing
+Existing CLARA RAG
+Existing CLARA Legal Knowledge
+```
+
+AI tidak membutuhkan custom model training untuk MVP.
+
+---
+
+# 8. Frontend Architecture
+
+Recommended structure:
+
+```text
+frontend/
+├── app/
+│   ├── page.tsx
+│   ├── dashboard/
+│   │   └── page.tsx
+│   ├── projects/
+│   │   ├── page.tsx
+│   │   ├── new/
+│   │   │   └── page.tsx
+│   │   └── [projectId]/
+│   │       ├── page.tsx
+│   │       ├── baseline/
+│   │       ├── monitoring/
+│   │       ├── finance/
+│   │       ├── changes/
+│   │       └── alerts/
+│   ├── legal/
+│   │   └── page.tsx
+│   └── layout.tsx
+│
+├── components/
+│   ├── layout/
+│   ├── dashboard/
+│   ├── project/
+│   ├── baseline/
+│   ├── monitoring/
+│   ├── finance/
+│   ├── alerts/
+│   ├── evidence/
+│   ├── documents/
+│   └── ui/
+│
+├── lib/
+│   ├── api.ts
+│   ├── utils.ts
+│   ├── validation.ts
+│   └── constants.ts
+│
+├── hooks/
+│   ├── use-projects.ts
+│   ├── use-project.ts
+│   ├── use-baseline.ts
+│   ├── use-finance.ts
+│   └── use-alerts.ts
+│
+├── services/
+│   ├── project.service.ts
+│   ├── document.service.ts
+│   ├── baseline.service.ts
+│   ├── monitoring.service.ts
+│   ├── finance.service.ts
+│   ├── change-request.service.ts
+│   └── alert.service.ts
+│
+├── types/
+│   ├── project.ts
+│   ├── baseline.ts
+│   ├── finance.ts
+│   ├── alert.ts
+│   └── api.ts
+│
+└── public/
+```
+
+---
+
+# 9. Frontend Page Model
+
+## 9.1 Dashboard
+
+Menampilkan:
+
+- Contract Value
+- Planned Cost
+- Actual Cost
+- Project Progress
+- Billable Value
+- Billed Value
+- Paid Value
+- Unbilled Value
+- Active Alerts
+
+Example:
+
+```text
+Contract Value   Rp120M
+Planned Cost      Rp75M
+Actual Cost       Rp61M
+Progress             75%
+Billable Value     Rp84M
+Billed Value       Rp48M
+Unbilled Value     Rp36M
+```
+
+---
+
+## 9.2 Projects
+
+Menampilkan:
+
+- project name
+- client
+- progress
+- contract value
+- status
+- alert count
+
+Primary actions:
+
+```text
+Create Project
+Open Project
+```
+
+---
+
+## 9.3 Create Project
+
+Flow:
+
+```text
+Project Information
+↓
+Upload Contract
+↓
+Upload RAB
+↓
+Process Documents
+↓
+Review Extraction
+↓
+Confirm Baseline
+```
+
+---
+
+## 9.4 Baseline Confirmation
+
+Frontend wajib menampilkan hasil AI sebagai editable candidate.
+
+Example:
+
+```text
+Contract Value: Rp120M
+Deadline: 20 Dec 2026
+Revision Limit: 3
+Milestone UAT: 25%
+
+Planned Cost: Rp75M
+```
+
+Actions:
+
+```text
+Edit
+Confirm & Lock Baseline
+```
+
+Tidak boleh langsung lock tanpa user confirmation.
+
+---
+
+## 9.5 Monitoring
+
+Menampilkan:
+
+- progress
+- milestones
+- project events
+- revisions
+- actual scope/tasks
+
+Update bersifat **event-based**.
+
+Tidak ada kewajiban daily input.
+
+Examples:
+
+```text
+UAT Completed
+Revision #5 Added
+New Task Added
+Scope Updated
+```
+
+---
+
+## 9.6 Finance
+
+Menampilkan:
+
+- planned cost
+- actual cost
+- invoices
+- payments
+
+Actions:
+
+```text
+Add Actual Cost
+Add Invoice
+Mark Payment
+```
+
+---
+
+## 9.7 Change Request
+
+Fields:
+
+```text
+title
+reason
+additional_scope
+additional_value
+deadline_extension
+revision_change
+status
+```
+
+Statuses:
+
+```text
+DRAFT
+PENDING
+APPROVED
+REJECTED
+```
+
+Hanya `APPROVED` yang dapat membuat baseline baru.
+
+---
+
+## 9.8 Alerts & Evidence
+
+Alert example:
+
+```text
+VERIFIED BILLING DIFFERENCE
+
+Expected: Rp30M
+Invoice: Rp20M
+Difference: Rp10M
+```
+
+Evidence:
+
+```text
+Contract
+Clause 4.2
+25% payment after UAT
+
+Project
+UAT Completed
+
+Invoice
+Rp20M
+```
+
+---
+
+## 9.9 Legal AI
+
+Existing CLARA features:
+
+- contract risk review
+- legal Q&A
+- document drafting
+
+Ini adalah supporting feature, bukan core flow monitoring.
+
+---
+
+# 10. PDF.js Usage
+
+PDF.js digunakan untuk document preview.
+
+Supported documents:
+
+- contract
+- RAB
+- invoice
+- Change Request
+- addendum
+
+Recommended UI:
+
+```text
+┌─────────────────────────┬──────────────────────┐
+│                         │ Extracted Data       │
+│      PDF Preview        │                      │
+│                         │ Contract Value       │
+│      Page 4 / 12        │ Rp120M              │
+│                         │                      │
+│  highlighted evidence   │ Evidence: Clause 4.2│
+│                         │                      │
+└─────────────────────────┴──────────────────────┘
+```
+
+Frontend should support:
+
+- page navigation
+- zoom
+- evidence page jump
+- highlight evidence
+- source snippet display
+
+---
+
+# 11. Motion Usage
+
+Motion hanya digunakan untuk UX enhancement.
+
+Good usage:
+
+- page transition
+- drawer transition
+- alert appearing
+- loading state
+- baseline confirmation transition
+- expanded evidence section
+
+Avoid:
+
+- excessive animation
+- long intro animation
+- distracting dashboard movement
+
+Principle:
+
+> Motion should explain state change, not decorate everything.
+
+---
+
+# 12. UI Design Principles
+
+CLARA adalah business intelligence product.
+
+UI harus:
+
+- clean
+- trustworthy
+- data-first
+- minimal
+- readable
+- evidence-driven
+
+Prioritize:
+
+```text
+Insight
+↓
+Impact
+↓
+Evidence
+↓
+Action
+```
+
+Avoid:
+
+- terlalu banyak gradient
+- gamification
+- excessive cards
+- AI-looking neon UI
+- overly complex charts
+
+---
+
+# 13. Backend Architecture
+
+Recommended structure:
+
+```text
+backend/
+├── src/
+│   ├── controllers/
+│   │   ├── project.controller.ts
+│   │   ├── document.controller.ts
+│   │   ├── baseline.controller.ts
+│   │   ├── monitoring.controller.ts
+│   │   ├── finance.controller.ts
+│   │   ├── change-request.controller.ts
+│   │   ├── reconciliation.controller.ts
+│   │   └── alert.controller.ts
+│   │
+│   ├── services/
+│   │   ├── project.service.ts
+│   │   ├── document.service.ts
+│   │   ├── baseline.service.ts
+│   │   ├── monitoring.service.ts
+│   │   ├── finance.service.ts
+│   │   ├── change-request.service.ts
+│   │   ├── reconciliation.service.ts
+│   │   ├── business-impact.service.ts
+│   │   └── evidence.service.ts
+│   │
+│   ├── repositories/
+│   │   ├── project.repository.ts
+│   │   ├── baseline.repository.ts
+│   │   ├── finance.repository.ts
+│   │   └── alert.repository.ts
+│   │
+│   ├── ai/
+│   │   ├── extraction/
+│   │   ├── scope-matching/
+│   │   ├── explanation/
+│   │   └── prompts/
+│   │
+│   ├── validators/
+│   ├── types/
+│   ├── routes/
+│   ├── utils/
+│   └── index.ts
+│
+└── package.json
+```
+
+---
+
+# 14. Backend Layer Responsibilities
+
+## Controller
+
+Controller bertanggung jawab terhadap:
+
+- menerima request
+- membaca params/body/file
+- memanggil service
+- mengembalikan response
+- HTTP status
+
+Controller tidak melakukan business calculation.
+
+Example:
+
+```text
+POST /projects/:id/actual-costs
+
+Controller
+↓
+FinanceService.addActualCost()
+↓
+Repository
+↓
+Response
+```
+
+---
+
+## Service
+
+Service bertanggung jawab terhadap:
+
+- business rule
+- orchestration
+- calculation
+- validation
+- reconciliation trigger
+
+Example:
+
+```text
+Invoice Created
+↓
+FinanceService
+↓
+ReconciliationService
+↓
+Billing Variance Recalculated
+↓
+Alert Updated
+```
+
+---
+
+## Repository
+
+Repository bertanggung jawab terhadap:
+
+- database query
+- create
+- read
+- update
+- persistence
+
+Repository tidak membuat business decision.
+
+---
+
+# 15. No Authentication Middleware for MVP
+
+Current rule:
+
+```text
+NO AUTH MIDDLEWARE
+NO JWT REQUIREMENT
+NO RBAC MIDDLEWARE
+```
+
+Routes dapat langsung digunakan.
+
+Example:
 
 ```ts
-type InvoiceIntent = {
-  clientName: string | null;
-  description: string | null;
-  totalAmountIdr: number | null;
-  scheme: 'full' | 'dp' | 'installment' | 'unknown';
-  dpPercentage?: number;
-  installments?: Array<{ label: string; amountIdr?: number; dueDate?: string }>;
-  ambiguities: string[];
-};
+router.get("/projects", projectController.list)
 ```
 
-Zod memvalidasi bentuk, batas nominal, tanggal, dan skema. Domain service melakukan kalkulasi deterministik dan memeriksa jumlah seluruh termin, kepemilikan klien, serta tanggal. AI hanya memberi **draft**. UI memperlihatkan teks asli, hasil ekstraksi, dan pertanyaan untuk field kosong. Prompt injection di pesan pengguna tidak boleh mengubah aturan server, mengirim email, atau memanggil pembayaran.
+Bukan:
 
-Demo publik: rate limit, batas panjang pesan, tanpa data pribadi contoh, tanpa tool mutasi, dan tanpa menyimpan hasil kecuali telemetry anonim yang disetujui.
-
-## 8. API dan efek samping
-
-| Endpoint/aksi | Input | Hasil dan guard |
-| --- | --- | --- |
-| `POST /api/ai/parse` | teks | Proposal tervalidasi; rate limit dan autentikasi untuk mode dashboard. |
-| `POST /api/invoices` | draft yang sudah dikoreksi | Cek sesi dan owner; kalkulasi ulang; simpan draft secara atomik. |
-| `POST /api/invoices/:id/issue` | ID draft | Kunci invoice; buat nomor unik dan termin; idempotency key. |
-| `POST /api/invoices/:id/send` | channel dan penerima | Konfirmasi user; kirim dan log hasil. |
-| `POST /api/installments/:id/checkout` | ID termin | Cek status/nominal; buat atau gunakan sesi aktif; simpan referensi provider. |
-| `GET /i/:token` | token publik | Tampilkan invoice dengan data klien minimum; tanpa akses dashboard. |
-| `POST /api/webhooks/xendit` | event Xendit | Verifikasi token/header sesuai jenis webhook; deduplikasi; update atomik; respons cepat. |
-
-Gunakan transaksi database untuk perubahan invoice dan pembayaran. Pembuatan sesi Xendit terjadi di luar transaksi database yang panjang; simpan intent/referensi sebelum panggilan lalu tangani retry dan rekonsiliasi agar kegagalan jaringan tidak membuat tagihan ganda. Webhook boleh datang berulang atau tidak berurutan; handler harus idempotent. Terapkan timeout dan retry terukur untuk API eksternal.
-
-## 9. Keamanan dan privasi
-
-- Semua kunci API, token webhook, dan service role hanya di server; jangan memakai `NEXT_PUBLIC_` untuk secret.
-- Validasi autentikasi dan `owner_user_id` di setiap query server. Jika mengakses Supabase lewat koneksi PostgreSQL Drizzle langsung, **RLS tidak otomatis melindungi query aplikasi**; otorisasi tetap wajib di repository/service. Atur RLS juga bila tabel diakses melalui Supabase client/API.
-- URL invoice publik menggunakan token acak berentropi tinggi, disimpan sebagai hash; dukung revoke/rotasi. Terapkan rate limit dan jangan tampilkan nomor telepon atau email pemilik/klien tanpa kebutuhan.
-- Verifikasi `x-callback-token` Xendit sesuai webhook yang diaktifkan; cocokkan `external_reference`, ID provider, currency, dan nominal. Deduplikasi event dan catat audit minimum.
-- Pengingat otomatis hanya ke kontak yang diberikan freelancer untuk tujuan penagihan; sediakan opt-out kanal yang sesuai. Batasi frekuensi dan periksa status lunas tepat sebelum kirim.
-- Log tidak menyimpan full prompt berisi data klien, token pembayaran, atau rahasia. Atur retensi dan mekanisme penghapusan data.
-- Label kuitansi sebagai bukti pembayaran yang tercatat; jangan menyebutnya dokumen pajak resmi tanpa fitur pajak yang sesuai.
-
-## 10. Dashboard dan metrik
-
-- **Uang masuk bulan ini**: jumlah pembayaran sukses pada bulan berjalan berdasarkan `paid_at`, dengan refund dikurangkan. Jangan menyebutnya “sudah dicairkan ke rekening” tanpa data settlement/payout dari Xendit.
-- **Piutang terbuka**: total nilai termin terbit yang belum dibayar, dikurangi pembayaran berhasil.
-- **Terlambat**: bagian piutang terbuka dengan `due_at` sudah lewat, dikelompokkan 1–7, 8–30, dan >30 hari.
-- **Proyeksi**: nominal termin belum lunas menurut tanggal jatuh tempo; tampilkan sebagai estimasi, bukan kas yang pasti diterima.
-- **Pendapatan per klien**: berdasarkan pembayaran berhasil, bukan nominal invoice yang baru diterbitkan.
-
-## 11. Pengembangan lokal dan go-live
-
-### Lokal
-
-1. Jalankan Next.js dan SQLite lokal. Supabase project development menyediakan Google OAuth; atur redirect URL localhost. Bila tidak ada akun/credential, gunakan demo mode terisolasi untuk alur UI, jangan menyamarkannya sebagai login riil.
-2. Jalankan migrasi SQLite khusus lokal; seed satu freelancer, dua klien, invoice full dan DP untuk demo.
-3. Pakai Xendit sandbox dan endpoint webhook yang bisa dijangkau secara aman dari internet saat uji end-to-end; alternatifnya replay event fixture terverifikasi di test lokal.
-4. Jalankan job adapter lokal atau Trigger.dev dev environment; email sandbox/test recipient sampai alur siap.
-
-### Migrasi produksi
-
-1. Bekukan model domain, buat schema `pg-core` dan migrasi PostgreSQL yang setara. Bandingkan constraint, index, foreign key, default, dan representasi waktu/status.
-2. Buat project Supabase produksi, konfigurasi Auth Google, redirect URL, secret, dan database. Jalankan migrasi PostgreSQL pada database kosong dan verifikasi data referensi.
-3. Bila data SQLite lokal memang perlu dibawa, tulis skrip ETL dengan mapping ID/UUID dan timestamp; ekspor → validasi total serta relasi → impor → cek jumlah record dan total piutang. Demo seed tidak dipindahkan ke produksi.
-4. Deploy Next.js ke Vercel, pasang environment variables production, webhook Xendit yang tepat, sender email, serta scheduler. Pakai Xendit sandbox pada staging dahulu; aktifkan live hanya setelah end-to-end lolos dan channel pembayaran akun tersedia.
-5. Uji invoice full/DP, pembayaran sukses, event duplikat, checkout kedaluwarsa, reminder yang batal karena sudah lunas, PDF, dan akses antar akun. Catat rencana rollback migrasi dan backup sebelum cutover.
-
-### Environment variables contoh
-
-```dotenv
-DATABASE_DIALECT=sqlite # sqlite | postgres
-DATABASE_URL=file:./data/app.db
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY= # hanya jika dibutuhkan server-side
-LLM_API_KEY=
-XENDIT_SECRET_KEY=
-XENDIT_WEBHOOK_TOKEN=
-RESEND_API_KEY=
-TRIGGER_SECRET_KEY=
-APP_BASE_URL=http://localhost:3000
+```ts
+router.get(
+  "/projects",
+  authMiddleware,
+  roleMiddleware,
+  projectController.list
+)
 ```
 
-Jangan commit `.env`, file SQLite berisi data klien, atau PDF invoice sungguhan. Untuk produksi, `DATABASE_URL` menunjuk ke koneksi PostgreSQL Supabase yang sesuai lingkungan deployment.
+Authentication dapat ditambahkan setelah core product stabil.
 
-## 12. Tahapan implementasi dan kriteria selesai
+---
 
-1. **Fondasi:** Next.js, UI, Supabase Auth, adapter database, schema SQLite dan PostgreSQL, otorisasi tenant. Selesai jika akun A tidak bisa membaca/mengubah data akun B.
-2. **Invoice:** input AI + form koreksi, klien, full/DP/termin, halaman publik dan PDF. Selesai jika total setiap skema akurat dan draft perlu konfirmasi sebelum diterbitkan.
-3. **Pembayaran:** Xendit sandbox Payment Session, checkout per termin, webhook terverifikasi dan idempotent. Selesai jika event duplikat tidak menggandakan pembayaran serta status invoice mengikuti termin.
-4. **Reminder dan dashboard:** pengiriman email, jadwal H-3/H-1/H/H+3/H+7, metrik dari pembayaran nyata. Selesai jika termin yang sudah lunas tidak menerima reminder berikutnya.
-5. **Go-live:** PostgreSQL Supabase, deployment, secret, monitoring, uji produksi terbatas. Selesai jika alur invoice → bayar → status → kuitansi bekerja lewat URL publik.
+# 16. Core Domain Models
 
-## 13. Keputusan yang masih perlu dipilih saat implementasi
+## Project
 
-- Penyedia dan model LLM, beserta batas biaya per parsing.
-- Apakah tagihan pelunasan berbasis tanggal pasti atau aktivasi manual setelah milestone; MVP mendukung keduanya lewat `scheduled`.
-- Kebijakan nomor invoice, pembatalan, refund, dan perubahan invoice setelah terbit.
-- Metode pembayaran Xendit yang benar-benar aktif untuk jenis akun, serta biaya dan syarat pencairan terkini.
-- Retensi data percakapan, identitas usaha yang tampil di PDF, dan template email final.
+```ts
+type Project = {
+  id: string
+  name: string
+  clientName: string
+  status: "DRAFT" | "ACTIVE" | "COMPLETED"
+  progress: number
+  activeBaselineVersion: number | null
+  createdAt: string
+  updatedAt: string
+}
+```
 
-## 14. Rujukan teknis resmi
+---
 
-- Xendit, [Create a Payment Session](https://docs.xendit.co/apidocs/create-session), [One Time Payment](https://docs.xendit.co/docs/payment-1), [Handling Webhooks](https://docs.xendit.co/docs/handling-webhooks), [Migrating legacy Payment Links](https://docs.xendit.co/docs/migrate-to-payment-session).
-- Supabase, [Auth SSR](https://supabase.com/docs/guides/auth/server-side) dan [Google sign-in](https://supabase.com/docs/guides/auth/social-login/auth-google).
-- Drizzle, [Generate migrations](https://orm.drizzle.team/docs/drizzle-kit-generate) dan [Configuration](https://orm.drizzle.team/docs/drizzle-config-file).
+## Agreement Baseline
 
-> Catatan: nama field/event Xendit, ketersediaan channel, dan persyaratan akun perlu dicocokkan dengan API reference serta akun sandbox yang dipakai saat coding.
+```ts
+type AgreementBaseline = {
+  contractValue: number | null
+  startDate: string | null
+  deadline: string | null
+  revisionLimit: number | null
+  scope: ScopeItem[]
+  milestones: Milestone[]
+  paymentTerms: PaymentTerm[]
+  obligations: Obligation[]
+}
+```
+
+---
+
+## Plan Baseline
+
+```ts
+type PlanBaseline = {
+  items: BudgetItem[]
+  totalPlannedCost: number
+}
+```
+
+---
+
+## Baseline Version
+
+```ts
+type BaselineVersion = {
+  version: number
+  agreement: AgreementBaseline
+  plan: PlanBaseline
+  status: "ACTIVE" | "ARCHIVED"
+  sourceChangeRequestId?: string
+  confirmedAt: string
+}
+```
+
+---
+
+## Project Event
+
+```ts
+type ProjectEvent = {
+  id: string
+  projectId: string
+  type:
+    | "PROGRESS_UPDATED"
+    | "MILESTONE_COMPLETED"
+    | "TASK_ADDED"
+    | "REVISION_ADDED"
+    | "SCOPE_CHANGED"
+    | "NOTE_ADDED"
+  data: unknown
+  createdAt: string
+}
+```
+
+---
+
+## Actual Cost
+
+```ts
+type ActualCost = {
+  id: string
+  category: string
+  description: string
+  amount: number
+  date: string
+}
+```
+
+---
+
+## Invoice
+
+```ts
+type Invoice = {
+  id: string
+  invoiceNumber: string
+  milestoneId?: string
+  amount: number
+  issueDate: string
+  dueDate?: string
+  status: "DRAFT" | "ISSUED" | "PAID" | "CANCELLED"
+}
+```
+
+---
+
+## Change Request
+
+```ts
+type ChangeRequest = {
+  id: string
+  title: string
+  reason?: string
+  additionalScope?: ScopeItem[]
+  additionalValue?: number
+  deadlineExtensionDays?: number
+  revisionChange?: number
+  status: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED"
+}
+```
+
+---
+
+## Alert
+
+```ts
+type Alert = {
+  id: string
+  type:
+    | "BUDGET_VARIANCE"
+    | "SCOPE_VARIANCE"
+    | "BILLING_VARIANCE"
+    | "REVISION_VARIANCE"
+    | "DEADLINE_WARNING"
+    | "UNBILLED_VALUE"
+
+  status:
+    | "MATCH"
+    | "WARNING"
+    | "VERIFIED_DEVIATION"
+
+  impact?: number
+  message: string
+  evidence: Evidence[]
+}
+```
+
+---
+
+# 17. API Design
+
+Base:
+
+```text
+/api/v1
+```
+
+---
+
+## Projects
+
+```text
+POST   /projects
+GET    /projects
+GET    /projects/:projectId
+PATCH  /projects/:projectId
+```
+
+---
+
+## Documents
+
+```text
+POST /projects/:projectId/documents
+GET  /projects/:projectId/documents
+GET  /documents/:documentId
+```
+
+---
+
+## AI Extraction
+
+```text
+POST /documents/:documentId/extract
+GET  /documents/:documentId/extraction
+```
+
+---
+
+## Baseline
+
+```text
+GET  /projects/:projectId/baseline/candidate
+PUT  /projects/:projectId/baseline/candidate
+POST /projects/:projectId/baseline/confirm
+GET  /projects/:projectId/baselines
+GET  /projects/:projectId/baselines/:version
+```
+
+---
+
+## Monitoring
+
+```text
+POST /projects/:projectId/events
+GET  /projects/:projectId/events
+PATCH /projects/:projectId/progress
+PATCH /projects/:projectId/milestones/:milestoneId
+```
+
+---
+
+## Finance
+
+```text
+POST /projects/:projectId/actual-costs
+GET  /projects/:projectId/actual-costs
+
+POST /projects/:projectId/invoices
+GET  /projects/:projectId/invoices
+
+POST /projects/:projectId/payments
+GET  /projects/:projectId/payments
+```
+
+---
+
+## Change Request
+
+```text
+POST  /projects/:projectId/change-requests
+GET   /projects/:projectId/change-requests
+GET   /change-requests/:id
+PATCH /change-requests/:id
+POST  /change-requests/:id/approve
+POST  /change-requests/:id/reject
+```
+
+---
+
+## Reconciliation
+
+```text
+POST /projects/:projectId/reconcile
+GET  /projects/:projectId/reconciliation
+```
+
+---
+
+## Alerts
+
+```text
+GET   /projects/:projectId/alerts
+GET   /alerts/:alertId
+PATCH /alerts/:alertId
+```
+
+---
+
+## Dashboard
+
+```text
+GET /projects/:projectId/summary
+GET /dashboard/summary
+```
+
+---
+
+# 18. Standard API Response
+
+Success:
+
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
+
+Error:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "BASELINE_NOT_CONFIRMED",
+    "message": "Project baseline must be confirmed before reconciliation."
+  }
+}
+```
+
+---
+
+# 19. AI Architecture
+
+AI memiliki empat fungsi utama.
+
+```text
+Document Understanding
+Semantic Matching
+Evidence Retrieval
+Explanation
+```
+
+AI tidak menjadi financial calculator.
+
+---
+
+# 20. AI Document Pipeline
+
+```text
+UPLOAD DOCUMENT
+↓
+PARSE / OCR
+↓
+DOCUMENT CLASSIFICATION
+↓
+STRUCTURED EXTRACTION
+↓
+SCHEMA VALIDATION
+↓
+EVIDENCE MAPPING
+↓
+BASELINE CANDIDATE
+↓
+USER CONFIRMATION
+```
+
+---
+
+# 21. Supported Document Types
+
+```text
+CONTRACT
+PKS
+SPK
+SOW
+MOU
+RAB
+QUOTATION
+INVOICE
+CHANGE_REQUEST
+ADDENDUM
+UNKNOWN
+```
+
+AI harus mengembalikan:
+
+```json
+{
+  "documentType": "CONTRACT",
+  "confidence": 0.94
+}
+```
+
+---
+
+# 22. Contract Extraction Schema
+
+Minimum:
+
+```json
+{
+  "project_name": null,
+  "client_name": null,
+  "contract_value": null,
+  "start_date": null,
+  "deadline": null,
+  "revision_limit": null,
+  "scope": [],
+  "milestones": [],
+  "payment_terms": [],
+  "obligations": [],
+  "penalties": []
+}
+```
+
+Rule:
+
+> Missing value harus `null`, bukan hasil tebakan.
+
+---
+
+# 23. RAB Extraction Schema
+
+```json
+{
+  "items": [
+    {
+      "category": "Development",
+      "description": "Frontend Development",
+      "quantity": 1,
+      "unit": "project",
+      "unit_price": 40000000,
+      "planned_cost": 40000000
+    }
+  ],
+  "total_planned_cost": 75000000
+}
+```
+
+---
+
+# 24. Evidence Schema
+
+```json
+{
+  "document_id": "doc_123",
+  "page": 4,
+  "section": "Payment Terms",
+  "text": "25% payment upon UAT approval"
+}
+```
+
+Every important extracted field should have evidence if available.
+
+---
+
+# 25. AI Extraction Rules
+
+AI MUST:
+
+- return structured JSON
+- preserve missing data as null
+- attach evidence
+- attach confidence if possible
+- avoid guessing monetary values
+- avoid guessing dates
+- avoid guessing legal meaning when unsupported
+
+AI MUST NOT:
+
+- create contract clauses
+- calculate financial results
+- update baseline directly
+- decide final business action
+- label semantic mismatch as confirmed violation
+
+---
+
+# 26. Semantic Scope Matching
+
+Example:
+
+Contract scope:
+
+```text
+Dashboard
+Payment Integration
+Landing Page
+```
+
+Actual task:
+
+```text
+WhatsApp Integration
+```
+
+AI output:
+
+```json
+{
+  "status": "NEEDS_REVIEW",
+  "confidence": 0.77,
+  "matchedScopeItem": null,
+  "reason": "The task does not clearly match any scope item in the active baseline."
+}
+```
+
+Allowed statuses:
+
+```text
+MATCH
+POSSIBLE_MATCH
+NEEDS_REVIEW
+```
+
+Do not use:
+
+```text
+CONTRACT_VIOLATION
+CLIENT_BREACH
+ILLEGAL_SCOPE
+```
+
+---
+
+# 27. AI Alert Explanation
+
+Backend calculation:
+
+```json
+{
+  "type": "BILLING_VARIANCE",
+  "expected": 30000000,
+  "actual": 20000000,
+  "difference": 10000000
+}
+```
+
+AI explanation:
+
+```text
+UAT telah selesai. Berdasarkan baseline aktif,
+milestone tersebut memiliki nilai tagih Rp30 juta.
+
+Invoice yang tercatat sebesar Rp20 juta.
+
+Terdapat selisih billing sebesar Rp10 juta.
+```
+
+LLM tidak boleh menghitung ulang angka tersebut.
+
+---
+
+# 28. Reconciliation Engine
+
+Reconciliation Engine adalah jantung deterministic CLARA.
+
+Input:
+
+```text
+Active Agreement Baseline
+Active Plan Baseline
+Actual Project Data
+Actual Cost
+Invoices
+Payments
+Approved Change Requests
+Semantic Match Results
+```
+
+Output:
+
+```text
+MATCH
+WARNING
+VERIFIED_DEVIATION
+```
+
+---
+
+# 29. Budget Variance
+
+Formula:
+
+```text
+Budget Variance =
+Actual Cost - Planned Cost
+```
+
+Example:
+
+```text
+Planned UI/UX = Rp15M
+Actual UI/UX  = Rp18M
+
+Variance = +Rp3M
+```
+
+---
+
+# 30. Budget Utilization
+
+Formula:
+
+```text
+Budget Utilization =
+Actual Cost / Planned Cost × 100%
+```
+
+Example:
+
+```text
+Planned = Rp75M
+Actual  = Rp61M
+
+Utilization = 81.33%
+```
+
+---
+
+# 31. Contract Value Realization
+
+Metrics:
+
+```text
+Contract Value
+Billable Value
+Billed Value
+Paid Value
+Unbilled Value
+```
+
+Formula:
+
+```text
+Unbilled Value =
+Billable Value - Billed Value
+```
+
+---
+
+# 32. Billing Variance
+
+Example:
+
+```text
+Contract milestone:
+25% of Rp120M
+= Rp30M
+
+Actual Invoice:
+Rp20M
+
+Difference:
+Rp10M
+```
+
+Output:
+
+```text
+VERIFIED_DEVIATION
+```
+
+---
+
+# 33. Revision Variance
+
+Example:
+
+```text
+Revision Limit: 3
+Actual Revision: 5
+```
+
+Formula:
+
+```text
+Revision Variance =
+Actual Revision - Revision Limit
+```
+
+Output:
+
+```text
+2 revisions beyond contracted allowance
+```
+
+---
+
+# 34. Scope Variance
+
+Scope variance memiliki AI component.
+
+Flow:
+
+```text
+Actual Task
+↓
+Semantic Matching
+↓
+Check Active Baseline
+↓
+Check Approved Change Request
+↓
+MATCH / NEEDS REVIEW
+```
+
+Scope mismatch tidak otomatis menjadi verified contractual breach.
+
+---
+
+# 35. Profit Model
+
+## Planned Profit
+
+```text
+Planned Profit =
+Contract Value - Planned Cost
+```
+
+Example:
+
+```text
+Contract Value = Rp120M
+Planned Cost   = Rp75M
+
+Planned Profit = Rp45M
+```
+
+---
+
+## Actual Profit
+
+Hanya boleh dihitung jika actual cost dan realized revenue tersedia.
+
+```text
+Actual Profit =
+Realized Revenue - Actual Cost
+```
+
+Jangan menggunakan RAB sebagai actual cost.
+
+---
+
+# 36. Baseline Versioning
+
+Initial:
+
+```text
+Baseline V1
+```
+
+Approved Change Request:
+
+```text
+Additional Scope
++Rp8M
++7 days
+```
+
+System creates:
+
+```text
+Baseline V2
+```
+
+V1 tetap disimpan sebagai history.
+
+Only one baseline is:
+
+```text
+ACTIVE
+```
+
+Older baseline:
+
+```text
+ARCHIVED
+```
+
+---
+
+# 37. Change Request Rule
+
+Only:
+
+```text
+APPROVED
+```
+
+can modify baseline.
+
+These cannot modify baseline:
+
+```text
+DRAFT
+PENDING
+REJECTED
+```
+
+---
+
+# 38. Alert Classification
+
+## MATCH
+
+Tidak ada deviasi.
+
+## WARNING
+
+Ada indikasi yang membutuhkan review.
+
+Example:
+
+```text
+Possible Scope Deviation
+```
+
+## VERIFIED_DEVIATION
+
+Dapat diverifikasi langsung melalui angka/data.
+
+Example:
+
+```text
+Invoice expected Rp30M
+Invoice actual Rp20M
+Difference Rp10M
+```
+
+---
+
+# 39. Evidence-First Rule
+
+Every important alert should answer:
+
+```text
+What happened?
+How large is the difference?
+Why is CLARA saying this?
+Where is the evidence?
+```
+
+Example:
+
+```text
+Alert:
+Completed But Underbilled
+
+Impact:
+Rp10M
+
+Evidence:
+Contract Clause 4.2
+UAT completed
+Invoice Rp20M
+```
+
+---
+
+# 40. Project Summary Model
+
+Backend summary response:
+
+```json
+{
+  "projectId": "project_001",
+  "contractValue": 120000000,
+  "plannedCost": 75000000,
+  "actualCost": 61000000,
+  "projectProgress": 75,
+  "billableValue": 84000000,
+  "billedValue": 48000000,
+  "paidValue": 36000000,
+  "unbilledValue": 36000000,
+  "activeBaselineVersion": 1,
+  "alerts": {
+    "budget": 1,
+    "scope": 2,
+    "billing": 1
+  }
+}
+```
+
+---
+
+# 41. Frontend ↔ Backend Contract
+
+Frontend should not calculate business truth independently.
+
+Bad:
+
+```text
+Frontend calculates billing gap.
+```
+
+Good:
+
+```text
+Backend returns billing gap.
+Frontend formats and displays it.
+```
+
+Frontend may calculate only presentation-level values such as:
+
+- percentage bar width
+- display formatting
+- local sorting/filtering
+
+---
+
+# 42. AI ↔ Backend Contract
+
+AI produces:
+
+```text
+Structured Extraction
+Evidence
+Confidence
+Semantic Match
+Natural Language Explanation
+```
+
+Backend produces:
+
+```text
+Confirmed Baseline
+Deterministic Calculations
+Business State
+Alert State
+```
+
+---
+
+# 43. PDF Evidence Interaction
+
+Recommended flow:
+
+```text
+User opens alert
+↓
+Clicks Show Evidence
+↓
+Evidence Drawer opens
+↓
+PDF.js jumps to page
+↓
+Relevant clause highlighted
+```
+
+This is one of the most important trust-building interactions in the product.
+
+---
+
+# 44. Data Update Strategy
+
+CLARA does not require daily manual input.
+
+Use **event-based updates**.
+
+Project user updates only when:
+
+- milestone completed
+- progress changed
+- task added
+- scope changed
+- revision added
+- Change Request approved
+
+Finance updates only when:
+
+- cost incurred
+- invoice issued
+- payment received
+
+---
+
+# 45. Reconciliation Trigger
+
+Reconciliation may run after:
+
+```text
+Baseline Confirmed
+Project Event Created
+Actual Cost Created
+Invoice Created
+Payment Created
+Change Request Approved
+```
+
+For MVP:
+
+```text
+Run reconciliation immediately after write operation.
+```
+
+No queue is required unless existing infrastructure already supports it.
+
+---
+
+# 46. Error Handling
+
+AI error example:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "EXTRACTION_FAILED",
+    "message": "Unable to extract contract data."
+  }
+}
+```
+
+Baseline error:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "BASELINE_NOT_CONFIRMED",
+    "message": "Confirm baseline before project reconciliation."
+  }
+}
+```
+
+Financial validation:
+
+```text
+No NaN
+No Infinity
+No negative invoice without explicit credit-note support
+```
+
+---
+
+# 47. Loading States
+
+Frontend should have explicit states:
+
+```text
+Uploading
+Parsing
+Extracting
+Waiting for Confirmation
+Confirmed
+Reconciling
+Ready
+Failed
+```
+
+Avoid generic endless spinner.
+
+---
+
+# 48. Empty States
+
+Examples:
+
+No contract:
+
+```text
+Upload your contract to create the project agreement baseline.
+```
+
+No RAB:
+
+```text
+Upload RAB to compare planned cost with actual cost.
+```
+
+No invoice:
+
+```text
+No invoice has been recorded for this project.
+```
+
+---
+
+# 49. Demo Dataset
+
+Prepare one deterministic project.
+
+Example:
+
+```text
+Project:
+ERP Client A
+
+Contract Value:
+Rp120M
+
+Planned Cost:
+Rp75M
+
+Revision Limit:
+3
+
+UAT:
+25% payment trigger
+
+Progress:
+75%
+
+Actual Cost:
+Rp61M
+
+Actual Revision:
+5
+
+UAT:
+Completed
+
+Invoice:
+Rp20M
+```
+
+Expected CLARA results:
+
+```text
+Revision Variance:
++2 revisions
+
+Expected UAT Billing:
+Rp30M
+
+Invoice:
+Rp20M
+
+Billing Difference:
+Rp10M
+```
+
+---
+
+# 50. Demo Story
+
+Recommended demo:
+
+```text
+1. Create Project
+
+2. Upload Contract + RAB
+
+3. AI extracts:
+   Contract Value
+   Scope
+   Milestones
+   Deadline
+   Budget
+
+4. User confirms baseline
+
+5. Project starts
+
+6. Update:
+   UAT completed
+   Revision = 5
+   Actual cost = Rp61M
+
+7. Add invoice:
+   Rp20M
+
+8. CLARA reconciles
+
+9. Dashboard shows:
+   Billing Difference Rp10M
+   Revision Variance +2
+
+10. Open Evidence
+
+11. PDF jumps to relevant clause
+
+12. User decides next action
+```
+
+---
+
+# 51. Hackathon MVP Priority
+
+## P0
+
+Must work:
+
+- Next.js layout
+- Project list
+- Create project
+- Contract upload
+- RAB upload
+- PDF preview
+- AI extraction
+- User confirmation
+- Baseline V1
+- Project event update
+- Actual cost
+- Invoice
+- Budget variance
+- Billing variance
+- Revision variance
+- Alerts
+- Evidence
+- Project dashboard
+
+## P1
+
+Important:
+
+- Semantic scope matching
+- Change Request
+- Baseline V2
+- Legal AI integration
+- Payment tracking
+
+## P2
+
+Optional:
+
+- portfolio analytics
+- complex charts
+- external integrations
+- authentication
+- advanced permission
+- forecasting
+- predictive model
+
+---
+
+# 52. Out of Scope
+
+Do not build during MVP:
+
+- full accounting system
+- full ERP
+- payroll
+- employee performance
+- autonomous invoicing
+- autonomous negotiation
+- automatic legal decision
+- prediction of business failure
+- custom model training
+- Jira integration
+- ClickUp integration
+- complex RBAC
+- auth middleware
+
+---
+
+# 53. Development Ownership
+
+## Frontend Engineer
+
+Owns:
+
+- Next.js
+- shadcn/ui
+- PDF.js
+- Lucide
+- Motion
+- frontend states
+- project flow
+- evidence UX
+- dashboard
+
+---
+
+## AI Engineer
+
+Owns:
+
+- document parsing
+- extraction
+- schema output
+- evidence mapping
+- semantic matching
+- AI explanations
+- legal AI reuse
+
+---
+
+## Backend Engineer
+
+Owns:
+
+- controllers
+- services
+- repositories
+- database
+- baseline
+- project events
+- finance
+- Change Request
+- reconciliation
+- calculations
+- alerts
+
+---
+
+# 54. Integration Rule
+
+Do not wait until the end of the hackathon to integrate.
+
+First agree on:
+
+```text
+TypeScript types
+API response shape
+AI JSON schema
+Project demo data
+```
+
+Then each person works against the same contract.
+
+---
+
+# 55. Shared Type Strategy
+
+Recommended:
+
+Create a shared specification document or package for:
+
+```text
+Project
+Baseline
+Milestone
+ScopeItem
+ActualCost
+Invoice
+ChangeRequest
+Alert
+Evidence
+```
+
+If repository structure allows:
+
+```text
+packages/shared-types/
+```
+
+Otherwise duplicate carefully from one canonical `types.md` or `types.ts`.
+
+---
+
+# 56. Code Quality Rules
+
+## Frontend
+
+- keep components small
+- avoid business calculation in components
+- use shadcn primitives
+- centralize API access
+- use typed responses
+- provide loading/error/empty states
+
+## Backend
+
+- controller thin
+- service owns business logic
+- repository owns DB query
+- validate all input
+- financial calculation deterministic
+- never trust AI output without validation
+
+## AI
+
+- structured JSON
+- preserve evidence
+- confidence where useful
+- no fabricated value
+- no autonomous baseline update
+
+---
+
+# 57. Naming Convention
+
+Use English for code.
+
+Example:
+
+```text
+contractValue
+plannedCost
+actualCost
+billableValue
+billedValue
+paidValue
+unbilledValue
+revisionLimit
+actualRevisionCount
+activeBaselineVersion
+```
+
+UI language may use Indonesian or English depending on final product direction.
+
+---
+
+# 58. Final System Principle
+
+CLARA should never communicate:
+
+> AI knows what is best for your business.
+
+CLARA should communicate:
+
+> Based on your confirmed agreement and available project data, this is what changed, how large the difference is, and which evidence supports it.
+
+Final decision belongs to the user.
+
+---
+
+# 59. One-Line Architecture
+
+```text
+Contract + RAB
+→ AI Understanding
+→ Human-Confirmed Baseline
+→ Project + Finance Actuals
+→ Deterministic Reconciliation
+→ Business Impact
+→ Evidence
+→ Human Decision
+```
+
+---
+
+# 60. Product Positioning
+
+CLARA is not simply:
+
+```text
+AI Contract Reader
+```
+
+CLARA is:
+
+> **A contract intelligence system that connects agreements, project execution, and financial realization.**
+
+Tagline:
+
+> **Understand what you agreed to, monitor what actually happens, and protect the value of every contract.**
