@@ -37,6 +37,10 @@ export async function closeDriver(): Promise<void> {
   }
 }
 
-// for Graceful shutdown
-process.on("SIGTERM", closeDriver);
-process.on("SIGINT", closeDriver);
+// Graceful shutdown: close the driver, then actually exit (a bare handler
+// would replace Node's default exit and keep the process alive).
+const shutdown = () => {
+  void closeDriver().finally(() => process.exit(0));
+};
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
