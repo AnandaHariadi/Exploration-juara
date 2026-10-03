@@ -57,7 +57,7 @@ test('pitch: reset → V1 → monitoring → alerts with evidence → CR → V2 
 
   // Confirm baseline V1
   await page.getByRole('button', { name: /Setujui sebagai acuan V1/ }).click();
-  await expect(page.getByText('Acuan V1', { exact: true })).toBeVisible();
+  await expect(page.getByText('Acuan V1', { exact: true }).first()).toBeVisible();
   await expect(page.getByRole('tab', { name: /Ringkasan/ })).toBeVisible();
 
   // Progress 60%
@@ -119,12 +119,12 @@ test('pitch: reset → V1 → monitoring → alerts with evidence → CR → V2 
   await page.getByLabel('Perpanjangan (hari)').fill('5');
   await page.getByRole('button', { name: 'Ajukan', exact: true }).click();
   await notice(page, /Permintaan perubahan diajukan/);
-  await expect(page.getByText('Acuan V1', { exact: true })).toBeVisible();
+  await expect(page.getByText('Acuan V1', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Setujui perubahan' }).click();
   await notice(page, /disetujui/);
 
   // V2 active, V1 archived, revision alert recomputed
-  await expect(page.getByText('Acuan V2', { exact: true })).toBeVisible();
+  await expect(page.getByText('Acuan V2', { exact: true }).first()).toBeVisible();
   await tab(page, 'Acuan proyek');
   await expect(page.getByText('Diarsipkan')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Acuan aktif V2' })).toBeVisible();
@@ -138,7 +138,7 @@ test('pitch: reset → V1 → monitoring → alerts with evidence → CR → V2 
 
   // Persistence across reload
   await page.reload();
-  await expect(page.getByText('Acuan V2', { exact: true })).toBeVisible();
+  await expect(page.getByText('Acuan V2', { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/Rp\s?124\.000\.000/).first()).toBeVisible();
 
   // Dashboard reflects the same numbers
