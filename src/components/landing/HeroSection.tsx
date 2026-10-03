@@ -63,8 +63,8 @@ export function HeroSection() {
           className="object-cover object-center"
         />
       </div>
-      {/* Clara Executive Ribbon (Left Flank - Visibly Grand & Well-Spaced) */}
-      <div className="absolute -left-14 sm:-left-10 lg:-left-4 xl:left-0 top-0 sm:top-2 w-32 sm:w-44 md:w-60 lg:w-72 xl:w-84 h-auto pointer-events-none select-none z-0 opacity-75 sm:opacity-85 lg:opacity-90 transition-all">
+      {/* Clara Executive Ribbon (Left Flank - Monumental & Grand) */}
+      <div className="absolute -left-16 sm:-left-12 lg:-left-6 xl:-left-2 2xl:left-2 -top-4 sm:-top-6 lg:-top-8 w-44 sm:w-60 md:w-72 lg:w-96 xl:w-[460px] 2xl:w-[520px] h-auto pointer-events-none select-none z-0 opacity-85 sm:opacity-90 lg:opacity-95 transition-all">
         <Image
           src="/images/shapes/hero_ribbon_monument_left.svg"
           alt="Clara Ribbon Left"
@@ -75,8 +75,8 @@ export function HeroSection() {
         />
       </div>
 
-      {/* Clara Executive Ribbon (Right Flank - Visibly Grand & Well-Spaced) */}
-      <div className="absolute -right-14 sm:-right-10 lg:-right-4 xl:right-0 top-0 sm:top-2 w-32 sm:w-44 md:w-60 lg:w-72 xl:w-84 h-auto pointer-events-none select-none z-0 opacity-75 sm:opacity-85 lg:opacity-90 transition-all">
+      {/* Clara Executive Ribbon (Right Flank - Monumental & Grand) */}
+      <div className="absolute -right-16 sm:-right-12 lg:-right-6 xl:-right-2 2xl:right-2 -top-4 sm:-top-6 lg:-top-8 w-44 sm:w-60 md:w-72 lg:w-96 xl:w-[460px] 2xl:w-[520px] h-auto pointer-events-none select-none z-0 opacity-85 sm:opacity-90 lg:opacity-95 transition-all">
         <Image
           src="/images/shapes/hero_ribbon_monument_right.svg"
           alt="Clara Ribbon Right"
