@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, AlertTriangle, ChevronLeft, ChevronRight, FileSearch, FileText, FolderKanban, Home, LayoutDashboard, ReceiptText, RotateCcw, X } from 'lucide-react';
+import { Activity, AlertTriangle, Bot, ChevronLeft, ChevronRight, FilePen, FileSearch, FileText, FolderKanban, Home, LayoutDashboard, ReceiptText, RotateCcw, X } from 'lucide-react';
 import { dataClient } from '@/services/dataClient';
 import { useAlerts } from '@/hooks/useClaraData';
 
@@ -11,6 +11,7 @@ const navigationGroups = [
   { title: 'Utama', items: [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Proyek', href: '/projects', icon: FolderKanban },
+    { label: 'Pusat AI', href: '/ai-center', icon: Bot },
   ] },
   { title: 'Monitoring', items: [
     { label: 'Pemantauan', href: '/monitoring', icon: Activity },
@@ -18,7 +19,8 @@ const navigationGroups = [
     { label: 'Permintaan perubahan', href: '/change-requests', icon: FileText },
     { label: 'Peringatan', href: '/alerts', icon: AlertTriangle },
   ] },
-  { title: 'Lainnya', items: [
+  { title: 'AI & dokumen', items: [
+    { label: 'Studio dokumen', href: '/studio', icon: FilePen },
     { label: 'Tanya kontrak (AI)', href: '/legal-ai', icon: FileSearch },
     { label: 'Halaman depan', href: '/', icon: Home },
   ] },
