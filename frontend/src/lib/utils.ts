@@ -14,11 +14,13 @@ export function formatRupiah(amount: number): string {
 }
 
 export function formatCompactRupiah(amount: number): string {
-  if (Math.abs(amount) >= 1_000_000_000) {
-    return `Rp ${(amount / 1_000_000_000).toFixed(2)} M`;
+  const sign = amount < 0 ? '-' : '';
+  const abs = Math.abs(amount);
+  if (abs >= 1_000_000_000) {
+    return `${sign}Rp ${(abs / 1_000_000_000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} M`;
   }
-  if (Math.abs(amount) >= 1_000_000) {
-    return `Rp ${(amount / 1_000_000).toFixed(1)} Jt`;
+  if (abs >= 1_000_000) {
+    return `${sign}Rp ${(abs / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} Jt`;
   }
   return formatRupiah(amount);
 }
