@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, AlertTriangle, ChevronLeft, ChevronRight, FileSearch, FileText, FolderKanban, Home, LayoutDashboard, ReceiptText, RotateCcw, X } from 'lucide-react';
+import { Activity, AlertTriangle, ChevronLeft, ChevronRight, FileText, FolderKanban, Home, LayoutDashboard, ReceiptText, RotateCcw, X } from 'lucide-react';
 import { dataClient } from '@/services/dataClient';
 import { useAlerts } from '@/hooks/useClaraData';
 
@@ -19,7 +20,6 @@ const navigationGroups = [
     { label: 'Peringatan', href: '/alerts', icon: AlertTriangle },
   ] },
   { title: 'Lainnya', items: [
-    { label: 'Cari kesepakatan', href: '/legal-ai', icon: FileSearch },
     { label: 'Halaman depan', href: '/', icon: Home },
   ] },
 ];
@@ -70,12 +70,33 @@ export function Sidebar({ desktopOpen, mobileOpen, onCloseMobile, onToggleDeskto
   };
 
   return <>
-    {mobileOpen && <button type="button" aria-label="Tutup sidebar" className="fixed inset-x-0 bottom-0 top-[var(--clara-header-height)] z-40 bg-zinc-950/45 lg:hidden" onClick={onCloseMobile} />}
-    <aside id="clara-sidebar" aria-label="Navigasi utama" aria-hidden={!visible} inert={!visible} className={`fixed bottom-0 left-0 top-[var(--clara-header-height)] z-50 flex w-64 flex-col border-r-2 border-zinc-200 bg-white shadow-lg transition-[transform,width] duration-200 ease-out lg:translate-x-0 lg:shadow-none ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${desktopOpen ? 'lg:w-64' : 'lg:w-[88px]'}`}>
-      <div className={`relative flex h-14 shrink-0 items-center border-b-2 border-zinc-200 px-6 ${desktopOpen ? '' : 'lg:justify-center lg:px-0'}`}>
-        <span className={`text-xs font-semibold uppercase tracking-wider text-zinc-500 ${desktopOpen ? '' : 'lg:sr-only'}`}>Navigasi</span>
-        <button ref={mobileCloseButton} type="button" aria-label="Tutup sidebar" onClick={onCloseMobile} className="absolute right-3 top-2 flex h-9 w-9 items-center justify-center rounded-lg text-zinc-600 hover:bg-zinc-100 lg:hidden"><X size={19} /></button>
-        <button type="button" aria-label={desktopOpen ? 'Lipat sidebar' : 'Buka sidebar lengkap'} aria-controls="clara-sidebar" aria-expanded={desktopOpen} onClick={onToggleDesktop} className={`absolute top-2 hidden h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white shadow-sm hover:bg-red-700 lg:flex ${desktopOpen ? 'right-4' : 'left-6'}`}>{desktopOpen ? <ChevronLeft size={19} strokeWidth={2.5} /> : <ChevronRight size={19} strokeWidth={2.5} />}</button>
+    {mobileOpen && <button type="button" aria-label="Tutup sidebar" className="fixed inset-0 z-40 bg-zinc-950/45 lg:hidden" onClick={onCloseMobile} />}
+    <aside id="clara-sidebar" aria-label="Navigasi utama" aria-hidden={!visible} inert={!visible} className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r-2 border-zinc-200 bg-white shadow-xl transition-[width,transform] duration-200 ease-out lg:translate-x-0 lg:shadow-none ${mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'} ${desktopOpen ? 'lg:w-64' : 'lg:w-[88px]'}`}>
+      <div className={`relative flex h-20 shrink-0 items-center border-b-2 border-zinc-200 bg-white px-5 sm:px-6 ${desktopOpen ? 'justify-between' : 'lg:justify-center lg:px-0'}`}>
+        <Link href="/dashboard" className={`flex items-center gap-2.5 overflow-hidden transition-opacity ${desktopOpen ? '' : 'lg:hidden'}`} aria-label="CLARA Dashboard">
+          <Image
+            src="/images/clara_logo_full.png"
+            alt="CLARA"
+            width={130}
+            height={30}
+            className="h-7 w-auto object-contain"
+            priority
+          />
+        </Link>
+        {!desktopOpen && (
+          <Link href="/dashboard" className="hidden lg:flex items-center justify-center" aria-label="CLARA">
+            <Image
+              src="/images/clara_icon.png"
+              alt="CLARA"
+              width={32}
+              height={32}
+              className="w-7 h-7 object-contain"
+              priority
+            />
+          </Link>
+        )}
+        <button ref={mobileCloseButton} type="button" aria-label="Tutup sidebar" onClick={onCloseMobile} className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-600 hover:bg-zinc-100 lg:hidden"><X size={19} /></button>
+        <button type="button" aria-label={desktopOpen ? 'Lipat sidebar' : 'Buka sidebar lengkap'} aria-controls="clara-sidebar" aria-expanded={desktopOpen} onClick={onToggleDesktop} className={`hidden h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 hover:bg-red-50 hover:text-red-600 hover:border-red-300 shadow-xs transition-colors lg:flex ${desktopOpen ? '' : 'absolute -right-3 top-6 shadow-sm z-10'}`}>{desktopOpen ? <ChevronLeft size={16} strokeWidth={2.5} /> : <ChevronRight size={16} strokeWidth={2.5} />}</button>
       </div>
       <nav className="flex-1 overflow-y-auto px-3 py-5">
         {navigationGroups.map((group) => <section key={group.title} aria-label={group.title} className="mb-6 last:mb-0">

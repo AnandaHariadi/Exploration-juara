@@ -47,7 +47,7 @@ export function Header({ mobileSidebarOpen, onToggleSidebar }: HeaderProps) {
 
   return <header className="sticky top-0 z-40 border-b-2 border-zinc-200 bg-white">
     <div className="grid h-28 grid-cols-[1fr_auto] grid-rows-[3.5rem_3.5rem] items-center gap-x-3 px-4 sm:px-6 lg:h-20 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:grid-rows-1 lg:px-8">
-      <div className="col-start-1 row-start-1 flex items-center gap-3">
+      <div className="col-start-1 row-start-1 flex items-center gap-3 lg:hidden">
         <Link
           href="/dashboard"
           className="flex w-fit items-center group transition-transform duration-300 hover:scale-105"
@@ -76,7 +76,7 @@ export function Header({ mobileSidebarOpen, onToggleSidebar }: HeaderProps) {
         </div>
         <div className="relative shrink-0" ref={roleMenuRef}>
           <button type="button" aria-haspopup="menu" aria-expanded={roleOpen} onClick={() => setRoleOpen((current) => !current)} className="flex h-10 items-center gap-2 rounded-lg border border-zinc-200 px-1.5 hover:bg-zinc-50 sm:px-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900 text-xs font-semibold text-white">{currentRole.initials}</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-700 text-xs font-bold border border-red-200">{currentRole.initials}</span>
             <span className="hidden text-left xl:block"><span className="block text-xs font-semibold text-zinc-900">{currentRole.name}</span><span className="block text-xs text-zinc-500">{roleNames[personaId]}</span></span>
             <ChevronDown size={14} strokeWidth={2.5} aria-hidden="true" className="hidden text-zinc-500 sm:block" />
           </button>
