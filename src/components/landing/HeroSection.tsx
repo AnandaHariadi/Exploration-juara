@@ -99,35 +99,46 @@ export function HeroSection() {
             <span className="w-8 h-[2px] bg-red-600 inline-block" />
           </div>
 
-          {/* Grand Commanding Modern Enterprise Brand Lockup */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 my-8 sm:my-10 group">
-            {/* Architectural Precision Prism Emblem */}
-            <div className="relative w-18 h-18 sm:w-22 sm:h-22 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-red-500 via-red-600 to-zinc-950 p-[2px] shadow-[0_12px_30px_-8px_rgba(220,38,38,0.4)] group-hover:scale-105 transition-transform duration-500">
-              <div className="w-full h-full rounded-[14px] sm:rounded-[22px] bg-gradient-to-b from-zinc-900 to-zinc-950 flex items-center justify-center relative overflow-hidden border border-white/10">
-                {/* Specular sheen */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.08] to-red-500/20 pointer-events-none" />
-                <span className="font-heading font-black text-4xl sm:text-5xl text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-100 to-red-400">
-                  C
-                </span>
-                {/* Precision corner badge */}
-                <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
-              </div>
+          {/* Massive Commanding CLARA Wordmark with Sculpted Arch & Dynamic Red-Orange Gradient */}
+          <div className="relative my-6 sm:my-10 flex flex-col items-center justify-center select-none group">
+            {/* The Majestic Arched CLARA Typography (Enlarged + Red & Orange Gradient) */}
+            <div className="flex items-center justify-center tracking-tight font-heading font-black text-8xl sm:text-9xl md:text-[11rem] lg:text-[13rem] xl:text-[14.5rem] leading-none filter drop-shadow-[0_10px_25px_rgba(220,38,38,0.15)]">
+              <span className="inline-block transform translate-y-3 sm:translate-y-5 lg:translate-y-7 -rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
+                C
+              </span>
+              <span className="inline-block transform translate-y-1 sm:translate-y-2 lg:translate-y-3 -rotate-3 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
+                L
+              </span>
+              <span className="inline-block transform -translate-y-1 sm:-translate-y-2 lg:-translate-y-3 rotate-0 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-amber-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
+                A
+              </span>
+              <span className="inline-block transform translate-y-1 sm:translate-y-2 lg:translate-y-3 rotate-3 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
+                R
+              </span>
+              <span className="inline-block transform translate-y-3 sm:translate-y-5 lg:translate-y-7 rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
+                A
+              </span>
             </div>
 
-            {/* Razor-sharp Typography with Micro-tagline */}
-            <div className="text-center sm:text-left">
-              <div className="flex items-center justify-center sm:justify-start gap-2.5">
-                <span className="font-heading font-extrabold text-5xl sm:text-6xl md:text-7xl tracking-tighter text-zinc-950">
-                  CLARA
-                </span>
-                <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-red-600 shadow-[0_0_14px_rgba(220,38,38,0.7)] mt-3 sm:mt-4" />
-              </div>
-              <div className="flex items-center justify-center sm:justify-start gap-2 mt-1">
-                <span className="h-[1.5px] w-6 bg-red-600 inline-block" />
-                <span className="text-xs sm:text-sm font-mono font-bold tracking-[0.28em] text-zinc-500 uppercase">
-                  Contract Intelligence
-                </span>
-              </div>
+            {/* Sleek Dynamic Lekukan Horizon Arc with Matching Red-Orange Glow */}
+            <div className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mt-3 sm:mt-4 px-4 pointer-events-none">
+              <svg viewBox="0 0 600 40" fill="none" className="w-full h-auto">
+                <path
+                  d="M 20 32 Q 300 6 580 32"
+                  stroke="url(#claraCurveGlow)"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                />
+                <defs>
+                  <linearGradient id="claraCurveGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#DC2626" stopOpacity="0" />
+                    <stop offset="20%" stopColor="#DC2626" stopOpacity="0.8" />
+                    <stop offset="50%" stopColor="#F97316" stopOpacity="1" />
+                    <stop offset="80%" stopColor="#DC2626" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#DC2626" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+              </svg>
             </div>
           </div>
 

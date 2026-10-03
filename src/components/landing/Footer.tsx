@@ -8,23 +8,11 @@ export function Footer() {
         {/* Corporate Footer Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-zinc-800 text-xs text-zinc-400">
           <div className="md:col-span-2 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-zinc-800 p-[1px] shadow-sm shrink-0">
-                <div className="w-full h-full rounded-[7px] bg-zinc-900 flex items-center justify-center">
-                  <span className="font-heading font-black text-white text-sm">C</span>
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-heading font-extrabold text-lg tracking-tight text-white leading-none">
-                    CLARA
-                  </span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
-                </div>
-                <span className="text-[8px] font-mono font-bold tracking-widest text-zinc-400 uppercase mt-0.5">
-                  Contract Intelligence
-                </span>
-              </div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-heading font-black text-2xl tracking-tighter text-white">
+                CLARA
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-red-600 self-end mb-1" />
             </div>
             <p className="max-w-md leading-relaxed text-zinc-400">
               Platform Contract Intelligence &amp; Project Monitoring dari <strong>CLARA</strong>. Menghubungkan apa yang disepakati (Kontrak), apa yang direncanakan (RAB), apa yang terjadi (Progress), dan apa yang direalisasikan (Invoice) untuk melindungi margin bisnis proyek Anda.

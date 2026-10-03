@@ -39,25 +39,13 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-6">
-        {/* Brand Identity - CLARA Enterprise Logo */}
+        {/* Brand Identity - CLARA Pure Wordmark */}
         <div className="flex items-center shrink-0">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 via-red-700 to-zinc-950 p-[1.5px] shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all shrink-0">
-              <div className="w-full h-full rounded-[10px] bg-zinc-950 flex items-center justify-center">
-                <span className="font-heading font-black text-white text-lg tracking-tight">C</span>
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="font-heading font-extrabold text-xl tracking-tight text-zinc-950 leading-none group-hover:text-red-600 transition-colors">
-                  CLARA
-                </span>
-                <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
-              </div>
-              <span className="text-[9px] font-mono font-bold tracking-widest text-zinc-400 uppercase mt-1">
-                Contract Intelligence
-              </span>
-            </div>
+          <Link href="/" className="flex items-center gap-1.5 group">
+            <span className="font-heading font-black text-2xl sm:text-3xl tracking-tighter text-zinc-950 group-hover:text-red-600 transition-colors">
+              CLARA
+            </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-red-600 self-end mb-1" />
           </Link>
         </div>
 

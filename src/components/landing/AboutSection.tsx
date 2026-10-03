@@ -260,23 +260,11 @@ export function AboutSection() {
                   <span className="text-xs sm:text-sm font-mono font-bold text-red-600 uppercase tracking-widest block mb-2">
                     LOKASI RISET &amp; OPERASIONAL RESMI
                   </span>
-                  <div className="flex items-center gap-3 my-4 sm:my-5">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 via-red-700 to-zinc-950 p-[1.5px] shadow-sm shrink-0">
-                      <div className="w-full h-full rounded-[10px] bg-zinc-950 flex items-center justify-center">
-                        <span className="font-heading font-black text-white text-lg tracking-tight">C</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-heading font-extrabold text-2xl tracking-tight text-zinc-950 leading-none">
-                          CLARA
-                        </span>
-                        <span className="w-2 h-2 rounded-full bg-red-600" />
-                      </div>
-                      <span className="text-[10px] font-mono font-bold tracking-widest text-zinc-400 uppercase mt-1">
-                        Contract Intelligence
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-2 my-4 sm:my-5">
+                    <span className="font-heading font-black text-3xl sm:text-4xl tracking-tighter text-zinc-950">
+                      CLARA
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-red-600 self-end mb-1.5" />
                   </div>
                   <div className="flex items-start gap-3.5 text-base sm:text-lg text-zinc-800 leading-relaxed font-normal">
                     <MapPin className="w-6 h-6 text-red-600 shrink-0 mt-1" />
