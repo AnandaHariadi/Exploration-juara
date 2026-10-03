@@ -125,6 +125,38 @@ export default function DashboardPage() {
     </Panel>
   );
 
+  const alertsPanel = (
+    <Panel
+      title="Perlu perhatian"
+      description="Peringatan risiko yang belum dinyatakan selesai"
+      action={<Link href="/alerts" className="text-sm font-semibold text-red-700 hover:underline">Semua peringatan →</Link>}
+    >
+      {openAlerts.length === 0 ? (
+        <p className="rounded-xl bg-zinc-50 p-5 text-sm text-zinc-600">Belum ada peringatan yang perlu ditangani.</p>
+      ) : (
+        <div className="space-y-3">
+          {openAlerts.slice(0, 5).map((alert) => (
+            <button
+              key={alert.id}
+              type="button"
+              onClick={() => setSelectedAlert(alert)}
+              className="w-full rounded-xl border border-zinc-200 p-3 text-left hover:border-red-300 transition-colors"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-red-700">
+                  {alert.status === 'NEW' ? 'Baru' : 'Sudah dibaca'}
+                </span>
+                <span className="text-xs font-mono text-zinc-400">{alert.detectedAt ? alert.detectedAt.slice(0, 10) : ''}</span>
+              </div>
+              <strong className="mt-1 block text-sm text-zinc-900">{alert.title}</strong>
+              <span className="mt-0.5 block text-xs text-zinc-500">{alert.projectName}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </Panel>
+  );
+
   return (
     <div className="space-y-6 pb-12">
       <NoticeBar notice={notice} onClose={clear} />
