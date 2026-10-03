@@ -3,11 +3,11 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { notFound, route } from '@/lib/api';
-import { readSample, SAMPLE_CONTRACT_FILE, SAMPLE_RAB_FILE } from '@/lib/files';
+import { readSample, SAMPLE_FILES } from '@/lib/files';
 
-const SAMPLES = { contract: { name: SAMPLE_CONTRACT_FILE, type: 'application/pdf' }, rab: { name: SAMPLE_RAB_FILE, type: 'text/csv' } } as const;
+const SAMPLES = SAMPLE_FILES;
 
-/** Download the labelled sample contract (PDF) or RAB (CSV). */
+/** Download a labelled demo document (contract, RAB, invoices, client approval letter). */
 export const GET = route('GET /api/demo/samples/[file]', async (_req, ctx: { params: Promise<{ file: string }> }) => {
   const { file } = await ctx.params;
   const sample = SAMPLES[file as keyof typeof SAMPLES];
