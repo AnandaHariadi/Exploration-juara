@@ -265,6 +265,27 @@ export function updateCandidate(project: Project, patch: Record<string, unknown>
     if (JSON.stringify(next) !== JSON.stringify(c.milestones)) edited.add('milestones');
     c.milestones = next;
   }
+  if ('terms' in patch) {
+    const t = (patch.terms ?? {}) as Record<string, unknown>;
+    if (typeof t !== 'object' || Array.isArray(t)) throw badRequest('terms harus berupa objek.');
+    const pct = (key: string, label: string) => {
+      const raw = t[key];
+      if (raw === null || raw === '' || raw === undefined) return null;
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n < 0 || n > 100) throw badRequest(`${label} harus 0–100.`);
+      return n;
+    };
+    const next = {
+      hourlyRate: nullableInt(t, 'hourlyRate', 'Tarif per jam', MAX_RUPIAH),
+      revisionUnitPrice: nullableInt(t, 'revisionUnitPrice', 'Biaya revisi tambahan', MAX_RUPIAH),
+      revisionExtensionDays: nullableInt(t, 'revisionExtensionDays', 'Tambahan hari per adendum revisi', 365),
+      penaltyPerDayPercent: pct('penaltyPerDayPercent', 'Denda per hari'),
+      penaltyCapPercent: pct('penaltyCapPercent', 'Batas denda'),
+      paymentDueDays: nullableInt(t, 'paymentDueDays', 'Tempo pembayaran', 365),
+    };
+    if (JSON.stringify(next) !== JSON.stringify(c.terms)) edited.add('terms');
+    c.terms = next;
+  }
   if ('rabItems' in patch) {
     const items = parseRabItems(patch.rabItems);
     edited.add('rab');
