@@ -63,8 +63,8 @@ export function HeroSection() {
           className="object-cover object-center"
         />
       </div>
-      {/* Clara Executive Ribbon (Left Flank - Monumental & Grand) */}
-      <div className="absolute -left-16 sm:-left-12 lg:-left-6 xl:-left-2 2xl:left-2 -top-4 sm:-top-6 lg:-top-8 w-44 sm:w-60 md:w-72 lg:w-96 xl:w-[460px] 2xl:w-[520px] h-auto pointer-events-none select-none z-0 opacity-85 sm:opacity-90 lg:opacity-95 transition-all">
+      {/* Clara Executive Ribbon (Left Flank - Anchored Outward to Prevent Any Text Overlap) */}
+      <div className="absolute top-0 -left-28 sm:-left-36 md:-left-44 lg:-left-40 xl:-left-28 2xl:-left-12 w-64 sm:w-80 md:w-96 lg:w-[420px] xl:w-[480px] h-auto pointer-events-none select-none z-0 opacity-80 sm:opacity-85 lg:opacity-90 transition-all">
         <Image
           src="/images/shapes/hero_ribbon_monument_left.svg"
           alt="Clara Ribbon Left"
@@ -75,8 +75,8 @@ export function HeroSection() {
         />
       </div>
 
-      {/* Clara Executive Ribbon (Right Flank - Monumental & Grand) */}
-      <div className="absolute -right-16 sm:-right-12 lg:-right-6 xl:-right-2 2xl:right-2 -top-4 sm:-top-6 lg:-top-8 w-44 sm:w-60 md:w-72 lg:w-96 xl:w-[460px] 2xl:w-[520px] h-auto pointer-events-none select-none z-0 opacity-85 sm:opacity-90 lg:opacity-95 transition-all">
+      {/* Clara Executive Ribbon (Right Flank - Anchored Outward to Prevent Any Text Overlap) */}
+      <div className="absolute top-0 -right-28 sm:-right-36 md:-right-44 lg:-right-40 xl:-right-28 2xl:-right-12 w-64 sm:w-80 md:w-96 lg:w-[420px] xl:w-[480px] h-auto pointer-events-none select-none z-0 opacity-80 sm:opacity-85 lg:opacity-90 transition-all">
         <Image
           src="/images/shapes/hero_ribbon_monument_right.svg"
           alt="Clara Ribbon Right"
@@ -88,13 +88,13 @@ export function HeroSection() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Main Editorial Header - Perfectly Center-Aligned */}
-        <div className="text-center max-w-4xl mx-auto mb-16 relative z-10">
+        {/* Main Editorial Header - Perfectly Center-Aligned with Ample Ribbon Clearance */}
+        <div className="text-center max-w-3xl mx-auto mb-16 relative z-10 px-4">
 
           {/* Massive Commanding CLARA Wordmark with Sculpted Arch & Dynamic Red-Orange Gradient */}
           <div className="relative my-6 sm:my-10 flex flex-col items-center justify-center select-none group px-2 sm:px-6">
             {/* The Majestic Arched CLARA Typography (Balanced Scale + Red & Orange Gradient) */}
-            <div className="flex items-center justify-center tracking-tight font-heading font-black text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10.5rem] leading-none filter drop-shadow-[0_10px_25px_rgba(220,38,38,0.15)]">
+            <div className="flex items-center justify-center tracking-tight font-heading font-black text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10rem] leading-none filter drop-shadow-[0_10px_25px_rgba(220,38,38,0.15)]">
               <span className="inline-block transform translate-y-2.5 sm:translate-y-4 lg:translate-y-6 -rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
                 C
               </span>
@@ -113,7 +113,7 @@ export function HeroSection() {
             </div>
 
             {/* Sleek Dynamic Lekukan Horizon Arc with Matching Red-Orange Glow */}
-            <div className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mt-3 sm:mt-4 px-4 pointer-events-none">
+            <div className="w-full max-w-sm sm:max-w-md md:max-w-lg mt-3 sm:mt-4 px-4 pointer-events-none">
               <svg viewBox="0 0 600 40" fill="none" className="w-full h-auto">
                 <path
                   d="M 20 32 Q 300 6 580 32"
@@ -135,12 +135,12 @@ export function HeroSection() {
           </div>
 
           {/* Sub-headline - Guaranteed Single Line (No Spillover / Tidak Nyisa) */}
-          <h1 className="text-sm sm:text-base md:text-xl lg:text-2xl font-heading font-semibold text-zinc-800 tracking-tight whitespace-nowrap mb-5 max-w-5xl mx-auto">
+          <h1 className="text-sm sm:text-base md:text-xl lg:text-2xl font-heading font-semibold text-zinc-800 tracking-tight whitespace-nowrap mb-5 max-w-2xl mx-auto">
             Turn Contracts into Living Business Intelligence
           </h1>
 
           {/* Elevating Clara Company Copy - Corporate, Visionary & Prestigious */}
-          <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-3xl mx-auto">
+          <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-2xl mx-auto">
             Kontrak adalah apa yang disepakati. RAB adalah apa yang direncanakan. Progress dan actual cost adalah apa yang terjadi. Invoice adalah apa yang direalisasikan menjadi uang. CLARA mencocokkan semuanya secara deterministik untuk melindungi margin dan mengoptimalkan nilai bisnis proyek Anda.
           </p>
 
