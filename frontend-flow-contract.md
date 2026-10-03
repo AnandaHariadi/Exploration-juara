@@ -1,5 +1,7 @@
 # CLARA — Alur Pengguna dan Kontrak Data Frontend
 
+> Dokumen ini adalah rancangan Tahap 1. Beberapa bagian, termasuk status API dan penyimpanan, mencatat keadaan saat dokumen dibuat. Untuk alur demo yang berlaku sekarang, gunakan [alur demo di README](README.md#alur-demo) atau menu **Panduan demo** di aplikasi.
+
 Status: spesifikasi Tahap 1. Acuan utama: PRD (2).md, terutama bagian 7–14, 18–19, 23, dan 26. Diagram yang diberikan pengguna dipakai sebagai peta layar dan perpindahan tindakan. Dokumen ini belum menyatakan API, SQLite, OCR, atau AI sudah terimplementasi.
 
 ## 1. Ruang lingkup dan peran

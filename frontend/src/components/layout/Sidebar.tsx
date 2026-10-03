@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, AlertTriangle, Bot, ChevronLeft, ChevronRight, FileSignature, FileText, FolderKanban, Home, LayoutDashboard, ReceiptText, RotateCcw, X } from 'lucide-react';
+import { Activity, AlertTriangle, BookOpen, Bot, ChevronLeft, ChevronRight, FileSignature, FileText, FolderKanban, Home, LayoutDashboard, ReceiptText, RotateCcw, X } from 'lucide-react';
 import { dataClient } from '@/services/dataClient';
 import { useAlerts } from '@/hooks/useClaraData';
 
@@ -24,6 +24,7 @@ const navigationGroups = [
     { label: 'Studio dokumen', description: 'Tinjau draf', href: '/studio', icon: FileSignature },
   ] },
   { title: 'Lainnya', items: [
+    { label: 'Panduan demo', description: 'Alur dari awal', href: '/panduan-demo', icon: BookOpen },
     { label: 'Halaman depan', description: 'Tentang CLARA', href: '/', icon: Home },
   ] },
 ];

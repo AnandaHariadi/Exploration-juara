@@ -83,7 +83,9 @@ npm --prefix frontend run test:ui            # browser: full pitch flow by click
 
 All tests start with a demo reset and can be rerun.
 
-## Alur demo singkat
+## Alur demo
+
+Panduan lengkap untuk pengguna tersedia di aplikasi melalui menu **Panduan demo** (`/panduan-demo`).
 
 Tidak perlu login. Pilih Budi, Siti, atau Hendra dari profil di kanan atas. Pilihan peran tersimpan per browser; proyek dan tombol **Atur ulang data demo** masih memakai data bersama. Untuk mengulang presentasi, atur ulang data lebih dulu (ini juga menghapus perubahan pengunjung lain).
 
@@ -94,6 +96,33 @@ Mulai sebagai **Budi** lewat **Proyek baru**, isi nama proyek dan klien, pilih s
 | Kesepakatan saja | Nilai, tenggat, revisi, ruang lingkup, dan hak tagih hanya muncul bila ketentuannya tersedia. Perbandingan biaya terhadap RAB belum tersedia. | Catat progres atau tahap selesai. Tambahkan RAB lewat **Acuan proyek**, periksa hasil baca, lalu setujui V2. |
 | RAB saja | Biaya bisa dibandingkan dengan rencana. Nilai kesepakatan, laba rencana, dan hak tagih belum tersedia. | Catat biaya. Tambahkan kesepakatan lewat **Acuan proyek**, periksa hasil AI atau gunakan isian manual, lalu setujui V2. |
 | Kesepakatan + RAB | Pemantauan pekerjaan, biaya, dan tagihan memakai acuan yang lengkap. | Lanjutkan cerita persetujuan perubahan di bawah. |
+
+```mermaid
+flowchart TD
+    A["Budi: buat proyek"] --> B{"Dokumen tersedia?"}
+    B -->|Kesepakatan| C["AI membaca kesepakatan"]
+    B -->|RAB| D["Sistem menghitung RAB"]
+    B -->|Keduanya| E["AI membaca kesepakatan; sistem menghitung RAB"]
+    C --> F["Budi tinjau dan setujui acuan V1"]
+    D --> F
+    E --> F
+    F --> G{"Ada dokumen yang menyusul?"}
+    G -->|Ya| H["Budi tinjau dan setujui acuan berikutnya"]
+    G -->|Tidak| I["Catat progres, biaya, tagihan, pembayaran"]
+    H --> I
+    I --> J["Sistem cocokkan fakta dengan acuan; tampilkan bukti"]
+    J --> K{"Perlu perubahan resmi?"}
+    K -->|Tidak| I
+    K -->|Ya| L["Budi ajukan perubahan"]
+    L --> M["Siti periksa dampak biaya"]
+    M --> N{"Hendra setuju?"}
+    N -->|Tidak| O["Budi revisi dan ajukan ulang"]
+    O --> M
+    N -->|Ya| P{"Klien setuju?"}
+    P -->|Tidak| O
+    P -->|Ya| Q["Budi catat bukti; acuan baru aktif"]
+    Q --> I
+```
 
 Untuk mencoba keputusan manusia: **Budi** mencatat pekerjaan atau revisi di luar acuan dan mengajukan perubahan → **Siti** memeriksa dampak biaya → **Hendra** menyetujui atau menolak. Jika disetujui internal, **Budi** mencatat bukti persetujuan klien; setelah itu perubahan berlaku sebagai acuan baru. AI membantu membaca dokumen dan menyiapkan saran; sistem menghitung angka; manusia menyetujui.
 

@@ -147,6 +147,7 @@ export default function DashboardPage() {
           <p>Mulai sebagai <strong>Budi</strong> lewat <Link href="/projects/new" className="font-semibold text-red-700 hover:underline">Proyek baru</Link>. Pilih kesepakatan saja, RAB saja, atau keduanya. Pakai berkas contoh agar hasilnya berlabel demo.</p>
           <p>Periksa hasil baca lalu setujui acuan. Catat progres atau biaya; buka peringatan untuk melihat bukti dan angka yang dihitung sistem.</p>
           <p>Untuk mencoba persetujuan perubahan: <strong>Budi mengajukan → Siti memeriksa biaya → Hendra memutuskan → Budi mencatat persetujuan klien</strong>. Ganti pengguna lewat profil di kanan atas. Pilihan peran berlaku di browser ini.</p>
+          <Link href="/panduan-demo" className="inline-flex items-center gap-1 font-semibold text-red-700 hover:underline">Baca panduan lengkap <ArrowRight className="h-4 w-4" /></Link>
         </div>
       </details>
 

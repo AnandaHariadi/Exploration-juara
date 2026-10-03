@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Download, FileText } from 'lucide-react';
 import { dataClient } from '@/services/dataClient';
@@ -155,6 +156,7 @@ export default function NewProjectPage() {
           <li>Jika ada perubahan, <strong>Budi</strong> mengajukan, <strong>Siti</strong> memeriksa dampaknya, lalu <strong>Hendra</strong> memutuskan.</li>
           <li>Setelah klien menyetujui, <strong>Budi</strong> mencatat buktinya dan acuan baru berlaku. Pilih pengguna demo lewat profil di header.</li>
         </ol>
+        <Link href="/panduan-demo" className="mt-4 inline-flex items-center gap-1 font-semibold text-red-700 hover:underline">Lihat alur lengkap <ArrowRight className="h-4 w-4" /></Link>
       </section>
     </div>
   );
