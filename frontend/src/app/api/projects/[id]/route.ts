@@ -7,7 +7,10 @@ import { ok, readJson, route } from '@/lib/api';
 import { updateProjectInfo } from '@/lib/domain';
 import { projectIdFrom, type ProjectParams } from '@/lib/routeParams';
 
-export const GET = route('GET /api/projects/[id]', async (_req: NextRequest, ctx: ProjectParams) => ok(claraDb.requireProject(await projectIdFrom(ctx))));
+export const GET = route('GET /api/projects/[id]', async (_req: NextRequest, ctx: ProjectParams) => {
+  await claraDb.pullFromSupabase();
+  return ok(claraDb.requireProject(await projectIdFrom(ctx)));
+});
 
 export const PATCH = route('PATCH /api/projects/[id]', async (req: NextRequest, ctx: ProjectParams) => {
   const id = await projectIdFrom(ctx);

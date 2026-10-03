@@ -4,12 +4,12 @@ export const dynamic = 'force-dynamic';
 import { NextRequest } from 'next/server';
 import { badRequest, ok, route } from '@/lib/api';
 import { aiAnalyzeDocument } from '@/lib/ai';
-import { CONTRACT_TYPES, extensionOf, MAX_CONTRACT_BYTES, MAX_RAB_BYTES } from '@/lib/files';
-import { parseRabCsv } from '@/lib/rab';
+import { CONTRACT_TYPES, extensionOf, MAX_CONTRACT_BYTES, MAX_RAB_BYTES, RAB_TYPES } from '@/lib/files';
+import { parseRabBuffer } from '@/lib/rab';
 
 /**
  * Stateless analysis (nothing stored): multipart contract (or document + kind)
- * and optional RAB CSV → normalized structured data, findings and evidence.
+ * and optional RAB CSV/Excel → normalized structured data, findings and evidence.
  * Project flows use document upload, which triggers the Document Guardian.
  */
 export const POST = route('POST /api/ai/documents/analyze', async (req: NextRequest) => {
@@ -29,8 +29,13 @@ export const POST = route('POST /api/ai/documents/analyze', async (req: NextRequ
   let rab = null;
   const rabFile = form.get('rab');
   if (rabFile instanceof File && rabFile.size > 0) {
-    if (extensionOf(rabFile.name) !== 'csv' || rabFile.size > MAX_RAB_BYTES) throw badRequest('RAB harus CSV maksimal 2 MB.', 'UNSUPPORTED_TYPE');
-    rab = parseRabCsv(Buffer.from(await rabFile.arrayBuffer()).toString('utf8'));
+    if (!RAB_TYPES[extensionOf(rabFile.name)]) throw badRequest('RAB harus CSV, XLSX, atau XLS.', 'UNSUPPORTED_TYPE');
+    if (rabFile.size > MAX_RAB_BYTES) throw badRequest('RAB maksimal 5 MB.', 'FILE_TOO_LARGE');
+    try {
+      rab = parseRabBuffer(Buffer.from(await rabFile.arrayBuffer()), rabFile.name);
+    } catch (error) {
+      throw badRequest(`RAB tidak dapat dibaca: ${error instanceof Error ? error.message : 'format tidak dikenali'}`, 'INVALID_RAB');
+    }
   }
   const r = await aiAnalyzeDocument(Buffer.from(await file.arrayBuffer()), file.name, mimeType, 'adhoc', kind);
   return ok({

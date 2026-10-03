@@ -7,7 +7,10 @@ import { ok, oneOf, readJson, route } from '@/lib/api';
 
 const session = () => ({ activePersonaId: claraDb.getActivePersona(), mode: 'demo', label: 'Mode Demo CLARA' });
 
-export const GET = route('GET /api/demo/session', async () => ok(session()));
+export const GET = route('GET /api/demo/session', async () => {
+  await claraDb.pullFromSupabase();
+  return ok(session());
+});
 
 export const POST = route('POST /api/demo/session', async (req: NextRequest) => {
   const body = await readJson(req);

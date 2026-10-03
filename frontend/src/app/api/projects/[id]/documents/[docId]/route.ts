@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { claraDb } from '@/lib/db';
 import { assertId, notFound, route } from '@/lib/api';
-import { readDocumentFile } from '@/lib/files';
+import { getDocumentFile, readDocumentFile } from '@/lib/files';
 import type { ProjectChildParams } from '@/lib/routeParams';
 
 /** Stream a stored document inline so evidence links (#page=N) open the source. */
@@ -13,7 +13,7 @@ export const GET = route('GET /api/projects/[id]/documents/[docId]', async (_req
   const project = claraDb.requireProject(assertId(id, 'ID proyek'));
   const doc = project.documents.find((d) => d.id === assertId(docId, 'ID dokumen'));
   if (!doc) throw notFound('Dokumen tidak ditemukan.');
-  const data = readDocumentFile(project.id, doc.id);
+  const data = (await getDocumentFile(project.id, doc.id)) ?? readDocumentFile(project.id, doc.id);
   if (!data) throw notFound('Berkas dokumen tidak ditemukan di penyimpanan.', 'FILE_MISSING');
   return new NextResponse(new Uint8Array(data), {
     headers: {

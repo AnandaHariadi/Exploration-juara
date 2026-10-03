@@ -8,7 +8,10 @@ import { addDocument, newProject, randomId } from '@/lib/domain';
 import { readSample, saveDocumentFile, SAMPLE_CONTRACT_FILE, SAMPLE_RAB_FILE } from '@/lib/files';
 import { analyzeInBackground } from '@/lib/guardian';
 
-export const GET = route('GET /api/projects', async () => ok(claraDb.getProjects()));
+export const GET = route('GET /api/projects', async () => {
+  await claraDb.pullFromSupabase();
+  return ok(claraDb.getProjects());
+});
 
 /** Create a DRAFT project. Baseline values never come from the client; they come from a confirmed candidate. */
 export const POST = route('POST /api/projects', async (req: NextRequest) => {
