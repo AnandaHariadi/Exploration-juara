@@ -22,6 +22,8 @@ export const env = {
   GOOGLE_AI_API_KEY: optionalEnv("GOOGLE_AI_API_KEY"),
   GEMINI_MODEL: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
   EMBEDDING_MODEL: process.env.EMBEDDING_MODEL ?? "gemini-embedding-001",
+  // Optional override of the Gemini API endpoint (used only by the local integration test stub).
+  GEMINI_BASE_URL: optionalEnv("GEMINI_BASE_URL"),
   EMBEDDING_DIMENSION: parseInt(process.env.EMBEDDING_DIMENSION ?? "768", 10),
 
   // Reasoning pipeline
@@ -61,3 +63,6 @@ export const env = {
 };
 
 export const aiConfigured = () => env.GOOGLE_AI_API_KEY.length > 0;
+
+/** Request options for every Gemini model; empty unless GEMINI_BASE_URL is set. */
+export const geminiRequestOptions = () => (env.GEMINI_BASE_URL ? { baseUrl: env.GEMINI_BASE_URL } : undefined);
