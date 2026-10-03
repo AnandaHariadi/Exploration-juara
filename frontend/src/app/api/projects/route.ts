@@ -1,37 +1,30 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { claraDb } from '@/lib/db';
-import { Project } from '@/types';
-
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-export async function GET() {
-  try {
-    const projects = claraDb.getProjects();
-    return NextResponse.json({ success: true, data: projects });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+import { NextRequest } from 'next/server';
+import { claraDb, makeCtx } from '@/lib/db';
+import { ok, readJson, route, str } from '@/lib/api';
+import { addDocument, newProject, randomId } from '@/lib/domain';
+import { readSample, saveDocumentFile, SAMPLE_CONTRACT_FILE, SAMPLE_RAB_FILE } from '@/lib/files';
+
+export const GET = route('GET /api/projects', async () => ok(claraDb.getProjects()));
+
+/** Create a DRAFT project. Baseline values never come from the client; they come from a confirmed candidate. */
+export const POST = route('POST /api/projects', async (req: NextRequest) => {
+  const body = await readJson(req);
+  const name = str(body, 'name', { required: true, max: 160, label: 'Nama proyek' });
+  const client = str(body, 'client', { required: true, max: 160, label: 'Nama klien' });
+  const ctx = makeCtx();
+  const project = newProject(randomId('PRJ'), name, client, ctx);
+  if (body.useSample === true) {
+    const contract = readSample(SAMPLE_CONTRACT_FILE);
+    const rab = readSample(SAMPLE_RAB_FILE);
+    const c = addDocument(project, ctx, { kind: 'CONTRACT', fileName: SAMPLE_CONTRACT_FILE, mimeType: 'application/pdf', size: contract.length, isSample: true });
+    const r = addDocument(project, ctx, { kind: 'RAB', fileName: SAMPLE_RAB_FILE, mimeType: 'text/csv', size: rab.length, isSample: true });
+    saveDocumentFile(project.id, c.id, contract);
+    saveDocumentFile(project.id, r.id, rab);
   }
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    const newProject: Project = await req.json();
-
-    if (!newProject.id || !newProject.name) {
-      return NextResponse.json(
-        { success: false, error: 'Project ID and Name are required.' },
-        { status: 400 }
-      );
-    }
-
-    claraDb.saveProject(newProject);
-
-    return NextResponse.json({
-      success: true,
-      data: newProject,
-      message: 'Proyek baru berhasil disimpan ke database SQLite.',
-    });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
-}
+  const created = claraDb.createProject(project);
+  console.log(`[PROJECT] created ${created.id} by ${ctx.actor.name}`);
+  return ok(created, 201, 'Proyek dibuat sebagai draf.');
+});
