@@ -62,17 +62,17 @@ const partners: PartnerItem[] = [
   },
   {
     id: 3,
-    name: "Jagoan Hosting",
-    category: "Infrastruktur Cloud & Hosting",
-    logo: "/images/partners/logo_jagoanhosting.png",
-    alt: "Logo Jagoan Hosting",
+    name: "Ngalup.co",
+    category: "Hub Kolaborasi & Ekosistem Startup",
+    logo: "/images/partners/logo_ngalup.png",
+    alt: "Logo Ngalup.co",
   },
   {
     id: 4,
-    name: "Instansi Mitra 04",
-    category: "Asosiasi Industri & Kreatif",
-    logo: "/images/partners/partner_4.svg",
-    alt: "Logo Asosiasi Industri",
+    name: "TTG",
+    category: "Mitra Teknologi & Transformasi Digital",
+    logo: "/images/partners/logo_ttg.png",
+    alt: "Logo TTG",
   },
 ];
 
