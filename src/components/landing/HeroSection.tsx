@@ -63,8 +63,8 @@ export function HeroSection() {
           className="object-cover object-center"
         />
       </div>
-      {/* Clara Executive Ribbon (Left Flank - Slim & Spacious) */}
-      <div className="absolute -left-10 sm:-left-8 lg:-left-4 xl:-left-2 top-0 sm:top-2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-52 h-auto pointer-events-none select-none z-[1] opacity-50 sm:opacity-60 lg:opacity-70 transition-all">
+      {/* Clara Executive Ribbon (Left Flank - Visibly Grand & Well-Spaced) */}
+      <div className="absolute -left-14 sm:-left-10 lg:-left-4 xl:left-0 top-0 sm:top-2 w-32 sm:w-44 md:w-60 lg:w-72 xl:w-84 h-auto pointer-events-none select-none z-0 opacity-75 sm:opacity-85 lg:opacity-90 transition-all">
         <Image
           src="/images/shapes/hero_ribbon_monument_left.svg"
           alt="Clara Ribbon Left"
@@ -75,8 +75,8 @@ export function HeroSection() {
         />
       </div>
 
-      {/* Clara Executive Ribbon (Right Flank - Slim & Spacious) */}
-      <div className="absolute -right-10 sm:-right-8 lg:-right-4 xl:-right-2 top-0 sm:top-2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-52 h-auto pointer-events-none select-none z-[1] opacity-50 sm:opacity-60 lg:opacity-70 transition-all">
+      {/* Clara Executive Ribbon (Right Flank - Visibly Grand & Well-Spaced) */}
+      <div className="absolute -right-14 sm:-right-10 lg:-right-4 xl:right-0 top-0 sm:top-2 w-32 sm:w-44 md:w-60 lg:w-72 xl:w-84 h-auto pointer-events-none select-none z-0 opacity-75 sm:opacity-85 lg:opacity-90 transition-all">
         <Image
           src="/images/shapes/hero_ribbon_monument_right.svg"
           alt="Clara Ribbon Right"
@@ -91,24 +91,23 @@ export function HeroSection() {
         {/* Main Editorial Header - Perfectly Center-Aligned */}
         <div className="text-center max-w-4xl mx-auto mb-16 relative z-10">
 
-
           {/* Massive Commanding CLARA Wordmark with Sculpted Arch & Dynamic Red-Orange Gradient */}
-          <div className="relative my-6 sm:my-10 flex flex-col items-center justify-center select-none group">
-            {/* The Majestic Arched CLARA Typography (Enlarged + Red & Orange Gradient) */}
-            <div className="flex items-center justify-center tracking-tight font-heading font-black text-8xl sm:text-9xl md:text-[11rem] lg:text-[13rem] xl:text-[14.5rem] leading-none filter drop-shadow-[0_10px_25px_rgba(220,38,38,0.15)]">
-              <span className="inline-block transform translate-y-3 sm:translate-y-5 lg:translate-y-7 -rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
+          <div className="relative my-6 sm:my-10 flex flex-col items-center justify-center select-none group px-2 sm:px-6">
+            {/* The Majestic Arched CLARA Typography (Balanced Scale + Red & Orange Gradient) */}
+            <div className="flex items-center justify-center tracking-tight font-heading font-black text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10.5rem] leading-none filter drop-shadow-[0_10px_25px_rgba(220,38,38,0.15)]">
+              <span className="inline-block transform translate-y-2.5 sm:translate-y-4 lg:translate-y-6 -rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
                 C
               </span>
-              <span className="inline-block transform translate-y-1 sm:translate-y-2 lg:translate-y-3 -rotate-3 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
+              <span className="inline-block transform translate-y-1 sm:translate-y-1.5 lg:translate-y-2 -rotate-3 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
                 L
               </span>
-              <span className="inline-block transform -translate-y-1 sm:-translate-y-2 lg:-translate-y-3 rotate-0 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-amber-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
+              <span className="inline-block transform -translate-y-1 sm:-translate-y-2 lg:-translate-y-2.5 rotate-0 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-amber-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
                 A
               </span>
-              <span className="inline-block transform translate-y-1 sm:translate-y-2 lg:translate-y-3 rotate-3 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
+              <span className="inline-block transform translate-y-1 sm:translate-y-1.5 lg:translate-y-2 rotate-3 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
                 R
               </span>
-              <span className="inline-block transform translate-y-3 sm:translate-y-5 lg:translate-y-7 rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
+              <span className="inline-block transform translate-y-2.5 sm:translate-y-4 lg:translate-y-6 rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
                 A
               </span>
             </div>
