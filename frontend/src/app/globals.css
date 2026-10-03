@@ -197,18 +197,41 @@ html {
 @media print {
   body {
     background: #ffffff !important;
-    color: #000000 !important;
+    color: #09090b !important;
+    font-size: 10pt !important;
   }
-  header, aside, #clara-sidebar, button, nav {
+  header, aside, #clara-sidebar, button, nav, .clara-app {
     display: none !important;
+  }
+  body > div:last-child {
+    display: block !important;
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+  body > div:last-child > div {
+    max-width: 100% !important;
+    max-height: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
   }
   #printable-financial-report {
     overflow: visible !important;
     max-height: none !important;
     padding: 0 !important;
+    display: block !important;
+  }
+  table {
+    page-break-inside: auto;
+    width: 100% !important;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
   }
   @page {
-    margin: 1.5cm;
+    margin: 1.2cm 1.5cm;
     size: A4 portrait;
   }
 }
