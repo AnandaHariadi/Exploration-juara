@@ -180,9 +180,13 @@ export function WorkflowSteps() {
                   <Image
                     src={partner.logo}
                     alt={partner.alt}
-                    width={260}
-                    height={120}
-                    className="max-h-full max-w-[90%] w-auto h-auto object-contain opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 drop-shadow-xs"
+                    width={320}
+                    height={140}
+                    className={`w-auto h-auto object-contain opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 drop-shadow-xs ${
+                      partner.id === 4
+                        ? 'max-h-[85%] max-w-[95%] scale-135'
+                        : 'max-h-full max-w-[90%]'
+                    }`}
                   />
                 </div>
               </div>
