@@ -6,6 +6,7 @@ import type { CandidateMilestone, CandidateRabItem, ExtractionCandidate, Project
 import { dataClient, documentUrl } from '@/services/dataClient';
 import { useAiHealth } from '@/hooks/useClaraData';
 import { formatRupiah } from '@/lib/utils';
+import { DocumentStatusBadge } from '@/components/shared/labels';
 import { btn, inputClass, labelClass, Panel, SourceQuote } from '@/components/shared/ui';
 
 type Run = <T>(action: () => Promise<T>, success: string | ((r: T) => string)) => Promise<T | undefined>;
@@ -40,7 +41,7 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
   const upload = async (kind: 'CONTRACT' | 'RAB', file?: File) => {
     if (!file) return;
     setUploading(kind);
-    await run(() => dataClient.uploadDocument(project.id, kind, file), `${kind === 'CONTRACT' ? 'Kontrak' : 'RAB'} ${file.name} diunggah.`);
+    await run(() => dataClient.uploadDocument(project.id, kind, file), `${kind === 'CONTRACT' ? 'Kontrak' : 'RAB'} ${file.name} diunggah. CLARA mulai menganalisis otomatis.`);
     setUploading(null);
   };
 
@@ -49,7 +50,7 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
       <div className="flex items-start gap-3">
         {kind === 'CONTRACT' ? <FileText className="mt-0.5 h-5 w-5 text-red-600" /> : <FileSpreadsheet className="mt-0.5 h-5 w-5 text-emerald-600" />}
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-zinc-900">{kind === 'CONTRACT' ? 'Kontrak' : 'RAB (rencana biaya)'}</p>
+          <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-zinc-900">{kind === 'CONTRACT' ? 'Kontrak' : 'RAB (rencana biaya)'}{doc && <DocumentStatusBadge status={doc.status} />}</p>
           {doc ? (
             <p className="mt-0.5 truncate text-sm text-zinc-600">
               <a href={documentUrl(project.id, doc.id)} target="_blank" rel="noreferrer" className="font-medium text-red-700 hover:underline">{doc.fileName}</a>
@@ -83,7 +84,7 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
   return (
     <Panel
       title="1 · Dokumen proyek"
-      description="Kontrak dibaca AI. RAB dibaca langsung oleh sistem (tanpa AI) agar angka rencana biaya persis seperti di berkas."
+      description="Begitu diunggah, kontrak otomatis dibaca AI. RAB dibaca langsung oleh sistem (tanpa AI) agar angka rencana biaya persis seperti di berkas."
       action={
         <a href="/api/demo/samples/rab" className={btn.ghost}>
           <Download className="h-4 w-4" />Contoh RAB CSV
@@ -120,7 +121,8 @@ function AnalysisPanel({ project, run }: { project: Project; run: Run }) {
   const [pending, setPending] = React.useState<'AI' | 'SAMPLE' | 'MANUAL' | null>(null);
   const contract = [...project.documents].reverse().find((d) => d.kind === 'CONTRACT');
   const extraction = project.extraction;
-  const processing = pending !== null || extraction?.status === 'PROCESSING';
+  const processing = pending !== null || extraction?.status === 'PROCESSING' || contract?.status === 'PROCESSING';
+  const neverAnalyzed = contract?.status === 'UPLOADED' && !extraction;
 
   const analyze = async (mode: 'AI' | 'SAMPLE' | 'MANUAL') => {
     if (extraction?.status === 'READY' && !window.confirm('Hasil tinjauan saat ini (termasuk koreksi) akan diganti dengan hasil baru. Lanjutkan?')) return;
@@ -131,7 +133,7 @@ function AnalysisPanel({ project, run }: { project: Project; run: Run }) {
   };
 
   return (
-    <Panel title="2 · Analisis dokumen" description="AI hanya membaca dan mengutip. Angka bisnis dihitung sistem setelah Anda menyetujui acuan.">
+    <Panel title="2 · Analisis dokumen" description="CLARA menganalisis otomatis setiap kontrak yang diunggah. AI hanya membaca dan mengutip; angka bisnis dihitung sistem setelah Anda menyetujui acuan.">
       <div className={`mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3 text-sm ${health?.available ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
         <Bot className="h-4 w-4" />
         <span className="flex-1">{healthLoading ? 'Memeriksa layanan AI…' : health?.available ? `Layanan AI siap (${health.service ?? 'CLARA AI'}).` : `${health?.message ?? 'Layanan AI tidak tersedia.'} Anda tetap bisa memakai data contoh atau isian manual.`}</span>
@@ -157,7 +159,7 @@ function AnalysisPanel({ project, run }: { project: Project; run: Run }) {
 
       <div className="flex flex-wrap gap-3">
         <button type="button" disabled={processing || !contract} onClick={() => void analyze('AI')} className={btn.primary}>
-          <Bot className="h-4 w-4" />{extraction?.status === 'FAILED' && extraction.source === 'AI' ? 'Coba analisis AI lagi' : 'Analisis dengan AI'}
+          <Bot className="h-4 w-4" />{extraction?.status === 'FAILED' && extraction.source === 'AI' ? 'Coba analisis AI lagi' : neverAnalyzed ? 'Mulai analisis AI' : extraction?.status === 'READY' ? 'Analisis ulang dengan AI' : 'Analisis dengan AI'}
         </button>
         {contract?.isSample && (
           <button type="button" disabled={processing} onClick={() => void analyze('SAMPLE')} className={btn.secondary}>
@@ -186,6 +188,7 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
     paymentTerms: c.contract.paymentTerms,
     scope: c.contract.scope.join('\n'),
   }));
+  const [terms, setTerms] = React.useState(() => Object.fromEntries(Object.entries(c.terms ?? {}).map(([k, v]) => [k, v === null || v === undefined ? '' : String(v)])) as Record<string, string>);
   const [milestones, setMilestones] = React.useState<CandidateMilestone[]>(c.milestones);
   const [rabItems, setRabItems] = React.useState<CandidateRabItem[]>(c.rab.items);
   const [saving, setSaving] = React.useState<'save' | 'confirm' | null>(null);
@@ -209,6 +212,7 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
     },
     milestones: milestones.map((m) => ({ ...m, percentage: m.percentage === null || (m.percentage as unknown) === '' ? null : Number(m.percentage) })),
     rabItems: rabItems.map((i) => ({ ...i, plannedAmount: Number(i.plannedAmount) })),
+    terms: Object.fromEntries(Object.entries(terms).map(([k, v]) => [k, v === '' ? null : Number(v)])),
   });
 
   const save = async (confirmAfter: boolean) => {
@@ -275,6 +279,27 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
         <textarea id="cand-scope" rows={4} value={form.scope} onChange={(e) => setForm({ ...form, scope: e.target.value })} className={inputClass} />
         {c.source !== 'MANUAL' && <SourceQuote projectId={project.id} source={c.sources.scope} />}
       </div>
+
+      <fieldset className="mt-6">
+        <legend className={labelClass}>Ketentuan komersial (dipakai mesin rekonsiliasi)</legend>
+        <p className="mt-1 text-xs text-zinc-500">Tarif dan denda ini menjadi dasar perhitungan anomali: tarif invoice, nilai revisi tambahan, dan potensi denda.</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          {([
+            ['hourlyRate', 'Tarif pekerjaan tambahan (Rp/jam)', 'hourlyRate'],
+            ['revisionUnitPrice', 'Biaya per revisi tambahan (Rp)', 'revisionUnitPrice'],
+            ['revisionExtensionDays', 'Tambahan hari per adendum revisi', 'revisionExtensionDays'],
+            ['penaltyPerDayPercent', 'Denda keterlambatan (% per hari)', 'penalty'],
+            ['penaltyCapPercent', 'Batas denda (% nilai kontrak)', 'penalty'],
+            ['paymentDueDays', 'Tempo pembayaran (hari)', ''],
+          ] as const).map(([key, label, src]) => (
+            <div key={key}>
+              <label htmlFor={`term-${key}`} className="text-xs font-semibold text-zinc-600">{label}</label>
+              <input id={`term-${key}`} type="number" min="0" step="any" value={terms[key] ?? ''} onChange={(e) => setTerms({ ...terms, [key]: e.target.value })} className={inputClass} />
+              {src && c.source !== 'MANUAL' && c.sources[src] && <SourceQuote projectId={project.id} source={c.sources[src]} />}
+            </div>
+          ))}
+        </div>
+      </fieldset>
 
       <fieldset className="mt-6">
         <legend className={labelClass}>Termin pembayaran & syarat tagih</legend>
