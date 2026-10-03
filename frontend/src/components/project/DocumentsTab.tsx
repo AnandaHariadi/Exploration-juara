@@ -160,7 +160,7 @@ export function DocumentsTab({ project, run, onOpenAlert }: { project: Project; 
                     <RefreshCw className="h-4 w-4" />{busy === `re-${doc.id}` ? 'Menganalisis…' : doc.status === 'FAILED' ? 'Coba analisis lagi' : 'Analisis ulang'}
                   </button>
                 )}
-                {inv && matched && !inv.recordedInvoiceId && doc.status !== 'REJECTED' && project.metrics.hasBaseline && (
+                {inv && matched && matched.status === 'COMPLETED' && !inv.recordedInvoiceId && doc.status !== 'REJECTED' && project.metrics.hasBaseline && (
                   <button type="button" disabled={busy !== null} onClick={() => { if (window.confirm(`Catat ${inv.invoiceNumber ?? doc.fileName} sebagai tagihan ${inv.total !== null ? formatRupiah(inv.total) : ''} untuk ${matched.title}?${open.length ? ` Masih ada ${open.length} temuan terbuka pada dokumen ini.` : ''}`)) void act(`rec-${doc.id}`, () => dataClient.recordInvoiceFromDocument(project.id, doc.id), 'Invoice dicatat dari dokumen.'); }} className={btn.primary}>
                     {busy === `rec-${doc.id}` ? 'Mencatat…' : 'Catat sebagai tagihan'}
                   </button>
