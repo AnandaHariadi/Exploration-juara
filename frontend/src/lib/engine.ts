@@ -17,7 +17,7 @@ import type {
   SourceRef,
 } from '@/types';
 
-const ALERT_TYPES: AlertType[] = ['BUDGET_VARIANCE', 'SCOPE_VARIANCE', 'BILLING_VARIANCE', 'REVISION_LIMIT', 'DEADLINE_RISK'];
+const ALERT_TYPES: AlertType[] = ['BUDGET_VARIANCE', 'SCOPE_VARIANCE', 'BILLING_VARIANCE', 'REVISION_LIMIT', 'DEADLINE_RISK', 'CONTRACT_RISK', 'FINANCIAL_ANOMALY', 'DOCUMENT_INCONSISTENCY', 'POTENTIAL_IRREGULARITY'];
 
 /** Budget warning fires when this share of RAB is used ... */
 export const BUDGET_WARNING_UTILIZATION = 80;
@@ -87,8 +87,11 @@ function contractEvidence(project: Project, title: string, fallback: string, sou
 type AlertDraft = Omit<Alert, 'status' | 'createdAt' | 'updatedAt' | 'resolution' | 'projectId' | 'projectName' | 'baselineVersion'>;
 
 function emptyAlertCounts(): Record<AlertType, number> {
-  return { BUDGET_VARIANCE: 0, SCOPE_VARIANCE: 0, BILLING_VARIANCE: 0, REVISION_LIMIT: 0, DEADLINE_RISK: 0 };
+  return { BUDGET_VARIANCE: 0, SCOPE_VARIANCE: 0, BILLING_VARIANCE: 0, REVISION_LIMIT: 0, DEADLINE_RISK: 0, CONTRACT_RISK: 0, FINANCIAL_ANOMALY: 0, DOCUMENT_INCONSISTENCY: 0, POTENTIAL_IRREGULARITY: 0 };
 }
+
+/** Open = still needs attention. RESOLVED and SUPERSEDED are history. */
+export const isOpenAlert = (a: Pick<Alert, 'status'>) => a.status === 'NEW' || a.status === 'ACKNOWLEDGED';
 
 export function emptyMetrics(now: string): ProjectMetrics {
   return {
@@ -129,6 +132,7 @@ export function reconcile(input: Project, now: string): Project {
   const project: Project = structuredClone(input);
   project.baselines ??= [];
   project.documents ??= [];
+  project.drafts ??= [];
   project.actualCosts ??= [];
   project.invoices ??= [];
   project.payments ??= [];
@@ -222,6 +226,7 @@ export function reconcile(input: Project, now: string): Project {
       drafts.push(scopeAlert(project, scope.id, scope.title, scope.description, events.find((e) => e.id === scope.eventId)));
     }
     if (metrics.deadlineVarianceDays !== null && metrics.deadlineVarianceDays > 0) drafts.push(deadlineAlert(project, metrics, latestProjection!));
+    drafts.push(...documentAlerts(project, metrics));
 
     checks.push(...buildChecks(project, metrics, drafts));
   }
@@ -229,7 +234,7 @@ export function reconcile(input: Project, now: string): Project {
   project.alerts = mergeAlerts(project, drafts, now);
   project.reconciliation = checks;
 
-  const open = project.alerts.filter((a) => a.status !== 'RESOLVED');
+  const open = project.alerts.filter(isOpenAlert);
   metrics.openAlerts = open.length;
   metrics.newAlerts = open.filter((a) => a.status === 'NEW').length;
   metrics.alertsByType = emptyAlertCounts();
@@ -314,6 +319,7 @@ function billingAlert(project: Project, milestone: Milestone, billed: number, ga
     rupiahImpact: gap,
     impactKind: 'UNBILLED',
     impactLabel: 'Belum ditagih (bukan kerugian)',
+    basis: 'VERIFIED_CALCULATION',
     evidence,
     recommendedAction: 'Periksa berita acara tahap ini, lalu buat tagihan dari halaman keuangan bila sudah sesuai.',
     actionTab: 'finance',
@@ -367,6 +373,7 @@ function budgetAlert(project: Project, m: ProjectMetrics, latestProgress?: Proje
       description: `Biaya aktual ${idr(m.actualCost)} sudah melewati RAB ${idr(m.plannedCost)} (${m.budgetUtilization.toLocaleString('id-ID')}%).`,
       rupiahImpact: m.budgetVariance,
       impactKind: 'OVER_BUDGET',
+      basis: 'VERIFIED_CALCULATION',
       impactLabel: 'Di atas rencana biaya',
       evidence,
       recommendedAction: 'Tinjau pos biaya yang melebihi RAB dan putuskan apakah perlu revisi anggaran atau perubahan kontrak.',
@@ -383,6 +390,7 @@ function budgetAlert(project: Project, m: ProjectMetrics, latestProgress?: Proje
     description: `Pemakaian anggaran lebih cepat dari progres pekerjaan. Sisa RAB ${idr(m.plannedCost - m.actualCost)} untuk ${100 - m.progress}% pekerjaan tersisa. Ini indikasi, belum selisih terverifikasi.`,
     rupiahImpact: m.plannedCost - m.actualCost,
     impactKind: 'BUDGET_REMAINING',
+    basis: 'VERIFIED_CALCULATION',
     impactLabel: 'Sisa anggaran (bukan kerugian)',
     evidence,
     recommendedAction: 'Tinjau sisa pekerjaan dan estimasi biaya hingga selesai bersama tim proyek.',
@@ -404,9 +412,10 @@ function revisionAlert(project: Project, m: ProjectMetrics, revisionEvents: Proj
     classification: 'VERIFIED_DEVIATION',
     title: `${m.revisionVariance} revisi di luar acuan ${project.baselineVersion}`,
     description: `Acuan ${project.baselineVersion} mencakup ${m.includedRevisions} revisi; tercatat ${m.actualRevisions} revisi. Nilai revisi tambahan belum ditentukan oleh kontrak dan perlu ditinjau.`,
-    rupiahImpact: 0,
-    impactKind: 'UNPRICED',
-    impactLabel: 'Nilai belum ditentukan',
+    rupiahImpact: revisionExposure(project, m.revisionVariance),
+    impactKind: revisionExposure(project, m.revisionVariance) > 0 ? 'EXPOSURE' : 'UNPRICED',
+    impactLabel: revisionExposure(project, m.revisionVariance) > 0 ? `Nilai revisi tambahan menurut tarif kontrak (${m.revisionVariance} × ${idr(project.agreementBaseline.terms!.revisionUnitPrice!)}) — belum ditagih` : 'Nilai belum ditentukan',
+    basis: 'VERIFIED_CALCULATION',
     evidence: [
       contractEvidence(project, `Batas revisi acuan ${project.baselineVersion}: ${m.includedRevisions}`, `Kesepakatan mencakup maksimal ${m.includedRevisions} putaran revisi.`, source),
       {
@@ -437,6 +446,7 @@ function scopeAlert(project: Project, scopeId: string, title: string, descriptio
     severity: 'MEDIUM',
     classification: 'NEEDS_REVIEW',
     title: `Kemungkinan pekerjaan di luar ruang lingkup: ${title}`,
+    basis: 'USER_CONFIRMED',
     description: `Pekerjaan ini tidak ditemukan dalam ruang lingkup acuan ${project.baselineVersion}. Kemungkinan selisih ruang lingkup — perlu tinjauan manusia, bukan pelanggaran kontrak.`,
     rupiahImpact: 0,
     impactKind: 'UNPRICED',
@@ -465,6 +475,16 @@ function scopeAlert(project: Project, scopeId: string, title: string, descriptio
 }
 
 function deadlineAlert(project: Project, m: ProjectMetrics, projection: ProjectEvent): AlertDraft {
+  const terms = project.agreementBaseline.terms;
+  const days = m.deadlineVarianceDays ?? 0;
+  let exposure = 0;
+  let exposureNote = '';
+  if (terms?.penaltyPerDayPercent) {
+    const raw = Math.round((m.contractValue * terms.penaltyPerDayPercent * days) / 100);
+    const cap = terms.penaltyCapPercent ? Math.round((m.contractValue * terms.penaltyCapPercent) / 100) : null;
+    exposure = cap !== null ? Math.min(raw, cap) : raw;
+    exposureNote = `${days} hari × ${terms.penaltyPerDayPercent.toLocaleString('id-ID')}% × ${idr(m.contractValue)} = ${idr(raw)}${cap !== null ? ` (batas ${terms.penaltyCapPercent!.toLocaleString('id-ID')}% = ${idr(cap)})` : ''} → potensi denda ${idr(exposure)}`;
+  }
   return {
     id: `ALT-${project.id}-DEADLINE`,
     type: 'DEADLINE_RISK',
@@ -472,9 +492,10 @@ function deadlineAlert(project: Project, m: ProjectMetrics, projection: ProjectE
     classification: 'POSSIBLE_DEVIATION',
     title: `Perkiraan selesai ${m.deadlineVarianceDays} hari melewati tenggat`,
     description: `Perkiraan selesai ${formatDay(m.projectedFinish)} melewati tenggat acuan ${project.baselineVersion} (${formatDay(m.deadline)}). Ini peringatan jadwal, bukan pelanggaran kontrak.`,
-    rupiahImpact: 0,
-    impactKind: 'SCHEDULE',
-    impactLabel: `+${m.deadlineVarianceDays} hari`,
+    rupiahImpact: exposure,
+    impactKind: exposure > 0 ? 'EXPOSURE' : 'SCHEDULE',
+    impactLabel: exposure > 0 ? `Potensi denda bila terlambat ${days} hari (paparan, bukan kerugian)` : `+${m.deadlineVarianceDays} hari`,
+    basis: 'VERIFIED_CALCULATION',
     evidence: [
       contractEvidence(project, `Tenggat acuan ${project.baselineVersion}: ${formatDay(m.deadline)}`, `Pekerjaan selesai paling lambat ${formatDay(m.deadline)}.`, project.agreementBaseline.sources?.deadline),
       {
@@ -488,10 +509,11 @@ function deadlineAlert(project: Project, m: ProjectMetrics, projection: ProjectE
       {
         kind: 'CALCULATION',
         title: 'Perhitungan',
-        detail: `${formatDay(m.projectedFinish)} − ${formatDay(m.deadline)} = +${m.deadlineVarianceDays} hari`,
+        detail: `${formatDay(m.projectedFinish)} − ${formatDay(m.deadline)} = +${m.deadlineVarianceDays} hari${exposureNote ? ` · ${exposureNote}` : ''}`,
         source: 'Mesin rekonsiliasi',
         verified: true,
       },
+      ...(exposureNote ? [contractEvidence(project, 'Ketentuan denda keterlambatan', `Denda ${terms!.penaltyPerDayPercent}% per hari, maksimal ${terms!.penaltyCapPercent ?? '-'}%.`, project.agreementBaseline.sources?.penalty)] : []),
     ],
     recommendedAction: 'Tinjau jadwal bersama klien; ajukan perpanjangan waktu melalui permintaan perubahan bila disepakati.',
     actionTab: 'change-requests',
@@ -599,36 +621,43 @@ function mergeAlerts(project: Project, drafts: AlertDraft[], now: string): Alert
       continue;
     }
     const changed = prev.fingerprint !== draft.fingerprint;
+    const explanation = changed ? undefined : prev.aiExplanation;
     if (prev.status === 'RESOLVED' && !prev.resolution?.auto && !changed) {
-      next.push({ ...base, status: 'RESOLVED', resolution: prev.resolution, createdAt: prev.createdAt, updatedAt: prev.updatedAt });
-    } else if (prev.status === 'RESOLVED') {
+      next.push({ ...base, status: 'RESOLVED', resolution: prev.resolution, aiExplanation: explanation, createdAt: prev.createdAt, updatedAt: prev.updatedAt });
+    } else if (!isOpenAlert(prev)) {
       next.push({ ...base, status: 'NEW', createdAt: prev.createdAt, updatedAt: now });
     } else {
-      next.push({ ...base, status: prev.status, createdAt: prev.createdAt, updatedAt: changed ? now : prev.updatedAt });
+      next.push({ ...base, status: prev.status, aiExplanation: explanation, createdAt: prev.createdAt, updatedAt: changed ? now : prev.updatedAt });
     }
   }
 
   for (const prev of project.alerts) {
     if (seen.has(prev.id)) continue;
-    if (prev.status === 'RESOLVED') {
+    if (!isOpenAlert(prev)) {
       next.push(prev);
       continue;
     }
+    // An approved official change after the alert explains it: superseded, not just resolved.
+    const explainedBy = project.changeRequests
+      .filter((cr) => cr.status === 'APPROVED' && cr.approvedAt && cr.approvedAt >= prev.createdAt && cr.resultingBaselineVersion !== prev.baselineVersion)
+      .sort((a, b) => (b.approvedAt ?? '').localeCompare(a.approvedAt ?? ''))[0];
     next.push({
       ...prev,
-      status: 'RESOLVED',
+      status: explainedBy ? 'SUPERSEDED' : 'RESOLVED',
       updatedAt: now,
       resolution: {
         at: now,
         by: 'Mesin rekonsiliasi',
-        note: `Dihitung ulang terhadap acuan ${project.baselineVersion}: kondisi sudah sesuai (MATCH).`,
+        note: explainedBy
+          ? `Dijelaskan oleh perubahan resmi ${explainedBy.crNumber} (acuan ${explainedBy.resultingBaselineVersion}). Dihitung ulang: kondisi sesuai (MATCH).`
+          : `Dihitung ulang terhadap acuan ${project.baselineVersion}: kondisi sudah sesuai (MATCH).`,
         auto: true,
       },
     });
   }
 
   const severityRank = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 } as const;
-  const statusRank = { NEW: 0, ACKNOWLEDGED: 1, RESOLVED: 2 } as const;
+  const statusRank = { NEW: 0, ACKNOWLEDGED: 1, RESOLVED: 2, SUPERSEDED: 3 } as const;
   return next.sort(
     (a, b) => statusRank[a.status] - statusRank[b.status] || severityRank[a.severity] - severityRank[b.severity] || a.id.localeCompare(b.id),
   );
