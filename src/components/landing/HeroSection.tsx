@@ -93,9 +93,9 @@ export function HeroSection() {
 
           {/* Massive Commanding CLARA Wordmark with Sculpted Arch & Dynamic Red-Orange Gradient */}
           <div className="relative my-6 sm:my-10 flex flex-col items-center justify-center select-none group px-2 sm:px-6">
-            {/* The Majestic Arched CLARA Typography (Balanced Scale + Red & Orange Gradient) */}
-            <div className="flex items-center justify-center tracking-tight font-heading font-black text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10rem] leading-none filter drop-shadow-[0_10px_25px_rgba(220,38,38,0.15)]">
-              <span className="inline-block transform translate-y-2.5 sm:translate-y-4 lg:translate-y-6 -rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
+            {/* The Majestic Arched CLARA Typography (Enlarged Scale + Red & Orange Gradient) */}
+            <div className="flex items-center justify-center tracking-tight font-heading font-black text-7xl sm:text-8xl md:text-9xl lg:text-[11.5rem] xl:text-[13rem] leading-none filter drop-shadow-[0_10px_25px_rgba(220,38,38,0.15)]">
+              <span className="inline-block transform translate-y-3 sm:translate-y-4 lg:translate-y-6 -rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
                 C
               </span>
               <span className="inline-block transform translate-y-1 sm:translate-y-1.5 lg:translate-y-2 -rotate-3 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
@@ -107,13 +107,13 @@ export function HeroSection() {
               <span className="inline-block transform translate-y-1 sm:translate-y-1.5 lg:translate-y-2 rotate-3 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
                 R
               </span>
-              <span className="inline-block transform translate-y-2.5 sm:translate-y-4 lg:translate-y-6 rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
+              <span className="inline-block transform translate-y-3 sm:translate-y-4 lg:translate-y-6 rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
                 A
               </span>
             </div>
 
             {/* Sleek Dynamic Lekukan Horizon Arc with Matching Red-Orange Glow */}
-            <div className="w-full max-w-sm sm:max-w-md md:max-w-lg mt-3 sm:mt-4 px-4 pointer-events-none">
+            <div className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mt-3 sm:mt-4 px-4 pointer-events-none">
               <svg viewBox="0 0 600 40" fill="none" className="w-full h-auto">
                 <path
                   d="M 20 32 Q 300 6 580 32"
