@@ -295,8 +295,8 @@ export function AboutSection() {
                     <p className="text-xs sm:text-sm font-semibold text-zinc-900">
                       Senin – Jumat: 08.30 – 17.30 WIB
                     </p>
-                    <p className="text-xs text-zinc-500 leading-relaxed">
-                      Engine ekstraksi AI &amp; baseline monitoring aktif 24/7
+                    <p className="text-xs text-zinc-500 leading-relaxed whitespace-nowrap">
+                      Sistem ekstraksi AI &amp; monitoring aktif 24/7
                     </p>
                   </div>
 

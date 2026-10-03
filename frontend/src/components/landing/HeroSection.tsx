@@ -15,27 +15,27 @@ interface OfficeSlide {
 const officeSlides: OfficeSlide[] = [
   {
     src: "/images/yupiens_hq.jpg",
-    badge: "CONTRACT INTELLIGENCE PLATFORM",
-    caption: "Living Business Intelligence",
+    badge: "PLATFORM KONTRAK CERDAS",
+    caption: "Kecerdasan Bisnis Terintegrasi",
     title: "Mengubah Kontrak Pasif Menjadi Baseline Bisnis Aktif",
   },
   {
     src: "/images/yupiens_office_lobby.jpg",
-    badge: "BEFORE & AFTER SIGNING",
+    badge: "SIKLUS KONTRAK LENGKAP",
     caption: "Mitigasi Risiko & Eksekusi",
     title: "Pahami Risiko Sebelum Tanda Tangan, Pantau Realisasi Setelahnya",
   },
   {
     src: "/images/corporate_fintech_ops.jpg",
-    badge: "MULTIDIMENSIONAL RECONCILIATION",
+    badge: "REKONSILIASI MULTIDIMENSI",
     caption: "Sinkronisasi 4 Pilar Bisnis",
-    title: "Rekonsiliasi Presisi: Kontrak, RAB, Progress Lapangan & Invoice",
+    title: "Rekonsiliasi Presisi: Kontrak, RAB, Progres Lapangan & Tagihan",
   },
   {
     src: "/images/corporate_tech_rd.jpg",
-    badge: "VALUE REALIZATION ENGINE",
-    caption: "Audit Trail & Versioning",
-    title: "Eliminasi Scope Creep, Budget Overrun, dan Unbilled Milestones",
+    badge: "REALISASI NILAI BISNIS",
+    caption: "Jejak Audit & Riwayat Versi",
+    title: "Cegah Pembengkakan Lingkup, Lonjakan Biaya, & Tagihan Terlewat",
   },
 ];
 
@@ -159,7 +159,7 @@ export function HeroSection() {
 
           {/* Sub-headline - Guaranteed Single Line (No Spillover / Tidak Nyisa) */}
           <h1 className="text-sm sm:text-base md:text-xl lg:text-2xl font-heading font-semibold text-zinc-800 tracking-tight whitespace-nowrap mb-5 max-w-2xl mx-auto">
-            Turn Contracts into Living Business Intelligence
+            Ubah Klausul Kontrak Menjadi Kecerdasan Bisnis yang Hidup
           </h1>
 
           {/* Elevating Clara Company Copy - Corporate, Visionary & Prestigious */}
