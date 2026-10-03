@@ -19,7 +19,7 @@ const navigationGroups = [
     { label: 'Peringatan', href: '/alerts', icon: AlertTriangle },
   ] },
   { title: 'Lainnya', items: [
-    { label: 'Cari kesepakatan', href: '/legal-ai', icon: FileSearch },
+    { label: 'Tanya kontrak (AI)', href: '/legal-ai', icon: FileSearch },
     { label: 'Halaman depan', href: '/', icon: Home },
   ] },
 ];
@@ -58,10 +58,10 @@ export function Sidebar({ desktopOpen, mobileOpen, onCloseMobile, onToggleDeskto
   }, [mobileOpen, onCloseMobile]);
 
   const resetDemo = async () => {
-    if (!window.confirm('Kembalikan seluruh data demo ke kondisi awal? Perubahan Anda akan hilang.')) return;
+    if (!window.confirm('Atur ulang data demo? Semua proyek, dokumen unggahan, dan perubahan kembali ke kondisi awal demo. Tindakan ini tidak bisa dibatalkan.')) return;
     setResetting(true);
     try {
-      await dataClient.resetDemo(true);
+      await dataClient.resetDemo();
       window.location.assign('/dashboard');
     } catch (error) {
       window.alert(error instanceof Error ? error.message : 'Gagal mengatur ulang data demo.');
