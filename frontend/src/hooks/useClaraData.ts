@@ -8,7 +8,7 @@ import { dataClient } from '@/services/dataClient';
  * Fetch a server resource and refetch whenever any mutation succeeds. React
  * state only mirrors the server; nothing here is a second source of truth.
  */
-function useResource<T>(load: () => Promise<T>, subscribe: (listener: () => void) => () => void, initialValue: T) {
+function useResource<T>(load: () => Promise<T>, subscribe: (listener: () => void) => () => void, initialValue: T, shouldPoll?: (data: T) => boolean) {
   const [data, setData] = React.useState<T>(initialValue);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -42,21 +42,31 @@ function useResource<T>(load: () => Promise<T>, subscribe: (listener: () => void
     };
   }, [refresh, subscribe]);
 
+  // Poll only while something is being processed (e.g. AI document analysis); stops automatically.
+  const polling = shouldPoll ? shouldPoll(data) : false;
+  React.useEffect(() => {
+    if (!polling) return;
+    const timer = setInterval(() => void refresh(), 2000);
+    return () => clearInterval(timer);
+  }, [polling, refresh]);
+
   return { data, refresh, loading, error };
 }
+
+const processing = (p?: Project) => Boolean(p && (p.documents.some((d) => d.status === 'PROCESSING') || p.extraction?.status === 'PROCESSING'));
 
 const subscribeData = (listener: () => void) => dataClient.subscribeData(listener);
 const subscribePersona = (listener: () => void) => dataClient.subscribePersona(listener);
 const subscribeNever = () => () => {};
 
 export function useProjects() {
-  const r = useResource<Project[]>(dataClient.getProjects, subscribeData, []);
+  const r = useResource<Project[]>(dataClient.getProjects, subscribeData, [], (list) => list.some(processing));
   return { projects: r.data, refreshProjects: r.refresh, loading: r.loading, error: r.error };
 }
 
 export function useProject(id: string) {
   const load = React.useCallback(() => dataClient.getProject(id), [id]);
-  const r = useResource<Project | undefined>(load, subscribeData, undefined);
+  const r = useResource<Project | undefined>(load, subscribeData, undefined, processing);
   return { project: r.data, refreshProject: r.refresh, loading: r.loading, error: r.error };
 }
 
