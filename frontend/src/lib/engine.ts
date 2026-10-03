@@ -521,6 +521,268 @@ function deadlineAlert(project: Project, m: ProjectMetrics, projection: ProjectE
   };
 }
 
+function revisionExposure(project: Project, extraRevisions: number): number {
+  const price = project.agreementBaseline.terms?.revisionUnitPrice;
+  return price && extraRevisions > 0 ? price * extraRevisions : 0;
+}
+
+const tokens = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter((t) => t.length >= 3);
+
+/** Match an invoice's milestone reference to a milestone: most shared words, then exact remaining amount. */
+export function matchMilestone(project: Project, reference: string | null, total: number | null): Milestone | undefined {
+  const milestones = project.agreementBaseline.milestones;
+  if (reference) {
+    const ref = new Set(tokens(reference));
+    let best: { m: Milestone; score: number } | undefined;
+    for (const m of milestones) {
+      const score = tokens(`${m.title} ${m.trigger ?? ''}`).filter((t) => ref.has(t)).length;
+      if (score > 0 && (!best || score > best.score)) best = { m, score };
+    }
+    if (best) return best.m;
+  }
+  if (total) return milestones.find((m) => m.value - (m.billedAmount ?? 0) === total);
+  return undefined;
+}
+
+function docLabel(doc: { fileName: string }, source?: SourceRef) {
+  return source?.page ? `${doc.fileName} · hal. ${source.page}` : doc.fileName;
+}
+
+/**
+ * Cross-document checks. AI only extracted the numbers; every difference here
+ * is computed deterministically against the active baseline and records.
+ */
+function documentAlerts(project: Project, m: ProjectMetrics): AlertDraft[] {
+  const out: AlertDraft[] = [];
+  const terms = project.agreementBaseline.terms;
+  const version = project.baselineVersion;
+  const active = project.baselines.find((b) => b.status === 'ACTIVE')!;
+
+  for (const doc of project.documents) {
+    const a = doc.analysis;
+    if (!a || doc.status === 'REJECTED' || doc.status === 'PROCESSING' || doc.status === 'FAILED') continue;
+    const docEvidence = (title: string, detail: string, source?: SourceRef): EvidenceItem => ({
+      kind: 'CONTRACT',
+      title,
+      detail: source?.snippet || detail,
+      source: docLabel(doc, source),
+      documentId: doc.id,
+      page: source?.page ?? null,
+      verified: Boolean(source?.verified),
+    });
+
+    if (doc.kind === 'INVOICE' && a.invoice) {
+      const inv = a.invoice;
+      const label = inv.invoiceNumber ?? doc.fileName;
+      const milestone = matchMilestone(project, inv.milestoneReference, inv.total);
+      inv.matchedMilestoneId = milestone?.id;
+
+      // a) Hourly rate vs confirmed contract rate.
+      if (terms?.hourlyRate) {
+        const hourly = inv.lineItems.filter((l) => l.unit && /jam|hour/i.test(l.unit) && l.unitPrice !== null && l.quantity !== null && l.unitPrice !== terms.hourlyRate);
+        if (hourly.length) {
+          const diff = hourly.reduce((s, l) => s + (l.unitPrice! - terms.hourlyRate!) * l.quantity!, 0);
+          const calc = hourly.map((l) => `(${idr(l.unitPrice!)} − ${idr(terms.hourlyRate!)}) × ${l.quantity!.toLocaleString('id-ID')} jam = ${idr((l.unitPrice! - terms.hourlyRate!) * l.quantity!)}`).join(' · ');
+          out.push({
+            id: `ALT-${project.id}-RATE-${doc.id}`,
+            type: 'FINANCIAL_ANOMALY',
+            severity: Math.abs(diff) >= 5_000_000 ? 'HIGH' : 'MEDIUM',
+            classification: 'VERIFIED_DEVIATION',
+            basis: 'VERIFIED_CALCULATION',
+            sourceDocumentId: doc.id,
+            title: `Tarif di invoice ${label} berbeda dari tarif kontrak`,
+            description: `Invoice memakai tarif ${idr(hourly[0].unitPrice!)}/jam, sedangkan acuan ${version} menetapkan ${idr(terms.hourlyRate)}/jam. Selisih tagihan terverifikasi ${idr(Math.abs(diff))} (${diff > 0 ? 'lebih tinggi' : 'lebih rendah'} dari kontrak).`,
+            rupiahImpact: Math.abs(diff),
+            impactKind: 'VERIFIED_DIFFERENCE',
+            impactLabel: 'Selisih tagihan terverifikasi',
+            evidence: [
+              contractEvidence(project, `Tarif kontrak acuan ${version}: ${idr(terms.hourlyRate)}/jam`, `Pekerjaan tambahan ditagih ${idr(terms.hourlyRate)} per jam.`, project.agreementBaseline.sources?.hourlyRate),
+              docEvidence(`Baris invoice: ${hourly[0].description}`, `${hourly[0].quantity} ${hourly[0].unit} × ${idr(hourly[0].unitPrice!)}`, hourly[0].source),
+              { kind: 'CALCULATION', title: 'Perhitungan', detail: calc, source: 'Mesin rekonsiliasi', verified: true },
+            ],
+            recommendedAction: `Tinjau invoice ${label}: sesuaikan tarif ke ${idr(terms.hourlyRate)}/jam atau lampirkan persetujuan tarif baru sebelum dikirim.`,
+            actionTab: 'documents',
+            fingerprint: `${diff}`,
+          });
+        }
+      }
+
+      // b) Arithmetic inside the invoice.
+      const lineDiffs = inv.lineItems.filter((l) => l.quantity !== null && l.unitPrice !== null && l.amount !== null && Math.round(l.quantity * l.unitPrice) !== l.amount);
+      const lineSum = inv.lineItems.reduce((s, l) => s + (l.amount ?? 0), 0);
+      const totalDiff = inv.total !== null && inv.lineItems.length > 0 ? inv.total - lineSum : 0;
+      if (lineDiffs.length || totalDiff !== 0) {
+        const parts = [
+          ...lineDiffs.map((l) => `${l.description}: ${l.quantity} × ${idr(l.unitPrice!)} = ${idr(Math.round(l.quantity! * l.unitPrice!))}, tertulis ${idr(l.amount!)}`),
+          ...(totalDiff !== 0 ? [`Jumlah baris ${idr(lineSum)}, total tertulis ${idr(inv.total!)} (selisih ${idr(totalDiff)})`] : []),
+        ];
+        const diff = Math.abs(totalDiff) + lineDiffs.reduce((s, l) => s + Math.abs(Math.round(l.quantity! * l.unitPrice!) - l.amount!), 0);
+        out.push({
+          id: `ALT-${project.id}-ARITH-${doc.id}`,
+          type: 'FINANCIAL_ANOMALY',
+          severity: 'MEDIUM',
+          classification: 'VERIFIED_DEVIATION',
+          basis: 'VERIFIED_CALCULATION',
+          sourceDocumentId: doc.id,
+          title: `Perhitungan di invoice ${label} tidak konsisten`,
+          description: `Angka di dalam invoice tidak saling cocok. Selisih terverifikasi ${idr(diff)}.`,
+          rupiahImpact: diff,
+          impactKind: 'VERIFIED_DIFFERENCE',
+          impactLabel: 'Selisih tagihan terverifikasi',
+          evidence: [docEvidence(`Invoice ${label}`, a.summary, a.sources?.total), { kind: 'CALCULATION', title: 'Perhitungan', detail: parts.join(' · '), source: 'Mesin rekonsiliasi', verified: true }],
+          recommendedAction: `Perbaiki perhitungan invoice ${label} sebelum dicatat atau dikirim.`,
+          actionTab: 'documents',
+          fingerprint: `${diff}`,
+        });
+      }
+
+      // c) Revisions charged vs revisions allowed by the active baseline.
+      if (inv.revisionsCharged !== null && inv.revisionsCharged > m.includedRevisions) {
+        const extra = inv.revisionsCharged - m.includedRevisions;
+        out.push({
+          id: `ALT-${project.id}-REVDOC-${doc.id}`,
+          type: 'DOCUMENT_INCONSISTENCY',
+          severity: 'MEDIUM',
+          classification: 'POSSIBLE_DEVIATION',
+          basis: 'VERIFIED_CALCULATION',
+          sourceDocumentId: doc.id,
+          title: `Invoice ${label} menyebut ${inv.revisionsCharged} revisi, acuan ${version} mengizinkan ${m.includedRevisions}`,
+          description: `Invoice merujuk ${inv.revisionsCharged} putaran revisi. Acuan aktif ${version} (termasuk perubahan yang disetujui) mencakup ${m.includedRevisions}; tercatat ${m.actualRevisions} revisi. Kemungkinan tidak konsisten antar dokumen — perlu ditinjau.`,
+          rupiahImpact: revisionExposure(project, extra),
+          impactKind: revisionExposure(project, extra) > 0 ? 'EXPOSURE' : 'UNPRICED',
+          impactLabel: revisionExposure(project, extra) > 0 ? `Potensi nilai sengketa (${extra} × ${idr(terms!.revisionUnitPrice!)})` : 'Nilai belum ditentukan',
+          evidence: [
+            contractEvidence(project, `Batas revisi acuan ${version}: ${m.includedRevisions}`, `Acuan aktif mencakup ${m.includedRevisions} revisi.`, project.agreementBaseline.sources?.revisionLimit),
+            docEvidence(`Invoice ${label} menyebut ${inv.revisionsCharged} revisi`, a.summary),
+            { kind: 'CALCULATION', title: 'Perhitungan', detail: `${inv.revisionsCharged} revisi di invoice − ${m.includedRevisions} revisi di acuan ${version} = ${extra} revisi tanpa dasar acuan · revisi tercatat ${m.actualRevisions}`, source: 'Mesin rekonsiliasi', verified: true },
+          ],
+          recommendedAction: `Tinjau invoice ${label}: sesuaikan jumlah revisi atau ajukan permintaan perubahan untuk revisi tambahan.`,
+          actionTab: 'documents',
+          fingerprint: `${inv.revisionsCharged}:${m.includedRevisions}`,
+        });
+      }
+
+      // d) Potential duplicate billing.
+      const sameNumber = inv.invoiceNumber
+        ? project.invoices.filter((r) => r.id !== inv.recordedInvoiceId && r.invoiceNumber.toLowerCase() === inv.invoiceNumber!.toLowerCase())
+        : [];
+      const otherDocs = project.documents.filter((d) => d.id !== doc.id && d.kind === 'INVOICE' && d.status !== 'REJECTED' && d.analysis?.invoice && ((inv.invoiceNumber && d.analysis.invoice.invoiceNumber === inv.invoiceNumber) || (inv.total !== null && d.analysis.invoice.total === inv.total && d.analysis.invoice.milestoneReference === inv.milestoneReference)));
+      if (sameNumber.length || otherDocs.length) {
+        out.push({
+          id: `ALT-${project.id}-DUP-${doc.id}`,
+          type: 'POTENTIAL_IRREGULARITY',
+          severity: 'MEDIUM',
+          classification: 'NEEDS_REVIEW',
+          basis: 'VERIFIED_CALCULATION',
+          sourceDocumentId: doc.id,
+          title: `Potensi tagihan ganda: ${label}`,
+          description: `Pola yang perlu diperiksa: ${sameNumber.length ? `nomor invoice sama dengan tagihan tercatat ${sameNumber.map((r) => r.invoiceNumber).join(', ')}` : `nominal dan termin sama dengan dokumen ${otherDocs.map((d) => d.fileName).join(', ')}`}. Ini bukan tuduhan; perlu verifikasi.`,
+          rupiahImpact: inv.total ?? 0,
+          impactKind: 'EXPOSURE',
+          impactLabel: 'Potensi nilai tertagih ganda (paparan)',
+          evidence: [docEvidence(`Invoice ${label}`, a.summary, a.sources?.invoiceNumber), ...otherDocs.map((d) => ({ kind: 'INVOICE' as const, title: `Dokumen serupa: ${d.fileName}`, detail: d.analysis?.summary ?? '', source: d.fileName, documentId: d.id, verified: true }))],
+          recommendedAction: `Investigasi invoice ${label}: pastikan bukan tagihan ganda sebelum dicatat atau dikirim.`,
+          actionTab: 'documents',
+          fingerprint: `${sameNumber.length}:${otherDocs.length}`,
+        });
+      }
+
+      // e) Entitlement for the matched milestone.
+      if (milestone && inv.total !== null && !inv.recordedInvoiceId) {
+        const remaining = milestone.value - (milestone.billedAmount ?? 0);
+        if (milestone.status !== 'COMPLETED') {
+          out.push({
+            id: `ALT-${project.id}-EARLY-${doc.id}`,
+            type: 'FINANCIAL_ANOMALY',
+            severity: 'MEDIUM',
+            classification: 'POSSIBLE_DEVIATION',
+            basis: 'VERIFIED_CALCULATION',
+            sourceDocumentId: doc.id,
+            title: `Invoice ${label} menagih ${milestone.title} sebelum syarat terpenuhi`,
+            description: `Syarat tagih "${milestone.trigger ?? milestone.title}" belum tercatat selesai di acuan ${version}.`,
+            rupiahImpact: inv.total,
+            impactKind: 'EXPOSURE',
+            impactLabel: 'Nilai ditagih sebelum hak tagih (paparan)',
+            evidence: [contractEvidence(project, `Syarat tagih ${milestone.title}`, `${milestone.percentage}% setelah ${milestone.trigger}.`, milestone.source), docEvidence(`Invoice ${label}`, a.summary, a.sources?.milestoneReference)],
+            recommendedAction: `Tunda invoice ${label} sampai ${milestone.title} tercatat selesai, atau catat penyelesaiannya bila sudah terjadi.`,
+            actionTab: 'documents',
+            fingerprint: `${milestone.status}`,
+          });
+        } else if (inv.total > remaining) {
+          out.push({
+            id: `ALT-${project.id}-OVER-${doc.id}`,
+            type: 'FINANCIAL_ANOMALY',
+            severity: 'HIGH',
+            classification: 'VERIFIED_DEVIATION',
+            basis: 'VERIFIED_CALCULATION',
+            sourceDocumentId: doc.id,
+            title: `Invoice ${label} melebihi hak tagih ${milestone.title}`,
+            description: `Hak tagih tersisa ${idr(remaining)}, invoice ${idr(inv.total)}. Selisih terverifikasi ${idr(inv.total - remaining)}.`,
+            rupiahImpact: inv.total - remaining,
+            impactKind: 'VERIFIED_DIFFERENCE',
+            impactLabel: 'Selisih tagihan terverifikasi',
+            evidence: [contractEvidence(project, `Hak tagih ${milestone.title}`, `${milestone.percentage}% = ${idr(milestone.value)}`, milestone.source), docEvidence(`Invoice ${label}`, a.summary, a.sources?.total), { kind: 'CALCULATION', title: 'Perhitungan', detail: `${idr(inv.total)} − sisa hak tagih ${idr(remaining)} = ${idr(inv.total - remaining)}`, source: 'Mesin rekonsiliasi', verified: true }],
+            recommendedAction: `Sesuaikan invoice ${label} menjadi ${idr(remaining)}.`,
+            actionTab: 'documents',
+            fingerprint: `${inv.total}:${remaining}`,
+          });
+        }
+      }
+    }
+
+    // Addendum (or later contract version) vs the active baseline.
+    if ((doc.kind === 'ADDENDUM' || (doc.kind === 'CONTRACT' && doc.status !== 'APPROVED')) && a.contract && new Date(doc.uploadedAt) >= new Date(project.baselines[0].createdAt)) {
+      const diffs: string[] = [];
+      if (a.contract.contractValue !== null && a.contract.contractValue !== active.contractValue) diffs.push(`nilai kontrak ${idr(a.contract.contractValue)} (acuan ${idr(active.contractValue)})`);
+      if (a.contract.deadline && a.contract.deadline !== active.deadline) diffs.push(`tenggat ${formatDay(a.contract.deadline)} (acuan ${formatDay(active.deadline)})`);
+      if (a.contract.revisionLimit !== null && a.contract.revisionLimit !== active.revisionLimit) diffs.push(`batas revisi ${a.contract.revisionLimit} (acuan ${active.revisionLimit})`);
+      if (diffs.length) {
+        out.push({
+          id: `ALT-${project.id}-ADDM-${doc.id}`,
+          type: 'DOCUMENT_INCONSISTENCY',
+          severity: 'MEDIUM',
+          classification: 'NEEDS_REVIEW',
+          basis: 'AI_FINDING',
+          sourceDocumentId: doc.id,
+          title: `${doc.fileName} berbeda dengan acuan aktif ${version}`,
+          description: `Dokumen menyatakan ${diffs.join('; ')}. Perubahan belum menjadi acuan resmi sampai permintaan perubahan disetujui internal dan klien.`,
+          rupiahImpact: a.contract.contractValue !== null ? Math.abs(a.contract.contractValue - active.contractValue) : 0,
+          impactKind: a.contract.contractValue !== null && a.contract.contractValue !== active.contractValue ? 'EXPOSURE' : 'NONE',
+          impactLabel: 'Perubahan nilai belum disahkan',
+          evidence: [docEvidence(`Isi ${doc.fileName}`, a.summary, a.sources?.contractValue ?? a.sources?.deadline), { kind: 'BASELINE', title: `Acuan aktif ${version}`, detail: `${idr(active.contractValue)} · tenggat ${formatDay(active.deadline)} · ${active.revisionLimit} revisi`, source: `Acuan ${version}`, verified: true }],
+          recommendedAction: 'Ajukan permintaan perubahan sesuai dokumen ini, atau tandai dokumen ditolak bila tidak berlaku.',
+          actionTab: 'change-requests',
+          fingerprint: diffs.join('|'),
+        });
+      }
+    }
+
+    // AI contract-risk findings worth a decision (MEDIUM/HIGH only, to keep the dashboard calm).
+    if (doc.kind === 'CONTRACT' || doc.kind === 'ADDENDUM') {
+      for (const f of a.findings.filter((x) => x.severity !== 'LOW' && x.origin !== 'ENGINE')) {
+        out.push({
+          id: `ALT-${project.id}-RISK-${doc.id}-${f.id}`,
+          type: 'CONTRACT_RISK',
+          severity: f.severity === 'HIGH' ? 'HIGH' : 'MEDIUM',
+          classification: 'NEEDS_REVIEW',
+          basis: 'AI_FINDING',
+          sourceDocumentId: doc.id,
+          title: `Potensi risiko kontrak: ${f.title}`,
+          description: `${f.detail} Temuan ${f.origin === 'GUARDRAIL' ? 'guardrail' : 'AI'} — perlu tinjauan, bukan kesimpulan hukum.`,
+          rupiahImpact: 0,
+          impactKind: 'NONE',
+          impactLabel: 'Perlu ditinjau',
+          evidence: [docEvidence(f.title, f.detail, f.source)],
+          recommendedAction: 'Tinjau klausul ini; CLARA dapat menyiapkan usulan revisi klausul.',
+          actionTab: 'documents',
+          fingerprint: f.id,
+        });
+      }
+    }
+  }
+  return out;
+}
+
 function buildChecks(project: Project, m: ProjectMetrics, drafts: AlertDraft[]): ReconciliationCheck[] {
   const byType = (type: AlertType) => drafts.filter((d) => d.type === type);
   const status = (type: AlertType): InsightStatus => byType(type)[0]?.classification ?? 'MATCH';
