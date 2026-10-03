@@ -410,3 +410,135 @@ nextjs-portal,
 .font-mono, code, kbd, samp, pre {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
+
+/* ==========================================================================
+   Dark mode (dashboard only). Aktif lewat html[data-clara-theme="dark"],
+   hanya berlaku di dalam wrapper .clara-app sehingga landing page tidak berubah.
+   Palet: latar #0b1220, sidebar #0a101c, kartu #0d1526, border #1e293b.
+   ========================================================================== */
+html[data-clara-theme="dark"] { color-scheme: dark; }
+
+html[data-clara-theme="dark"] .clara-app {
+  --d-bg: #0b1220;
+  --d-side: #0a101c;
+  --d-card: #0d1526;
+  --d-raise: #131d33;
+  --d-border: #1e293b;
+  --d-border-strong: #2a3850;
+  --d-text: #f8fafc;
+  --d-muted: #94a3b8;
+  background-color: var(--d-bg) !important;
+  color: var(--d-text);
+}
+
+/* Permukaan */
+html[data-clara-theme="dark"] .clara-app [class~="bg-white"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-[#f8f8f7]"] { background-color: var(--d-card) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="bg-zinc-50"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-zinc-50/80"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-zinc-50/90"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-slate-50"] { background-color: var(--d-raise) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="bg-zinc-100"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-zinc-100/90"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-slate-100"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-zinc-200"] { background-color: #1a263d !important; }
+html[data-clara-theme="dark"] .clara-app [class~="disabled:bg-zinc-100"]:disabled { background-color: #111a2e !important; }
+html[data-clara-theme="dark"] .clara-app header { background-color: var(--d-bg) !important; border-color: var(--d-border) !important; }
+html[data-clara-theme="dark"] .clara-app aside,
+html[data-clara-theme="dark"] .clara-app #clara-sidebar { background-color: var(--d-side) !important; border-color: var(--d-border) !important; }
+html[data-clara-theme="dark"] .clara-app input,
+html[data-clara-theme="dark"] .clara-app select,
+html[data-clara-theme="dark"] .clara-app textarea { background-color: var(--d-card); color: var(--d-text); border-color: var(--d-border-strong); }
+html[data-clara-theme="dark"] .clara-app table thead { background-color: var(--d-raise) !important; }
+
+/* Border dan pembagi */
+html[data-clara-theme="dark"] .clara-app [class~="border-zinc-100"],
+html[data-clara-theme="dark"] .clara-app [class~="border-zinc-200"],
+html[data-clara-theme="dark"] .clara-app [class~="border-zinc-200/90"],
+html[data-clara-theme="dark"] .clara-app [class~="border-slate-200"],
+html[data-clara-theme="dark"] .clara-app [class~="border-b-2"] { border-color: var(--d-border) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="border-zinc-300"],
+html[data-clara-theme="dark"] .clara-app [class~="border-slate-300"] { border-color: var(--d-border-strong) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="divide-zinc-100"] > :not([hidden]) ~ :not([hidden]),
+html[data-clara-theme="dark"] .clara-app [class~="divide-zinc-200"] > :not([hidden]) ~ :not([hidden]) { border-color: var(--d-border) !important; }
+
+/* Teks */
+html[data-clara-theme="dark"] .clara-app [class~="text-zinc-950"],
+html[data-clara-theme="dark"] .clara-app [class~="text-zinc-900"],
+html[data-clara-theme="dark"] .clara-app [class~="text-zinc-800"],
+html[data-clara-theme="dark"] .clara-app [class~="text-slate-900"],
+html[data-clara-theme="dark"] .clara-app [class~="text-slate-800"] { color: var(--d-text) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="text-zinc-700"],
+html[data-clara-theme="dark"] .clara-app [class~="text-zinc-600"],
+html[data-clara-theme="dark"] .clara-app [class~="text-slate-700"],
+html[data-clara-theme="dark"] .clara-app [class~="text-slate-600"] { color: #cbd5e1 !important; }
+html[data-clara-theme="dark"] .clara-app [class~="text-zinc-500"],
+html[data-clara-theme="dark"] .clara-app [class~="text-zinc-400"],
+html[data-clara-theme="dark"] .clara-app [class~="text-slate-500"],
+html[data-clara-theme="dark"] .clara-app [class~="text-slate-400"] { color: var(--d-muted) !important; }
+html[data-clara-theme="dark"] .clara-app input::placeholder,
+html[data-clara-theme="dark"] .clara-app textarea::placeholder { color: #64748b; }
+
+/* Hover netral */
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-zinc-50"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-zinc-50/80"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-slate-50/80"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-zinc-100"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-slate-200"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-zinc-200"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-zinc-200/60"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-zinc-200/70"]:hover { background-color: #17233b !important; }
+html[data-clara-theme="dark"] .clara-app [class~="hover:text-zinc-800"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:text-zinc-900"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:text-zinc-950"]:hover { color: var(--d-text) !important; }
+
+/* Badge status: latar pastel jadi gelap transparan, teks dibuat terang */
+html[data-clara-theme="dark"] .clara-app [class*="bg-red-50"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-red-100"] { background-color: rgba(220, 38, 38, 0.14) !important; }
+html[data-clara-theme="dark"] .clara-app [class*="bg-emerald-50"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-emerald-100"] { background-color: rgba(16, 185, 129, 0.14) !important; }
+html[data-clara-theme="dark"] .clara-app [class*="bg-amber-50"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-amber-100"] { background-color: rgba(245, 158, 11, 0.14) !important; }
+html[data-clara-theme="dark"] .clara-app [class*="bg-orange-50"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-orange-100"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-orange-100/90"] { background-color: rgba(249, 115, 22, 0.14) !important; }
+html[data-clara-theme="dark"] .clara-app [class*="bg-indigo-50"] { background-color: rgba(99, 102, 241, 0.16) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="bg-blue-50"] { background-color: rgba(59, 130, 246, 0.16) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-red-50"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-orange-100"]:hover { background-color: rgba(220, 38, 38, 0.2) !important; }
+
+html[data-clara-theme="dark"] .clara-app [class~="text-red-700"],
+html[data-clara-theme="dark"] .clara-app [class~="text-red-800"],
+html[data-clara-theme="dark"] .clara-app [class~="text-red-900"] { color: #fca5a5 !important; }
+html[data-clara-theme="dark"] .clara-app [class~="text-emerald-700"],
+html[data-clara-theme="dark"] .clara-app [class~="text-emerald-800"],
+html[data-clara-theme="dark"] .clara-app [class~="text-emerald-900"] { color: #6ee7b7 !important; }
+html[data-clara-theme="dark"] .clara-app [class~="text-amber-700"],
+html[data-clara-theme="dark"] .clara-app [class~="text-amber-800"],
+html[data-clara-theme="dark"] .clara-app [class~="text-amber-900"],
+html[data-clara-theme="dark"] .clara-app [class~="text-amber-950"] { color: #fcd34d !important; }
+html[data-clara-theme="dark"] .clara-app [class~="text-orange-800"],
+html[data-clara-theme="dark"] .clara-app [class~="text-orange-900"],
+html[data-clara-theme="dark"] .clara-app [class~="text-orange-950"] { color: #fdba74 !important; }
+html[data-clara-theme="dark"] .clara-app [class~="text-indigo-700"],
+html[data-clara-theme="dark"] .clara-app [class~="text-indigo-950"] { color: #a5b4fc !important; }
+html[data-clara-theme="dark"] .clara-app [class~="text-blue-700"],
+html[data-clara-theme="dark"] .clara-app [class~="text-blue-800"] { color: #93c5fd !important; }
+
+html[data-clara-theme="dark"] .clara-app [class~="border-red-200"],
+html[data-clara-theme="dark"] .clara-app [class~="border-red-300"] { border-color: rgba(248, 113, 113, 0.35) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="border-emerald-200"],
+html[data-clara-theme="dark"] .clara-app [class~="border-emerald-300"] { border-color: rgba(52, 211, 153, 0.35) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="border-amber-200"],
+html[data-clara-theme="dark"] .clara-app [class~="border-amber-300"] { border-color: rgba(251, 191, 36, 0.35) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="border-orange-200"] { border-color: rgba(251, 146, 60, 0.35) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="border-indigo-200"] { border-color: rgba(129, 140, 248, 0.35) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="border-blue-200"] { border-color: rgba(96, 165, 250, 0.35) !important; }
+
+/* Tombol gelap (bg-zinc-900) dibalik jadi terang agar tetap kontras */
+html[data-clara-theme="dark"] .clara-app [class~="bg-zinc-900"] { background-color: #e2e8f0 !important; color: #0b1220 !important; }
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-zinc-800"]:hover { background-color: #f1f5f9 !important; }
+
+/* Toggle tema (aksen merah) */
+.clara-theme-toggle { transition: background-color .15s ease, color .15s ease, border-color .15s ease; }
+html[data-clara-theme="dark"] .clara-theme-toggle { background-color: rgba(220, 38, 38, 0.16); color: #fca5a5; border-color: rgba(248, 113, 113, 0.4); }

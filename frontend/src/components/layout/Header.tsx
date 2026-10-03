@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bot, ChevronDown, Menu, Plus, X } from 'lucide-react';
+import { Bot, ChevronDown, Menu, Moon, Plus, Sun, X } from 'lucide-react';
 import { useActivePersona, useAiHealth, useProjects } from '@/hooks/useClaraData';
 import { USER_PERSONAS, UserPersonaId } from '@/types';
 
@@ -26,6 +26,18 @@ export function Header({ mobileSidebarOpen, onToggleSidebar }: HeaderProps) {
   const [roleOpen, setRoleOpen] = React.useState(false);
   const [switchError, setSwitchError] = React.useState<string | null>(null);
   const roleMenuRef = React.useRef<HTMLDivElement>(null);
+  const [darkMode, setDarkMode] = React.useState(false);
+
+  React.useEffect(() => {
+    setDarkMode(document.documentElement.dataset.claraTheme === 'dark');
+  }, []);
+
+  const toggleTheme = React.useCallback(() => {
+    const next = !darkMode;
+    setDarkMode(next);
+    document.documentElement.dataset.claraTheme = next ? 'dark' : 'light';
+    try { window.localStorage.setItem('clara-theme', next ? 'dark' : 'light'); } catch { /* penyimpanan tidak tersedia */ }
+  }, [darkMode]);
   const routeProjectId = pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? '';
   const currentProjectId = routeProjectId === 'new' ? '' : routeProjectId;
   const currentRole = USER_PERSONAS[personaId] ?? USER_PERSONAS.BUDI;
@@ -84,7 +96,7 @@ export function Header({ mobileSidebarOpen, onToggleSidebar }: HeaderProps) {
             <ChevronDown size={14} strokeWidth={2.5} aria-hidden="true" className="hidden text-zinc-500 sm:block" />
           </button>
           {roleOpen && <div role="menu" aria-label="Ganti pengguna demo" className="absolute right-0 top-12 z-50 w-64 rounded-xl border border-zinc-200 bg-white p-2 shadow-xl">
-            <p className="px-3 py-2 text-xs text-zinc-500">Pilih pengguna demo</p>
+            <p className="px-3 py-2 text-xs text-zinc-500">Pilih pengguna demo · hanya untuk browser ini</p>
             {(Object.keys(roleNames) as UserPersonaId[]).map((id) => <button key={id} type="button" role="menuitem" onClick={() => void switchRole(id)} className={`flex w-full flex-col rounded-lg px-3 py-2 text-left hover:bg-zinc-50 ${id === personaId ? 'bg-red-50' : ''}`}><span className="text-sm font-semibold text-zinc-900">{USER_PERSONAS[id].name}</span><span className="text-xs text-zinc-500">{roleNames[id]}</span></button>)}
             {switchError && <p role="alert" className="px-3 py-2 text-xs text-red-700">{switchError}</p>}
           </div>}
@@ -92,6 +104,7 @@ export function Header({ mobileSidebarOpen, onToggleSidebar }: HeaderProps) {
       </div>
 
       <div className="col-start-2 row-start-1 flex items-center gap-1 lg:col-start-3">
+        <button type="button" onClick={toggleTheme} aria-label={darkMode ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'} aria-pressed={darkMode} title={darkMode ? 'Mode terang' : 'Mode gelap'} className="clara-theme-toggle flex h-10 w-10 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100">{darkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
         <button type="button" onClick={onToggleSidebar} aria-label={mobileSidebarOpen ? 'Tutup sidebar' : 'Buka sidebar'} aria-expanded={mobileSidebarOpen} aria-controls="clara-sidebar" className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-600 hover:bg-zinc-100 hover:text-red-700 lg:hidden">{mobileSidebarOpen ? <X size={20} /> : <Menu size={20} />}</button>
       </div>
     </div>

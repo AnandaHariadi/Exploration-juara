@@ -17,7 +17,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className="scroll-smooth">
+    <html lang="id" className="scroll-smooth" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('clara-theme');if(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)t='dark';document.documentElement.dataset.claraTheme=t==='dark'?'dark':'light'}catch(e){}" }} />
+      </head>
       <body className="antialiased bg-white text-zinc-900 selection:bg-orange-500 selection:text-white min-h-screen">
         {children}
       </body>
