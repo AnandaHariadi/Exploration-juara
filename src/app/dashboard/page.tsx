@@ -134,7 +134,8 @@ export default function DashboardPage() {
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 via-rose-500 to-red-600 flex items-center justify-center text-white shadow-sm">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <span className="font-heading font-extrabold text-lg text-zinc-900 tracking-tight">CLARA</span>
+              <span className="font-heading font-black text-lg bg-gradient-to-r from-orange-500 via-orange-600 to-red-600 bg-clip-text text-transparent tracking-tight">CLARA</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-red-600 self-end mb-1" />
             </Link>
             <span className="hidden sm:inline-block text-zinc-300">/</span>
             <span className="hidden sm:inline-block text-xs font-medium text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-md">

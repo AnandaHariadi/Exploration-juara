@@ -261,10 +261,10 @@ export function AboutSection() {
                     LOKASI RISET &amp; OPERASIONAL RESMI
                   </span>
                   <div className="flex items-center gap-2 my-4 sm:my-5">
-                    <span className="font-heading font-black text-3xl sm:text-4xl tracking-tighter text-zinc-950">
+                    <span className="font-heading font-black text-3xl sm:text-4xl tracking-tighter bg-gradient-to-r from-orange-500 via-orange-600 to-red-600 bg-clip-text text-transparent">
                       CLARA
                     </span>
-                    <span className="w-2 h-2 rounded-full bg-red-600 self-end mb-1.5" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-600 self-end mb-1.5 shadow-[0_0_8px_rgba(220,38,38,0.5)]" />
                   </div>
                   <div className="flex items-start gap-3.5 text-base sm:text-lg text-zinc-800 leading-relaxed font-normal">
                     <MapPin className="w-6 h-6 text-red-600 shrink-0 mt-1" />
