@@ -6,7 +6,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Activity, AlertTriangle, FileText, FolderGit2, GitPullRequest, Receipt } from 'lucide-react';
 import type { Alert } from '@/types';
 import { useProject } from '@/hooks/useClaraData';
-import { formatRupiah } from '@/lib/utils';
+import { formatRupiah, isOpenAlert } from '@/lib/utils';
 import { StatusBadge } from '@/components/shared/Badge';
 import { btn, DemoBadge, NoticeBar, useNotice } from '@/components/shared/ui';
 import { EvidenceDrawer } from '@/components/alerts/EvidenceDrawer';
@@ -68,7 +68,7 @@ function ProjectDetail() {
   }
 
   const m = project.metrics;
-  const openAlerts = project.alerts.filter((a) => a.status !== 'RESOLVED');
+  const openAlerts = project.alerts.filter(isOpenAlert);
 
   return (
     <div className="space-y-6 pb-16">
