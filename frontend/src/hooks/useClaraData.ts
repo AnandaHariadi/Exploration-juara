@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import type { Alert, Project, UserPersonaId } from '@/types';
+import type { AiHealth, Alert, PortfolioSummary, Project, UserPersonaId } from '@/types';
 import { dataClient } from '@/services/dataClient';
 
-function useResource<T>(
-  load: () => Promise<T>,
-  subscribe: (listener: () => void) => () => void,
-  initialValue: T,
-) {
+/**
+ * Fetch a server resource and refetch whenever any mutation succeeds. React
+ * state only mirrors the server; nothing here is a second source of truth.
+ */
+function useResource<T>(load: () => Promise<T>, subscribe: (listener: () => void) => () => void, initialValue: T) {
   const [data, setData] = React.useState<T>(initialValue);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -16,26 +16,25 @@ function useResource<T>(
   const requestId = React.useRef(0);
 
   const refresh = React.useCallback(async () => {
-    const currentRequest = ++requestId.current;
+    const current = ++requestId.current;
     try {
       const next = await load();
-      if (mounted.current && currentRequest === requestId.current) {
+      if (mounted.current && current === requestId.current) {
         setData(next);
         setError(null);
       }
     } catch (cause) {
-      if (mounted.current && currentRequest === requestId.current) {
-        setError(cause instanceof Error ? cause.message : 'Gagal memuat data.');
-      }
+      if (mounted.current && current === requestId.current) setError(cause instanceof Error ? cause.message : 'Gagal memuat data.');
     } finally {
-      if (mounted.current && currentRequest === requestId.current) setLoading(false);
+      if (mounted.current && current === requestId.current) setLoading(false);
     }
   }, [load]);
 
   React.useEffect(() => {
     mounted.current = true;
+    setLoading(true);
     void refresh();
-    const unsubscribe = subscribe(() => { void refresh(); });
+    const unsubscribe = subscribe(() => void refresh());
     return () => {
       mounted.current = false;
       requestId.current += 1;
@@ -46,27 +45,43 @@ function useResource<T>(
   return { data, refresh, loading, error };
 }
 
-const loadProjects = () => dataClient.getProjects();
-const loadAlerts = () => dataClient.getAllAlerts();
-const loadPersona = () => dataClient.getActivePersona();
 const subscribeData = (listener: () => void) => dataClient.subscribeData(listener);
 const subscribePersona = (listener: () => void) => dataClient.subscribePersona(listener);
+const subscribeNever = () => () => {};
 
 export function useProjects() {
-  const resource = useResource<Project[]>(loadProjects, subscribeData, []);
-  return { projects: resource.data, refreshProjects: resource.refresh, loading: resource.loading, error: resource.error };
+  const r = useResource<Project[]>(dataClient.getProjects, subscribeData, []);
+  return { projects: r.data, refreshProjects: r.refresh, loading: r.loading, error: r.error };
+}
+
+export function useProject(id: string) {
+  const load = React.useCallback(() => dataClient.getProject(id), [id]);
+  const r = useResource<Project | undefined>(load, subscribeData, undefined);
+  return { project: r.data, refreshProject: r.refresh, loading: r.loading, error: r.error };
 }
 
 export function useAlerts() {
-  const resource = useResource<Alert[]>(loadAlerts, subscribeData, []);
-  return { alerts: resource.data, refreshAlerts: resource.refresh, loading: resource.loading, error: resource.error };
+  const r = useResource<Alert[]>(dataClient.getAllAlerts, subscribeData, []);
+  return { alerts: r.data, refreshAlerts: r.refresh, loading: r.loading, error: r.error };
+}
+
+export function useDashboardSummary() {
+  const r = useResource<PortfolioSummary | null>(dataClient.getDashboardSummary, subscribeData, null);
+  return { summary: r.data, refreshSummary: r.refresh, loading: r.loading, error: r.error };
+}
+
+/** Checked on mount and on demand (retry button); no background polling. */
+export function useAiHealth() {
+  const r = useResource<AiHealth | null>(dataClient.getAiHealth, subscribeNever, null);
+  return { health: r.data, refreshHealth: r.refresh, loading: r.loading };
 }
 
 export function useActivePersona() {
-  const resource = useResource<UserPersonaId>(loadPersona, subscribePersona, 'BUDI');
+  const r = useResource<UserPersonaId>(dataClient.getActivePersona, subscribePersona, 'BUDI');
+  const { refresh } = r;
   const selectPersona = React.useCallback(async (persona: UserPersonaId) => {
     await dataClient.setActivePersona(persona);
-    await resource.refresh();
-  }, [resource.refresh]);
-  return { personaId: resource.data, selectPersona, refreshPersona: resource.refresh, loading: resource.loading, error: resource.error };
+    await refresh();
+  }, [refresh]);
+  return { personaId: r.data, selectPersona, refreshPersona: refresh, loading: r.loading, error: r.error };
 }
