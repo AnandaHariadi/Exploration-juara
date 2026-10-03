@@ -71,25 +71,15 @@ export default function DashboardPage() {
     </section>
   );
 
-  const alertsPanel = (
-    <Panel title="Perlu perhatian" description="Peringatan yang belum selesai, dengan bukti" action={<Link href="/alerts" className="text-sm font-semibold text-red-700 hover:underline">Semua →</Link>}>
-      {openAlerts.length === 0 ? (
-        <p className="rounded-xl bg-zinc-50 p-5 text-sm text-zinc-600">{s && s.activeProjectCount === 0 ? 'Belum ada proyek aktif untuk diperiksa.' : 'Tidak ada peringatan terbuka.'}</p>
-      ) : (
-        <ul className="space-y-2">
-          {openAlerts.slice(0, 6).map((a) => (
-            <li key={a.id}>
-              <button type="button" onClick={() => setSelectedAlert(a)} className="w-full rounded-xl border border-zinc-200 p-3 text-left hover:border-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500">
-                <span className="flex flex-wrap items-center gap-2"><InsightBadge status={a.classification} /><span className="text-xs text-zinc-500">{a.status === 'NEW' ? 'Baru' : 'Sudah dibaca'}</span></span>
-                <strong className="mt-1 block text-sm text-zinc-900">{a.title}</strong>
-                <span className="mt-0.5 block text-xs text-zinc-500">{a.projectName} · {impactText(a)}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Panel>
-  );
+    {notice && <div role="status" className="flex items-start justify-between gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900"><span>{notice}</span><button type="button" aria-label="Tutup pesan" onClick={() => setNotice(null)}>×</button></div>}
+    {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">Gagal memuat data: {error}</div>}
+    {loading ? <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-sm text-zinc-500">Memuat ringkasan proyek…</div> : <>
+      <section aria-label="Angka seluruh proyek" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Nilai kontrak" value={formatCompactRupiah(total('contractValue'))} detail={`Total dari ${projects.length} proyek dalam data demo`} href="/projects" />
+        <MetricCard label="Biaya tercatat" value={formatCompactRupiah(actualCost)} detail={`Rencana biaya ${formatCompactRupiah(plannedCost)} · selisih ${formatCompactRupiah(actualCost - plannedCost)}`} href="/finance" />
+        <MetricCard label="Belum ditagih" value={formatCompactRupiah(unbilled)} detail="Nilai tahap selesai yang belum dibuatkan tagihan" href="/finance" />
+        <MetricCard label="Sudah dibayar" value={formatCompactRupiah(total('paidValue'))} detail={`Dari tagihan ${formatCompactRupiah(billed)} yang telah dibuat`} href="/finance" />
+      </section>
 
   const billingPanel = (
     <Panel title="Siap ditagih, belum ada tagihan" description="Tahap selesai yang belum ditagih penuh" action={<Link href="/finance" className="text-sm font-semibold text-red-700 hover:underline">Keuangan →</Link>}>

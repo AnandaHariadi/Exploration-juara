@@ -21,17 +21,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   return <div className="clara-app min-h-screen bg-[#f8f8f7] text-zinc-900">
-    <Header
-      onToggleSidebar={() => setMobileSidebarOpen((current) => !current)}
-      mobileSidebarOpen={mobileSidebarOpen}
-    />
     <Sidebar
       desktopOpen={desktopSidebarOpen}
       mobileOpen={mobileSidebarOpen}
       onCloseMobile={closeMobileSidebar}
       onToggleDesktop={toggleDesktopSidebar}
     />
-    <div className={`min-h-[calc(100vh-var(--clara-header-height))] transition-[padding] duration-200 ease-out motion-reduce:transition-none ${desktopSidebarOpen ? 'lg:pl-64' : 'lg:pl-[88px]'}`}>
+    <div className={`min-h-screen transition-[padding] duration-200 ease-out motion-reduce:transition-none ${desktopSidebarOpen ? 'lg:pl-64' : 'lg:pl-[88px]'}`}>
+      <Header
+        onToggleSidebar={() => setMobileSidebarOpen((current) => !current)}
+        mobileSidebarOpen={mobileSidebarOpen}
+      />
       <main id="konten-utama" className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
     </div>
   </div>;
