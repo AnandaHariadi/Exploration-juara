@@ -1,11 +1,12 @@
-// Generate the demo contract PDF from data/samples/kontrak-demo.json.
-// Run: node scripts/generate-sample-contract.mjs
+// Generate the demo sample PDFs (contract, invoices, client approval) from data/samples/*.json.
+// Run: npm run samples
 import fs from 'node:fs';
 import path from 'node:path';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const spec = JSON.parse(fs.readFileSync(path.join(root, 'data/samples/kontrak-demo.json'), 'utf8'));
+for (const specFile of ['kontrak-demo.json', 'invoice-uat.json', 'invoice-tambahan.json', 'persetujuan-klien.json']) {
+const spec = JSON.parse(fs.readFileSync(path.join(root, 'data/samples', specFile), 'utf8'));
 
 const pdf = await PDFDocument.create();
 pdf.setTitle(spec.title);
@@ -34,7 +35,7 @@ spec.pages.forEach((lines, index) => {
   const page = pdf.addPage([595, 842]);
   let y = 842 - margin;
   for (const raw of lines) {
-    const isHeading = /^(Pasal \d+|PERJANJIAN|Nomor:)/.test(raw);
+    const isHeading = /^(Pasal \d+|PERJANJIAN|SURAT|INVOICE$|Nomor:|Total tagihan)/.test(raw);
     const f = isHeading ? bold : font;
     for (const line of raw ? wrap(raw, 595 - margin * 2, f) : ['']) {
       page.drawText(line, { x: margin, y, size, font: f, color: rgb(0.1, 0.1, 0.1) });
@@ -47,3 +48,4 @@ spec.pages.forEach((lines, index) => {
 const out = path.join(root, 'data/samples', spec.fileName);
 fs.writeFileSync(out, await pdf.save());
 console.log(`Wrote ${out}`);
+}
