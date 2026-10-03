@@ -245,7 +245,7 @@ export function AboutSection() {
                 
                 <div className="relative w-full h-full flex items-center justify-center">
                   <Image
-                    src="/images/yupiens_office_transparent.png"
+                    src="/images/office_building_3d.png"
                     alt="Visual Gedung Kantor CLARA"
                     fill
                     className="object-contain object-center filter drop-shadow-2xl scale-110 sm:scale-120"
@@ -260,10 +260,15 @@ export function AboutSection() {
                   <span className="text-xs sm:text-sm font-mono font-bold text-red-600 uppercase tracking-widest block mb-2">
                     LOKASI RISET &amp; OPERASIONAL RESMI
                   </span>
-                  <div className="my-4 sm:my-6">
-                    <span className="font-heading font-black text-4xl sm:text-5xl lg:text-6xl tracking-tighter bg-gradient-to-r from-orange-500 via-orange-600 to-red-600 bg-clip-text text-transparent leading-none inline-block">
-                      CLARA
-                    </span>
+                  <div className="my-4 sm:my-5">
+                    <Image
+                      src="/images/clara_wordmark_group5.png"
+                      alt="CLARA"
+                      width={220}
+                      height={52}
+                      className="h-10 sm:h-12 w-auto object-contain"
+                      priority
+                    />
                   </div>
                   <div className="flex items-start gap-3.5 text-base sm:text-lg text-zinc-800 leading-relaxed font-normal">
                     <MapPin className="w-6 h-6 text-red-600 shrink-0 mt-1" />
