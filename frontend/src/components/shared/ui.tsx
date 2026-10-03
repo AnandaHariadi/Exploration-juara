@@ -59,7 +59,7 @@ export function NoticeBar({ notice, onClose }: { notice: { kind: 'success' | 'er
 
 export function Panel({ title, description, action, children, className = '' }: { title?: React.ReactNode; description?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6 ${className}`}>
+    <section className={`min-w-0 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6 ${className}`}>
       {(title || action) && (
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
