@@ -6,6 +6,7 @@ import { claraDb, makeCtx } from '@/lib/db';
 import { ok, readJson, route, str } from '@/lib/api';
 import { addDocument, newProject, randomId } from '@/lib/domain';
 import { readSample, saveDocumentFile, SAMPLE_CONTRACT_FILE, SAMPLE_RAB_FILE } from '@/lib/files';
+import { analyzeInBackground } from '@/lib/guardian';
 
 export const GET = route('GET /api/projects', async () => ok(claraDb.getProjects()));
 
@@ -26,5 +27,7 @@ export const POST = route('POST /api/projects', async (req: NextRequest) => {
   }
   const created = claraDb.createProject(project);
   console.log(`[PROJECT] created ${created.id} by ${ctx.actor.name}`);
+  // Document Guardian: analysis starts automatically for attached documents.
+  for (const doc of created.documents) analyzeInBackground(created.id, doc.id);
   return ok(created, 201, 'Proyek dibuat sebagai draf.');
 });
