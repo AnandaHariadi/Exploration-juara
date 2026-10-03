@@ -20,7 +20,7 @@ import type {
 } from '@/types';
 import { USER_PERSONAS } from '@/types';
 import { addDays, allocateMilestoneValues, emptyMetrics, formatDay, idr, isIsoDate } from './engine';
-import { badRequest, conflict, int, MAX_RUPIAH, notFound, oneOf, str } from './api';
+import { badRequest, conflict, HttpError, int, MAX_RUPIAH, notFound, oneOf, str } from './api';
 
 export interface Ctx {
   now: string;
@@ -48,6 +48,10 @@ function requireBaseline(project: Project): BaselineVersion {
   const active = project.baselines.find((b) => b.status === 'ACTIVE');
   if (!active) throw conflict('Setujui acuan proyek (baseline) terlebih dahulu sebelum mencatat data pemantauan.', 'BASELINE_REQUIRED');
   return active;
+}
+
+function requireRole(ctx: Ctx, roles: UserPersonaId[], message: string) {
+  if (!roles.includes(ctx.actor.id)) throw new HttpError(403, 'ROLE_REQUIRED', `${message} Ganti pengguna demo di kanan atas.`);
 }
 
 // ---------------------------------------------------------------- projects
@@ -460,6 +464,7 @@ export function createChangeRequest(project: Project, body: Record<string, unkno
     throw badRequest('Isi minimal satu perubahan: pekerjaan, nilai, revisi, atau perpanjangan waktu.');
   }
   const submit = body.submit !== false;
+  if (submit) requireRole(ctx, ['BUDI', 'ADMIN'], 'Pengajuan perubahan dilakukan oleh pengelola proyek (Budi).');
   const cr: ChangeRequest = {
     id: ctx.nextId('CR'),
     projectId: project.id,
@@ -475,9 +480,40 @@ export function createChangeRequest(project: Project, body: Record<string, unkno
     baseVersion: active.label,
     createdAt: ctx.now,
     createdBy: ctx.actor.label,
+    origin: body.origin === 'AI_DRAFT' ? 'AI_DRAFT' : 'MANUAL',
+    calculation: Array.isArray(body.calculation) ? body.calculation.map(String).slice(0, 20) : [],
+    relatedAlertIds: Array.isArray(body.relatedAlertIds) ? body.relatedAlertIds.map(String).slice(0, 20) : [],
+    history: [{ at: ctx.now, by: ctx.actor.label, action: 'CREATED', note: body.origin === 'AI_DRAFT' ? 'Disiapkan CLARA dari temuan; menunggu tinjauan pengelola proyek.' : undefined }],
   };
   project.changeRequests.unshift(cr);
-  if (submit) pushEvent(project, ctx, 'CHANGE_REQUEST_SUBMITTED', `Permintaan perubahan ${cr.crNumber} diajukan`, describeChange(cr));
+  if (submit) {
+    cr.history.push({ at: ctx.now, by: ctx.actor.label, action: 'SUBMITTED' });
+    pushEvent(project, ctx, 'CHANGE_REQUEST_SUBMITTED', `Permintaan perubahan ${cr.crNumber} diajukan`, describeChange(cr));
+  }
+  return cr;
+}
+
+const EDITABLE: ChangeRequest['status'][] = ['DRAFT', 'REJECTED', 'CLIENT_REJECTED'];
+
+/** PIC edits a draft (or a rejected request before resubmitting). Numbers stay integers; nothing is applied. */
+export function updateChangeRequest(project: Project, crId: string, body: Record<string, unknown>, ctx: Ctx) {
+  const cr = findCr(project, crId);
+  if (!EDITABLE.includes(cr.status)) throw conflict('Permintaan hanya dapat diubah saat draf atau setelah ditolak.', 'INVALID_TRANSITION');
+  requireRole(ctx, ['BUDI', 'ADMIN'], 'Perubahan isi dilakukan oleh pengelola proyek (Budi).');
+  if ('title' in body) cr.title = str(body, 'title', { required: true, max: 200, label: 'Judul perubahan' });
+  if ('description' in body) cr.description = str(body, 'description', { max: 2000 });
+  if ('reason' in body) cr.reason = str(body, 'reason', { max: 500 }) || cr.reason;
+  if ('additionalScope' in body) {
+    const raw = body.additionalScope;
+    cr.additionalScope = (Array.isArray(raw) ? raw.map(String) : typeof raw === 'string' ? raw.split(',') : []).map((x) => x.trim()).filter(Boolean).slice(0, 20);
+  }
+  if ('additionalValue' in body) cr.additionalValue = int(body, 'additionalValue', { min: 0, max: MAX_RUPIAH, label: 'Tambahan nilai' });
+  if ('additionalRevisions' in body) cr.additionalRevisions = int(body, 'additionalRevisions', { min: 0, max: 100, label: 'Tambahan revisi' });
+  if ('deadlineExtensionDays' in body) cr.deadlineExtensionDays = int(body, 'deadlineExtensionDays', { min: 0, max: 730, label: 'Perpanjangan waktu' });
+  if (!cr.additionalScope.length && !cr.additionalValue && !cr.additionalRevisions && !cr.deadlineExtensionDays) {
+    throw badRequest('Isi minimal satu perubahan: pekerjaan, nilai, revisi, atau perpanjangan waktu.');
+  }
+  cr.history.push({ at: ctx.now, by: ctx.actor.label, action: 'EDITED' });
   return cr;
 }
 
@@ -498,32 +534,88 @@ function findCr(project: Project, crId: string) {
 
 export function submitChangeRequest(project: Project, crId: string, ctx: Ctx) {
   const cr = findCr(project, crId);
-  if (cr.status !== 'DRAFT') throw conflict(`Permintaan berstatus ${cr.status} dan tidak dapat diajukan lagi.`, 'INVALID_TRANSITION');
+  if (!EDITABLE.includes(cr.status)) throw conflict(`Permintaan berstatus ${cr.status} dan tidak dapat diajukan lagi.`, 'INVALID_TRANSITION');
+  requireRole(ctx, ['BUDI', 'ADMIN'], 'Pengajuan perubahan dilakukan oleh pengelola proyek (Budi).');
+  const resubmit = cr.status !== 'DRAFT';
   cr.status = 'PENDING';
-  pushEvent(project, ctx, 'CHANGE_REQUEST_SUBMITTED', `Permintaan perubahan ${cr.crNumber} diajukan`, describeChange(cr));
+  cr.financeReview = undefined;
+  cr.internalDecision = undefined;
+  cr.clientApproval = undefined;
+  cr.history.push({ at: ctx.now, by: ctx.actor.label, action: 'SUBMITTED', note: resubmit ? 'Diajukan ulang setelah revisi.' : undefined });
+  pushEvent(project, ctx, 'CHANGE_REQUEST_SUBMITTED', `Permintaan perubahan ${cr.crNumber} ${resubmit ? 'diajukan ulang' : 'diajukan'}`, describeChange(cr));
   return cr;
 }
 
-export function rejectChangeRequest(project: Project, crId: string, body: Record<string, unknown>, ctx: Ctx) {
+/** Finance confirms the deterministic impact and evidence. */
+export function financeReviewChangeRequest(project: Project, crId: string, body: Record<string, unknown>, ctx: Ctx) {
   const cr = findCr(project, crId);
-  if (cr.status !== 'PENDING') throw conflict(cr.status === 'REJECTED' ? 'Permintaan ini sudah ditolak.' : `Permintaan berstatus ${cr.status} tidak dapat ditolak.`, 'INVALID_TRANSITION');
-  cr.status = 'REJECTED';
-  cr.rejectedAt = ctx.now;
+  if (cr.status !== 'PENDING') throw conflict(`Tinjauan keuangan hanya untuk permintaan yang menunggu (status saat ini ${cr.status}).`, 'INVALID_TRANSITION');
+  requireRole(ctx, ['SITI', 'ADMIN'], 'Tinjauan dampak keuangan dilakukan oleh tim keuangan (Siti).');
+  const note = str(body, 'note', { max: 500 }) || undefined;
+  cr.status = 'FINANCE_REVIEWED';
+  cr.financeReview = { by: ctx.actor.label, at: ctx.now, note };
+  cr.history.push({ at: ctx.now, by: ctx.actor.label, action: 'FINANCE_REVIEWED', note });
+  pushEvent(project, ctx, 'CHANGE_REQUEST_SUBMITTED', `${cr.crNumber}: dampak keuangan ditinjau`, note ?? `Dampak ${describeChange(cr)} dikonfirmasi keuangan.`);
+  return cr;
+}
+
+/** Internal decision by the decision maker. Approval does NOT change the baseline: client approval is still required. */
+export function decideChangeRequest(project: Project, crId: string, body: Record<string, unknown>, ctx: Ctx) {
+  const cr = findCr(project, crId);
+  if (cr.status === 'APPROVED' || cr.status === 'INTERNAL_APPROVED') throw conflict('Permintaan ini sudah disetujui internal. Persetujuan ulang dicegah.', 'ALREADY_APPROVED');
+  if (cr.status !== 'FINANCE_REVIEWED') throw conflict(`Keputusan internal memerlukan tinjauan keuangan terlebih dahulu (status saat ini ${cr.status}).`, 'INVALID_TRANSITION');
+  requireRole(ctx, ['HENDRA', 'ADMIN'], 'Keputusan internal dilakukan oleh pimpinan (Hendra).');
+  const decision = oneOf(body, 'decision', ['APPROVE', 'REJECT'] as const);
+  const note = str(body, 'note', { max: 500, required: decision === 'REJECT', label: 'Alasan penolakan' }) || undefined;
+  cr.internalDecision = { by: ctx.actor.label, at: ctx.now, approved: decision === 'APPROVE', note };
   cr.decidedBy = ctx.actor.label;
-  cr.decisionNote = str(body, 'note', { max: 500 }) || undefined;
-  pushEvent(project, ctx, 'CHANGE_REQUEST_REJECTED', `Permintaan perubahan ${cr.crNumber} ditolak`, cr.decisionNote ?? 'Acuan proyek tidak berubah.');
+  cr.decisionNote = note;
+  if (decision === 'APPROVE') {
+    cr.status = 'INTERNAL_APPROVED';
+    cr.history.push({ at: ctx.now, by: ctx.actor.label, action: 'INTERNAL_APPROVED', note });
+    pushEvent(project, ctx, 'CHANGE_REQUEST_SUBMITTED', `${cr.crNumber} disetujui internal — menunggu persetujuan klien`, 'Acuan belum berubah sampai bukti persetujuan klien dicatat.');
+    console.log(`[CR] ${cr.crNumber} internally approved by ${ctx.actor.name}`);
+  } else {
+    cr.status = 'REJECTED';
+    cr.rejectedAt = ctx.now;
+    cr.history.push({ at: ctx.now, by: ctx.actor.label, action: 'REJECTED', note });
+    pushEvent(project, ctx, 'CHANGE_REQUEST_REJECTED', `Permintaan perubahan ${cr.crNumber} ditolak internal`, `${note}. Acuan ${project.baselineVersion} tetap aktif; pengelola proyek dapat merevisi dan mengajukan ulang.`);
+  }
   return cr;
 }
 
-/** Only APPROVED changes create a new baseline version. The previous version is archived, never edited. */
-export function approveChangeRequest(project: Project, crId: string, ctx: Ctx): BaselineVersion {
+/** External/client approval evidence. Only an approved client decision makes the change official (new baseline). */
+export function recordClientApproval(project: Project, crId: string, body: Record<string, unknown>, ctx: Ctx): ChangeRequest {
   const cr = findCr(project, crId);
-  if (cr.status !== 'PENDING') {
-    throw conflict(
-      cr.status === 'APPROVED' ? 'Permintaan perubahan ini sudah disetujui. Persetujuan ulang dicegah.' : `Permintaan berstatus ${cr.status} tidak dapat disetujui.`,
-      cr.status === 'APPROVED' ? 'ALREADY_APPROVED' : 'INVALID_TRANSITION',
-    );
+  if (cr.status === 'APPROVED') throw conflict('Perubahan ini sudah resmi. Persetujuan ulang dicegah.', 'ALREADY_APPROVED');
+  if (cr.status !== 'INTERNAL_APPROVED') throw conflict(`Persetujuan klien dicatat setelah persetujuan internal (status saat ini ${cr.status}).`, 'INVALID_TRANSITION');
+  const decision = oneOf(body, 'decision', ['APPROVED', 'REJECTED'] as const);
+  const reference = str(body, 'reference', { max: 300, label: 'Rujukan bukti' });
+  const documentId = str(body, 'documentId', { max: 80 }) || undefined;
+  if (documentId) {
+    const doc = project.documents.find((d) => d.id === documentId);
+    if (!doc) throw notFound('Dokumen bukti persetujuan tidak ditemukan.');
   }
+  if (!documentId && reference.length < 5) throw badRequest('Lampirkan dokumen persetujuan klien atau tulis rujukan bukti (mis. nomor surat / email tanggal).', 'EVIDENCE_REQUIRED');
+  const note = str(body, 'note', { max: 500 }) || undefined;
+  cr.clientApproval = { by: ctx.actor.label, at: ctx.now, approved: decision === 'APPROVED', reference: reference || 'Dokumen terlampir', documentId, note };
+  if (decision === 'REJECTED') {
+    cr.status = 'CLIENT_REJECTED';
+    cr.history.push({ at: ctx.now, by: ctx.actor.label, action: 'CLIENT_REJECTED', note: note ?? reference });
+    pushEvent(project, ctx, 'CHANGE_REQUEST_REJECTED', `Klien menolak ${cr.crNumber}`, `Acuan ${project.baselineVersion} tetap aktif. Bukti: ${cr.clientApproval.reference}.`);
+    return cr;
+  }
+  if (documentId) {
+    const doc = project.documents.find((d) => d.id === documentId)!;
+    doc.status = 'APPROVED';
+  }
+  cr.history.push({ at: ctx.now, by: ctx.actor.label, action: 'CLIENT_APPROVED', note: cr.clientApproval.reference });
+  applyApprovedChange(project, cr, ctx);
+  return cr;
+}
+
+/** Only an official (client-approved) change creates a new baseline version. The previous version is archived, never edited. */
+function applyApprovedChange(project: Project, cr: ChangeRequest, ctx: Ctx): BaselineVersion {
   const previous = requireBaseline(project);
   const nextNumber = Math.max(...project.baselines.map((b) => b.version)) + 1;
   const label = `V${nextNumber}`;
@@ -601,8 +693,9 @@ export function approveChangeRequest(project: Project, crId: string, ctx: Ctx): 
   cr.approvedAt = ctx.now;
   cr.decidedBy = ctx.actor.label;
   cr.resultingBaselineVersion = label;
-  pushEvent(project, ctx, 'CHANGE_REQUEST_APPROVED', `${cr.crNumber} disetujui — acuan naik ke ${label}`, `${describeChange(cr)}. Acuan ${previous.label} diarsipkan.`);
-  console.log(`[BASELINE] project=${project.id} ${label} approved from ${cr.crNumber} by ${ctx.actor.name}`);
+  pushEvent(project, ctx, 'CHANGE_REQUEST_APPROVED', `${cr.crNumber} resmi (disetujui internal & klien) — acuan naik ke ${label}`, `${describeChange(cr)}. Acuan ${previous.label} diarsipkan. Bukti klien: ${cr.clientApproval?.reference ?? '-'}.`);
+  console.log(`[CR] ${cr.crNumber} client approval recorded by ${ctx.actor.name}`);
+  console.log(`[BASELINE] project=${project.id} ${label} activated from ${cr.crNumber}`);
   return version;
 }
 
