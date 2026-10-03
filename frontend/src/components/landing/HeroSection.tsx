@@ -121,25 +121,18 @@ export function HeroSection() {
         {/* Main Editorial Header - Perfectly Center-Aligned with Ample Ribbon Clearance */}
         <div className="text-center max-w-3xl mx-auto mb-16 relative z-10 px-4">
 
-          {/* Massive Commanding CLARA Wordmark with Sculpted Arch & Dynamic Red-Orange Gradient */}
-          <div className="relative my-6 sm:my-10 flex flex-col items-center justify-center select-none group px-2 sm:px-6">
-            {/* The Majestic Arched CLARA Typography (Enlarged Scale + Red & Orange Gradient) */}
-            <div className="flex items-center justify-center tracking-tight font-heading font-black text-7xl sm:text-8xl md:text-9xl lg:text-[11.5rem] xl:text-[13rem] leading-none filter drop-shadow-[0_10px_25px_rgba(220,38,38,0.15)]">
-              <span className="inline-block transform translate-y-3 sm:translate-y-4 lg:translate-y-6 -rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
-                C
-              </span>
-              <span className="inline-block transform translate-y-1 sm:translate-y-1.5 lg:translate-y-2 -rotate-3 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
-                L
-              </span>
-              <span className="inline-block transform -translate-y-1 sm:-translate-y-2 lg:-translate-y-2.5 rotate-0 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-amber-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
-                A
-              </span>
-              <span className="inline-block transform translate-y-1 sm:translate-y-1.5 lg:translate-y-2 rotate-3 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
-                R
-              </span>
-              <span className="inline-block transform translate-y-3 sm:translate-y-4 lg:translate-y-6 rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
-                A
-              </span>
+          {/* Massive Commanding CLARA Wordmark (Group 5 Asset) with Dynamic Horizon Wave Arc */}
+          <div className="relative my-6 sm:my-8 flex flex-col items-center justify-center select-none group px-2 sm:px-6">
+            {/* The Group 5 CLARA Official Wordmark (Enlarged + Rich Drop Shadow + Subtle Dynamic Wave Transform) */}
+            <div className="relative w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl flex items-center justify-center filter drop-shadow-[0_12px_35px_rgba(220,38,38,0.22)] group-hover:scale-105 transition-transform duration-500">
+              <Image
+                src="/images/clara_wordmark_group5.png"
+                alt="CLARA Brandmark Typography"
+                width={1024}
+                height={211}
+                className="w-full h-auto object-contain transform -rotate-1 hover:rotate-0 transition-transform duration-500"
+                priority
+              />
             </div>
 
             {/* Sleek Dynamic Lekukan Horizon Arc with Matching Red-Orange Glow */}
@@ -170,8 +163,8 @@ export function HeroSection() {
           </h1>
 
           {/* Elevating Clara Company Copy - Corporate, Visionary & Prestigious */}
-          <p className="text-sm sm:text-base md:text-lg text-zinc-600 leading-relaxed font-normal mb-8 max-w-2xl mx-auto">
-            Platform Contract Intelligence &amp; Value Assurance terpadu untuk menyelaraskan klausul kesepakatan, alokasi anggaran, progres eksekusi lapangan, hingga kepastian penagihan secara deterministik demi melindungi margin profitabilitas bisnis Anda.
+          <p className="text-sm sm:text-base md:text-lg text-zinc-600 leading-relaxed font-normal mb-8 max-w-3xl mx-auto">
+            Platform Contract Intelligence &amp; Value Assurance terpadu untuk menyelaraskan klausul kesepakatan, alokasi anggaran, progres eksekusi lapangan, hingga kepastian penagihan secara deterministik demi melindungi profitabilitas proyek Anda.
           </p>
 
           {/* Action Buttons - Centered */}
