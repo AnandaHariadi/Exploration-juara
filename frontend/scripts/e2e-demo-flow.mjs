@@ -204,7 +204,9 @@ check('draft marked EXPORTED (not "sent")', (await call('GET', `/api/projects/${
 const studio = await call('POST', '/api/ai/documents/generate', { projectId: P, type: 'MOU', title: 'MoU pemeliharaan sistem', instructions: 'Pemeliharaan 12 bulan' });
 check('Studio drafts an MoU with validation', studio.status === 201 && Boolean(studio.data?.project.drafts.find((d) => d.id === studio.data.draftId)?.validation.checks.length), studio.json?.error);
 const revised = await call('POST', '/api/ai/documents/revise', { projectId: P, draftId: studio.data?.draftId, instruction: 'Tambahkan klausul kerahasiaan' });
-check('AI revision re-validates and logs history', revised.status === 200 && revised.data?.drafts.find((d) => d.id === studio.data?.draftId)?.history.length === 2, revised.json?.error);
+if (MODE === 'AI') check('AI revision re-validates and logs history', revised.status === 200 && revised.data?.drafts.find((d) => d.id === studio.data?.draftId)?.history.length === 2, revised.json?.error);
+else check('AI revision without AI fails honestly (503), draft untouched', revised.status === 503 && revised.json?.error?.code === 'AI_UNAVAILABLE');
+if (MODE !== 'AI') check('drafts fall back to a labelled TEMPLATE, never fake AI', studio.data?.project.drafts.find((d) => d.id === studio.data.draftId)?.source === 'TEMPLATE');
 check('manual edit saved and re-validated', (await call('POST', '/api/ai/documents/revise', { projectId: P, draftId: studio.data?.draftId, content: 'Isi [Nama Pihak] belum lengkap untuk diuji validasi placeholder.' })).data?.drafts.find((d) => d.id === studio.data?.draftId)?.status === 'NEEDS_FIX');
 
 if (MODE === 'AI') {
