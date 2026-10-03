@@ -16,13 +16,30 @@ export type AlertType =
   | 'SCOPE_VARIANCE'
   | 'BILLING_VARIANCE'
   | 'REVISION_LIMIT'
-  | 'DEADLINE_RISK';
+  | 'DEADLINE_RISK'
+  | 'CONTRACT_RISK'
+  | 'FINANCIAL_ANOMALY'
+  | 'DOCUMENT_INCONSISTENCY'
+  | 'POTENTIAL_IRREGULARITY';
+
+/** Where a finding comes from. Never blur these in the UI. */
+export type FindingBasis = 'VERIFIED_CALCULATION' | 'AI_FINDING' | 'USER_CONFIRMED';
 
 /** Insight status from PRD §14. MATCH is used for reconciliation checks only. */
 export type InsightStatus = 'MATCH' | 'POSSIBLE_DEVIATION' | 'VERIFIED_DEVIATION' | 'NEEDS_REVIEW';
 
 /** What a rupiah figure on an alert means. None of these is an actual loss. */
-export type ImpactKind = 'UNBILLED' | 'OVER_BUDGET' | 'BUDGET_REMAINING' | 'UNPRICED' | 'SCHEDULE' | 'NONE';
+export type ImpactKind =
+  | 'UNBILLED'
+  | 'OVER_BUDGET'
+  | 'BUDGET_REMAINING'
+  | 'UNPRICED'
+  | 'SCHEDULE'
+  | 'NONE'
+  /** Potential exposure: a ceiling, never an actual loss. */
+  | 'EXPOSURE'
+  /** Arithmetic difference proven from confirmed records. */
+  | 'VERIFIED_DIFFERENCE';
 
 export type ScopeStatus = 'MATCH' | 'NEEDS_REVIEW' | 'APPROVED_CHANGE';
 
@@ -30,7 +47,26 @@ export type MilestoneStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
 
 export type BillingStatus = 'UNBILLED' | 'INVOICED' | 'PAID';
 
-export type ChangeRequestStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
+/**
+ * Governed change-request lifecycle:
+ * DRAFT → PENDING (submitted by PIC) → FINANCE_REVIEWED (Siti) → INTERNAL_APPROVED (Hendra; client approval required)
+ * → APPROVED (client approval evidence recorded; new baseline version). REJECTED / CLIENT_REJECTED can be revised and resubmitted.
+ */
+export type ChangeRequestStatus = 'DRAFT' | 'PENDING' | 'FINANCE_REVIEWED' | 'INTERNAL_APPROVED' | 'APPROVED' | 'REJECTED' | 'CLIENT_REJECTED';
+
+export interface ContractTerms {
+  /** Rate for additional work, rupiah per hour. */
+  hourlyRate: number | null;
+  /** Price per additional revision round. */
+  revisionUnitPrice: number | null;
+  /** Extra days granted by a revision addendum. */
+  revisionExtensionDays: number | null;
+  penaltyPerDayPercent: number | null;
+  penaltyCapPercent: number | null;
+  paymentDueDays: number | null;
+}
+
+export const EMPTY_TERMS: ContractTerms = { hourlyRate: null, revisionUnitPrice: null, revisionExtensionDays: null, penaltyPerDayPercent: null, penaltyCapPercent: null, paymentDueDays: null };
 
 export interface SourceRef {
   documentId?: string;
@@ -107,6 +143,7 @@ export interface AgreementBaseline {
   }[];
   /** Source references for headline fields (contractValue, deadline, revisionLimit...). */
   sources?: Record<string, SourceRef>;
+  terms?: ContractTerms;
 }
 
 export interface RABItem {
@@ -138,6 +175,7 @@ export interface BaselineVersion {
   milestones: Milestone[];
   scopeItems: ScopeItem[];
   rabItems: RABItem[];
+  terms?: ContractTerms;
   source: 'EXTRACTION_CONFIRMED' | 'CHANGE_REQUEST';
   sourceDetail: string;
   changeRequestId?: string;
@@ -216,6 +254,13 @@ export interface ProjectEvent {
   };
 }
 
+export interface ChangeRequestStep {
+  at: string;
+  by: string;
+  action: 'CREATED' | 'EDITED' | 'SUBMITTED' | 'FINANCE_REVIEWED' | 'INTERNAL_APPROVED' | 'REJECTED' | 'CLIENT_APPROVED' | 'CLIENT_REJECTED';
+  note?: string;
+}
+
 export interface ChangeRequest {
   id: string;
   projectId: string;
@@ -231,11 +276,53 @@ export interface ChangeRequest {
   baseVersion: string;
   createdAt: string;
   createdBy: string;
+  origin: 'MANUAL' | 'AI_DRAFT';
+  /** Deterministic calculation lines behind the proposed numbers. */
+  calculation: string[];
+  relatedAlertIds: string[];
+  draftId?: string;
+  financeReview?: { by: string; at: string; note?: string };
+  internalDecision?: { by: string; at: string; approved: boolean; note?: string };
+  clientApproval?: { by: string; at: string; approved: boolean; reference: string; documentId?: string; note?: string };
   approvedAt?: string;
   rejectedAt?: string;
   decidedBy?: string;
   decisionNote?: string;
   resultingBaselineVersion?: string;
+  history: ChangeRequestStep[];
+}
+
+export type DraftType = 'CHANGE_REQUEST' | 'ADDENDUM' | 'MOU' | 'LOI' | 'PKS' | 'CLAUSE_REVISION' | 'ANOMALY_RESPONSE';
+
+export interface DraftCheck {
+  label: string;
+  ok: boolean;
+  detail?: string;
+  origin: 'DETERMINISTIC' | 'AI' | 'GUARDRAIL';
+}
+
+/** A document prepared by CLARA. Never sent or binding without a human. */
+export interface GeneratedDocument {
+  id: string;
+  projectId: string;
+  type: DraftType;
+  title: string;
+  content: string;
+  status: 'NEEDS_FIX' | 'READY_FOR_REVIEW' | 'APPROVED' | 'EXPORTED' | 'REJECTED';
+  source: 'AI' | 'TEMPLATE';
+  engine: string;
+  facts: string[];
+  references: string[];
+  validation: { checks: DraftCheck[]; checkedAt: string };
+  relatedAlertId?: string;
+  relatedChangeRequestId?: string;
+  instructions?: string;
+  createdAt: string;
+  createdBy: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  exportedAt?: string;
+  history: { at: string; by: string; action: string; note?: string }[];
 }
 
 export interface Alert {
@@ -250,10 +337,13 @@ export interface Alert {
   rupiahImpact: number;
   impactKind: ImpactKind;
   impactLabel: string;
-  status: 'NEW' | 'ACKNOWLEDGED' | 'RESOLVED';
+  status: 'NEW' | 'ACKNOWLEDGED' | 'RESOLVED' | 'SUPERSEDED';
+  basis: FindingBasis;
+  sourceDocumentId?: string;
+  aiExplanation?: { text: string; engine: string; at: string };
   evidence: EvidenceItem[];
   recommendedAction: string;
-  actionTab?: 'finance' | 'monitoring' | 'change-requests' | 'baseline';
+  actionTab?: 'finance' | 'monitoring' | 'change-requests' | 'baseline' | 'documents';
   baselineVersion: string;
   fingerprint: string;
   createdAt: string;
@@ -303,15 +393,59 @@ export interface ProjectMetrics {
   computedAt: string;
 }
 
+export type DocumentKind = 'CONTRACT' | 'RAB' | 'INVOICE' | 'ADDENDUM' | 'CLIENT_APPROVAL' | 'SUPPORTING';
+export type DocumentStatus = 'UPLOADED' | 'PROCESSING' | 'ANALYZED' | 'NEEDS_REVIEW' | 'APPROVED' | 'REJECTED' | 'FAILED';
+
+export interface DocumentFinding {
+  id: string;
+  title: string;
+  detail: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  basis: FindingBasis;
+  origin: 'AI' | 'GUARDRAIL' | 'ENGINE';
+  source?: SourceRef;
+}
+
+export interface InvoiceAnalysis {
+  invoiceNumber: string | null;
+  issueDate: string | null;
+  total: number | null;
+  milestoneReference: string | null;
+  revisionsCharged: number | null;
+  lineItems: { description: string; quantity: number | null; unit: string | null; unitPrice: number | null; amount: number | null; source?: SourceRef }[];
+  /** Milestone matched deterministically by the engine. */
+  matchedMilestoneId?: string;
+  recordedInvoiceId?: string;
+}
+
+export interface DocumentAnalysis {
+  analyzedAt: string;
+  engine: string;
+  detectedType: string;
+  confidence: number | null;
+  summary: string;
+  findings: DocumentFinding[];
+  warnings: string[];
+  invoice?: InvoiceAnalysis;
+  contract?: { contractValue: number | null; deadline: string | null; revisionLimit: number | null; contractNumber: string | null };
+  approval?: { approved: boolean | null; approver: string | null; date: string | null; reference: string | null };
+  sources?: Record<string, SourceRef>;
+  pages?: number | null;
+}
+
 export interface ProjectDocument {
   id: string;
-  kind: 'CONTRACT' | 'RAB';
+  kind: DocumentKind;
   fileName: string;
   mimeType: string;
   size: number;
   uploadedAt: string;
   uploadedBy: string;
   isSample: boolean;
+  status: DocumentStatus;
+  statusAt?: string;
+  error?: { code: string; message: string };
+  analysis?: DocumentAnalysis;
 }
 
 export interface CandidateMilestone {
@@ -362,6 +496,7 @@ export interface ExtractionCandidate {
   rab: { items: CandidateRabItem[]; total: number | null; sourceFile?: string; warnings: string[] };
   /** Field-level sources, keyed by field name (contractValue, deadline, revisionLimit, startDate...). */
   sources: Record<string, SourceRef>;
+  terms: ContractTerms;
   risks: CandidateRisk[];
   warnings: string[];
   editedFields: string[];
@@ -397,6 +532,7 @@ export interface Project {
   payments: PaymentItem[];
   events: ProjectEvent[];
   changeRequests: ChangeRequest[];
+  drafts: GeneratedDocument[];
   alerts: Alert[];
   reconciliation: ReconciliationCheck[];
   metrics: ProjectMetrics;
