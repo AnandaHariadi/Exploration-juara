@@ -119,7 +119,7 @@ export default function LegalAiPage() {
                     {t.answer.citations.length === 0 ? (
                       <p className="mt-1 text-xs text-amber-700">Tidak ada rujukan terverifikasi dari basis pengetahuan. Verifikasi jawaban dengan dokumen asli.</p>
                     ) : (
-                      <ul className="mt-1 space-y-1">{t.answer.citations.map((c) => <li key={c.id} className="text-sm text-zinc-700">• <strong>{c.title}</strong> <span className="text-xs text-zinc-500">({c.source})</span></li>)}</ul>
+                      <ul className="mt-1 space-y-1">{t.answer.citations.map((c) => <li key={c.id} className="text-sm text-zinc-700">• <strong>{c.title}</strong> <span className={`text-xs ${/model knowledge/i.test(c.source) ? 'text-amber-700' : 'text-zinc-500'}`}>({/model knowledge/i.test(c.source) ? 'pengetahuan model — belum diverifikasi dari basis hukum' : c.source})</span></li>)}</ul>
                     )}
                   </div>
                 </div>
