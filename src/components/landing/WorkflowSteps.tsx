@@ -55,10 +55,10 @@ const partners: PartnerItem[] = [
   },
   {
     id: 2,
-    name: "Technopark UPNVJT",
-    category: "Pusat Inkubasi Bisnis",
-    logo: "/images/partners/partner_2.svg",
-    alt: "Logo Pusat Inkubasi Bisnis",
+    name: "Kebun Sayur Surabaya (KSS)",
+    category: "Mitra Bisnis & Agribisnis",
+    logo: "/images/partners/logo_kss.png",
+    alt: "Logo Kebun Sayur Surabaya KSS",
   },
   {
     id: 3,
