@@ -220,7 +220,7 @@ function parseRabItems(raw: unknown): CandidateRabItem[] {
 
 const nullableInt = (body: Record<string, unknown>, key: string, label: string, max: number) => {
   const raw = body[key];
-  if (raw === null || raw === '') return null;
+  if (raw === null || raw === '' || raw === undefined) return null;
   return int(body, key, { min: 0, max, label });
 };
 
