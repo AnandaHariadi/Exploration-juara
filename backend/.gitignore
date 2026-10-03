@@ -1,3 +1,4 @@
 node_modules
 .env
-clara-google-cloud-vision.jsondist
+clara-google-cloud-vision.json
+dist
