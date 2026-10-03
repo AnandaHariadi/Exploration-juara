@@ -23,27 +23,37 @@
 
 ## Tahap 1 — Tetapkan alur frontend dan kebutuhan data
 
-- [ ] Petakan alur pengguna demo: masuk/pilih pengguna → lihat tugas sesuai peran → buka proyek → lakukan tindakan → lihat perubahan ringkasan.
-- [ ] Petakan alur proyek baru: isi informasi → unggah berkas atau pilih data contoh → tinjau hasil → koreksi → setujui acuan proyek.
-- [ ] Definisikan state kosong, memuat, gagal, berhasil, perlu ditinjau, dan selesai untuk setiap alur.
-- [ ] Tetapkan arti dan rumus nilai kontrak, rencana biaya, biaya aktual, siap ditagih, sudah ditagih, sudah dibayar, dan belum ditagih.
-- [ ] Tetapkan kontrak data frontend–API untuk pengguna demo, proyek, dokumen, acuan proyek dan versinya, milestone, event, biaya, invoice, pembayaran, permintaan perubahan, serta peringatan.
-- [ ] Pisahkan akses data dari komponen agar halaman dapat beralih dari localStorage ke API tanpa mengulang desain.
+- [x] Petakan alur pengguna demo: masuk/pilih pengguna → lihat tugas sesuai peran → buka proyek → lakukan tindakan → lihat perubahan ringkasan.
+- [x] Petakan alur proyek baru: isi informasi → unggah berkas atau pilih data contoh → tinjau hasil → koreksi → setujui acuan proyek.
+- [x] Definisikan state kosong, memuat, gagal, berhasil, perlu ditinjau, dan selesai untuk setiap alur.
+- [x] Tetapkan arti dan rumus nilai kontrak, rencana biaya, biaya aktual, siap ditagih, sudah ditagih, sudah dibayar, dan belum ditagih.
+- [x] Tetapkan kontrak data frontend–API untuk pengguna demo, proyek, dokumen, acuan proyek dan versinya, milestone, event, biaya, invoice, pembayaran, permintaan perubahan, serta peringatan.
+- [x] Pisahkan akses data dari komponen agar halaman dapat beralih dari localStorage ke API tanpa mengulang desain.
 
-**Selesai jika:** alur, istilah, aturan angka, dan respons tiap tindakan telah disepakati dan dapat dipakai sebagai acuan implementasi.
+Rincian Tahap 1 ada di [Alur Pengguna dan Kontrak Data Frontend](frontend-flow-contract.md). Urutan bisnis mengikuti PRD; diagram user flow menjadi rujukan perpindahan layar. Halaman kini memakai kontrak akses data async dan hook bersama; penyimpanan lokal berada di adapter yang dapat diganti saat API Tahap 2 tersedia.
+
+**Selesai jika:** alur, istilah, aturan angka, dan respons tiap tindakan dipakai sebagai acuan implementasi, lalu komponen tidak lagi mengakses localStorage secara langsung.
 
 ## Tahap 2 — Pengguna demo dan SQLite
 
 SQLite adalah penyimpanan lokal untuk demo dan pengujian. Browser mengaksesnya melalui API/server Next.js, bukan langsung ke file database. Pilihan database produksi diputuskan terpisah.
 
-- [ ] Buat skema dan migrasi SQLite untuk pengguna demo serta data minimum yang diperlukan alur utama.
-- [ ] Seed pengguna demo: Budi (pengelola proyek), Siti (keuangan), Hendra (pimpinan), dan Admin. Seed proyek contoh harus konsisten secara angka dan status.
-- [ ] Buat alur memilih/masuk sebagai pengguna demo dan simpan sesi aktif di server. Jelaskan bahwa ini mode demo, bukan login produksi.
-- [ ] Putuskan apakah peran hanya mengubah tampilan atau juga membatasi tindakan demo; UI dan API harus berperilaku sama.
-- [ ] Buat API baca/tulis untuk proyek, milestone/event, biaya, invoice/pembayaran, permintaan perubahan, dan peringatan yang diperlukan frontend.
-- [ ] Pindahkan sumber data utama dari localStorage ke SQLite melalui API. Refresh halaman dan browser baru harus membaca data yang sama.
-- [ ] Sediakan reset data demo yang disengaja, dengan konfirmasi dan hasil seed yang dapat diulang.
-- [ ] Uji perpindahan pengguna demo, perubahan data, refresh, dan reset.
+- [x] Buat skema dan migrasi SQLite untuk pengguna demo serta data minimum yang diperlukan alur utama.
+- [x] Seed pengguna demo: Budi (pengelola proyek), Siti (keuangan), Hendra (pimpinan), dan Admin. Seed proyek contoh harus konsisten secara angka dan status.
+- [x] Buat alur memilih/masuk sebagai pengguna demo dan simpan sesi aktif di server. Jelaskan bahwa ini mode demo, bukan login produksi.
+- [x] Terapkan peran demo sebagai konteks tampilan dan pencatatan pelaku tindakan, tanpa RBAC penuh sesuai PRD; UI dan API harus berperilaku sama.
+- [x] Buat API baca/tulis untuk proyek, milestone/event, biaya, invoice/pembayaran, permintaan perubahan, dan peringatan yang diperlukan frontend.
+- [x] Pindahkan sumber data utama dari localStorage ke SQLite melalui API. Refresh halaman dan browser baru harus membaca data yang sama.
+- [x] Sediakan reset data demo yang disengaja, dengan konfirmasi dan hasil seed yang dapat diulang.
+- [x] Uji perpindahan pengguna demo, perubahan data, refresh, dan reset.
+
+Rincian implementasi Tahap 2:
+- **Migrasi SQLite**: Berkas migrasi resmi di [`001_initial_schema.sql`](file:///D:/Exploration-juara/frontend/data/migrations/001_initial_schema.sql) dijalankan otomatis melalui runner tabel `schema_migrations`.
+- **Seed Konsisten**: Proyek contoh `PRJ-101` (PT Astra Sahabat Logistik) konsisten secara finansial (Kontrak Rp 120M, RAB Rp 75M, Actual Cost Rp 64M, MLS-01 Lunas Rp 30M, MLS-02 Belum Ditagih Rp 42M, MLS-03 Pending Rp 48M).
+- **Alur Billing & Payment**: Form event milestone wajib memilih `milestoneId`, API invoice menolak milestone yang belum selesai (409) dan mencegah tagihan ganda (409), endpoint pencatatan pembayaran di [`/api/projects/[id]/payments`](file:///D:/Exploration-juara/frontend/src/app/api/projects/%5Bid%5D/payments/route.ts) memvalidasi nominal, memperbarui `paidValue`, dan mencegah pembayaran ganda (409).
+- **Idempotensi Change Request**: Persetujuan CR berulang ditolak dengan 409 sehingga nilai kontrak dan acuan proyek tidak bertambah ganda.
+- **Error Handling & State UI**: [`dataClient.ts`](file:///D:/Exploration-juara/frontend/src/services/dataClient.ts) melempar error terstruktur tanpa menelan kegagalan; seluruh tombol aksi di UI memiliki state `busy`/`disabled` serta toast alert visual.
+- **Verifikasi Teruji**: Seluruh 22 skenario pengujian di [`test-task2.mjs`](file:///D:/Exploration-juara/frontend/scripts/test-task2.mjs) berhasil lulus 100% (`PASS: 22 / FAIL: 0`).
 
 **Selesai jika:** pengguna demo dan perubahan utama tersimpan di SQLite serta terbaca kembali lewat API.
 
@@ -61,7 +71,7 @@ SQLite adalah penyimpanan lokal untuk demo dan pengujian. Browser mengaksesnya m
 - [ ] Form punya input file nyata, validasi format/ukuran, dan pilihan data contoh yang diberi label jelas.
 - [ ] Hasil pemrosesan ditampilkan sebagai usulan untuk ditinjau; sumber, nilai kontrak, anggaran, ruang lingkup, dan jadwal pembayaran dapat diperiksa.
 - [ ] Hanya data yang benar-benar ditinjau dan disetujui pengguna yang menjadi acuan proyek aktif.
-- [ ] Bila pemrosesan dokumen belum tersedia, gunakan penjelasan mode demo yang jujur.
+- [x] Bila pemrosesan dokumen belum tersedia, gunakan penjelasan mode demo yang jujur.
 
 ### 3.3 Pemantauan dan keuangan
 
@@ -70,7 +80,7 @@ SQLite adalah penyimpanan lokal untuk demo dan pengujian. Browser mengaksesnya m
 - [ ] Tagihan hanya dapat dibuat saat syarat tahap pekerjaan terpenuhi; status terkirim, lunas, dan terlambat mempunyai alur yang jelas.
 - [ ] Permintaan perubahan mempunyai status, pihak yang menyetujui, dan riwayat perubahan nilai, ruang lingkup, serta tenggat.
 - [ ] Bukti pendukung menunjukkan sumber yang dapat diperiksa dan tindakan lanjutan yang sesuai.
-- [ ] Pencarian klausul hanya mengklaim jawaban dari kontrak terpilih bila sumbernya benar-benar tersedia.
+- [x] Pencarian klausul hanya mengklaim jawaban dari kontrak terpilih bila sumbernya benar-benar tersedia.
 
 ### 3.4 Keterbacaan dan akses
 
@@ -79,6 +89,10 @@ SQLite adalah penyimpanan lokal untuk demo dan pengujian. Browser mengaksesnya m
 - [ ] Perbaiki kontras, jarak antar elemen, ukuran area klik, dan tampilan tabel/form di layar kecil.
 - [ ] Hubungkan label dengan input, tampilkan kesalahan dekat field, dan berikan pesan setelah tindakan berhasil.
 - [ ] Dialog dan panel bukti dapat digunakan dengan keyboard, mengelola fokus, dan mudah ditutup.
+
+Catatan implementasi Tahap 3 (3 Oktober 2026): kerangka aplikasi dan dashboard dibuat ulang dengan susunan sidebar, kartu ringkasan, daftar proyek, peringatan, dan tahap siap ditagih. Warna merah/oranye/zinc dan font mengikuti landing page. Form proyek baru memakai pilihan data contoh atau isian manual; berkas hanya divalidasi di browser dan **belum diproses atau disimpan**. Halaman pencarian kini membaca data kesepakatan tersimpan tanpa membuat kutipan kontrak palsu. Label utama pada proyek, pemantauan, keuangan, dan perubahan memakai bahasa Indonesia. Build dan cek HTTP baca berhasil. Checklist interaksi tetap kosong karena verifikasi visual serta uji alur lewat browser belum terlaksana; koneksi browser pengujian gagal pada sesi ini.
+
+Yang masih perlu diselesaikan sebelum Tahap 3 dinyatakan tuntas: pemrosesan berkas sungguhan dan peninjauan hasilnya bila fitur itu memang dibangun; status peringatan "sedang ditangani" yang tersimpan terpisah dari "sudah dibaca"; pengiriman tagihan nyata dan status jatuh tempo di data tersimpan; rujukan bukti ke dokumen yang bisa dibuka; serta uji alur ponsel/desktop langsung di browser. Selama masih mode demo, antarmuka menyebut sumber dan batasannya secara jelas.
 
 **Selesai jika:** pengguna demo dapat menuntaskan alur utama di ponsel maupun desktop dan memahami setiap angka serta tindakan.
 
