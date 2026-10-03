@@ -88,33 +88,37 @@ export function HeroSection() {
         />
       </div>
       {/* Clara Executive Ribbon (Left Flank) with 3D Parallax */}
-      <div
-        className="absolute top-0 -left-28 sm:-left-36 md:-left-44 lg:-left-40 xl:-left-28 2xl:-left-12 w-64 sm:w-80 md:w-96 lg:w-[420px] xl:w-[480px] h-auto pointer-events-none select-none z-0 opacity-80 sm:opacity-85 lg:opacity-90 transition-transform duration-100 ease-out will-change-transform"
-        style={{ transform: `translateY(${leftRibbonY}px)` }}
-      >
-        <Image
-          src="/images/shapes/hero_ribbon_monument_left.svg"
-          alt="Clara Ribbon Left"
-          width={650}
-          height={1000}
-          className="w-full h-auto object-contain"
-          priority
-        />
+      <div className="hero-ribbon-enter-left absolute top-0 -left-28 sm:-left-36 md:-left-44 lg:-left-40 xl:-left-28 2xl:-left-12 z-0 w-64 sm:w-80 md:w-96 lg:w-[420px] xl:w-[480px] pointer-events-none select-none">
+        <div
+          className="w-full opacity-80 sm:opacity-85 lg:opacity-90 transition-transform duration-100 ease-out will-change-transform"
+          style={{ transform: `translateY(${leftRibbonY}px)` }}
+        >
+          <Image
+            src="/images/shapes/hero_ribbon_monument_left.svg"
+            alt=""
+            width={650}
+            height={1000}
+            className="w-full h-auto object-contain"
+            priority
+          />
+        </div>
       </div>
 
       {/* Clara Executive Ribbon (Right Flank) with 3D Parallax */}
-      <div
-        className="absolute top-0 -right-28 sm:-right-36 md:-right-44 lg:-right-40 xl:-right-28 2xl:-right-12 w-64 sm:w-80 md:w-96 lg:w-[420px] xl:w-[480px] h-auto pointer-events-none select-none z-0 opacity-80 sm:opacity-85 lg:opacity-90 transition-transform duration-100 ease-out will-change-transform"
-        style={{ transform: `translateY(${rightRibbonY}px)` }}
-      >
-        <Image
-          src="/images/shapes/hero_ribbon_monument_right.svg"
-          alt="Clara Ribbon Right"
-          width={650}
-          height={1000}
-          className="w-full h-auto object-contain"
-          priority
-        />
+      <div className="hero-ribbon-enter-right absolute top-0 -right-28 sm:-right-36 md:-right-44 lg:-right-40 xl:-right-28 2xl:-right-12 z-0 w-64 sm:w-80 md:w-96 lg:w-[420px] xl:w-[480px] pointer-events-none select-none">
+        <div
+          className="w-full opacity-80 sm:opacity-85 lg:opacity-90 transition-transform duration-100 ease-out will-change-transform"
+          style={{ transform: `translateY(${rightRibbonY}px)` }}
+        >
+          <Image
+            src="/images/shapes/hero_ribbon_monument_right.svg"
+            alt=""
+            width={650}
+            height={1000}
+            className="w-full h-auto object-contain"
+            priority
+          />
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -124,7 +128,7 @@ export function HeroSection() {
           {/* Massive Commanding CLARA Wordmark (Group 5 Asset) with Dynamic Horizon Wave Arc */}
           <div className="relative my-6 sm:my-8 flex flex-col items-center justify-center select-none group px-2 sm:px-6">
             {/* The Group 5 CLARA Official Wordmark (Enlarged + Rich Drop Shadow + Subtle Dynamic Wave Transform) */}
-            <div className="relative w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl flex items-center justify-center filter drop-shadow-[0_12px_35px_rgba(220,38,38,0.22)] group-hover:scale-105 transition-transform duration-500">
+            <div className="relative w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl flex items-center justify-center hero-brand-enter filter drop-shadow-[0_12px_35px_rgba(220,38,38,0.22)] group-hover:scale-105 transition-transform duration-500">
               <Image
                 src="/images/clara_wordmark_group5.png"
                 alt="CLARA Brandmark Typography"
@@ -136,7 +140,7 @@ export function HeroSection() {
             </div>
 
             {/* Sleek Dynamic Lekukan Horizon Arc with Matching Red-Orange Glow */}
-            <div className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mt-3 sm:mt-4 px-4 pointer-events-none">
+            <div className="hero-arc-enter w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mt-3 sm:mt-4 px-4 pointer-events-none">
               <svg viewBox="0 0 600 40" fill="none" className="w-full h-auto">
                 <path
                   d="M 20 32 Q 300 6 580 32"
@@ -158,17 +162,17 @@ export function HeroSection() {
           </div>
 
           {/* Sub-headline - Guaranteed Single Line (No Spillover / Tidak Nyisa) */}
-          <h1 className="text-sm sm:text-base md:text-xl lg:text-2xl font-heading font-semibold text-zinc-800 tracking-tight whitespace-nowrap mb-5 max-w-2xl mx-auto">
+          <h1 className="hero-headline-enter text-sm sm:text-base md:text-xl lg:text-2xl font-heading font-semibold text-zinc-800 tracking-tight whitespace-nowrap mb-5 max-w-2xl mx-auto">
             Ubah Klausul Kontrak Menjadi Kecerdasan Bisnis yang Hidup
           </h1>
 
           {/* Elevating Clara Company Copy - Corporate, Visionary & Prestigious */}
-          <p className="text-sm sm:text-base md:text-lg text-zinc-600 leading-relaxed font-normal mb-8 max-w-3xl mx-auto">
+          <p className="hero-desc-enter text-sm sm:text-base md:text-lg text-zinc-600 leading-relaxed font-normal mb-8 max-w-3xl mx-auto">
             Platform Contract Intelligence &amp; Value Assurance terpadu untuk menyelaraskan klausul kesepakatan, alokasi anggaran, progres eksekusi lapangan, hingga kepastian penagihan secara deterministik demi melindungi profitabilitas proyek Anda.
           </p>
 
           {/* Action Buttons - Centered */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="hero-cta-enter flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/dashboard"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-red-600 hover:bg-red-700 text-white font-heading font-semibold text-sm sm:text-base px-8 py-3.5 sm:py-4 rounded-xl shadow-sm hover:shadow transition-all"
