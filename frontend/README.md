@@ -10,18 +10,12 @@ CLARA mengubah kontrak dari dokumen pasif menjadi baseline bisnis terstruktur ya
 
 ## 🚀 Cara Menjalankan
 
-Dari direktori root maupun dari direktori `frontend`:
+Lihat [README di root repo](../README.md) untuk prosedur lengkap (aplikasi bisnis + layanan AI), variabel lingkungan, pengujian, dan skrip demo pitch.
 
 ```bash
-# Jalankan dari dalam folder frontend
-cd frontend
-npm run dev
-
-# Atau langsung dari root Exploration-juara
-npm run dev
+npm install
+npm run dev          # http://localhost:3000
 ```
-
-Buka [http://localhost:3000](http://localhost:3000) di browser.
 
 ---
 
