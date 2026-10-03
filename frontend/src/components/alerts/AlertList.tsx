@@ -6,27 +6,22 @@ import type { Alert } from '@/types';
 import { SeverityBadge } from '@/components/shared/Badge';
 import { EmptyState, InsightBadge, btn } from '@/components/shared/ui';
 import { impactText } from './EvidenceDrawer';
+import { alertStatusLabels, alertTypeLabels, BasisBadge } from '@/components/shared/labels';
 
-export const alertTypeLabels: Record<Alert['type'], string> = {
-  BILLING_VARIANCE: 'Tagihan',
-  BUDGET_VARIANCE: 'Biaya',
-  SCOPE_VARIANCE: 'Ruang lingkup',
-  REVISION_LIMIT: 'Batas revisi',
-  DEADLINE_RISK: 'Tenggat',
-};
-export const alertStatusLabels: Record<Alert['status'], string> = { NEW: 'Baru', ACKNOWLEDGED: 'Sudah dibaca · belum selesai', RESOLVED: 'Selesai' };
+export { alertTypeLabels, alertStatusLabels } from '@/components/shared/labels';
 
 export function AlertList({ alerts, onOpen, showProject = false, emptyText }: { alerts: Alert[]; onOpen: (alert: Alert) => void; showProject?: boolean; emptyText: string }) {
   if (alerts.length === 0) return <EmptyState title={emptyText} />;
   return (
     <div className="space-y-3">
       {alerts.map((item) => (
-        <article key={item.id} className={`rounded-2xl border bg-white p-5 shadow-sm ${item.status === 'RESOLVED' ? 'border-zinc-200 opacity-75' : 'border-zinc-200'}`}>
+        <article key={item.id} className={`rounded-2xl border bg-white p-5 shadow-sm ${item.status === 'RESOLVED' || item.status === 'SUPERSEDED' ? 'border-zinc-200 opacity-75' : 'border-zinc-200'}`}>
           <div className="flex flex-wrap items-center gap-2">
             <InsightBadge status={item.classification} />
+            <BasisBadge basis={item.basis} />
             <SeverityBadge severity={item.severity} />
             <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs text-zinc-700">{alertTypeLabels[item.type]}</span>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${item.status === 'NEW' ? 'bg-red-50 text-red-700' : item.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700' : 'bg-zinc-100 text-zinc-700'}`}>{alertStatusLabels[item.status]}</span>
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${item.status === 'NEW' ? 'bg-red-50 text-red-700' : item.status === 'RESOLVED' || item.status === 'SUPERSEDED' ? 'bg-emerald-50 text-emerald-700' : 'bg-zinc-100 text-zinc-700'}`}>{alertStatusLabels[item.status]}</span>
           </div>
           <h3 className="mt-3 text-base font-semibold text-zinc-950">{item.title}</h3>
           <p className="mt-1 text-sm leading-relaxed text-zinc-600">{item.description}</p>
