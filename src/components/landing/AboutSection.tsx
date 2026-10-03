@@ -33,14 +33,14 @@ export function AboutSection() {
           <div className="flex items-center gap-3 mb-4">
             <span className="w-8 h-[2px] bg-red-600 inline-block" />
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
-              Tentang Clara
+              Tentang CLARA
             </span>
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-bold text-zinc-950 tracking-tight mb-4">
-            Standar Baru Tata Kelola Finansial Talenta Mandiri
+            Mengubah Dokumen Kontrak Menjadi Intelijen Bisnis Aktif
           </h2>
           <p className="text-base sm:text-lg text-zinc-600 leading-relaxed font-normal">
-            Platform otomasi penagihan dan rekonsiliasi pembayaran yang dirancang oleh Clara untuk menjembatani profesional lepas dengan standar transaksi komersial resmi di Indonesia.
+            Bisnis berbasis proyek kerap menghadapi data yang terfragmentasi: kontrak di legal, RAB di spreadsheet, progress di PM tracker, dan invoice di finance. CLARA menyatukan semuanya dalam satu baseline rekonsiliasi deterministik.
           </p>
         </div>
 
@@ -50,17 +50,17 @@ export function AboutSection() {
           <div className="lg:col-span-6 flex flex-col justify-between h-full space-y-6">
             <div className="space-y-5 text-zinc-700 leading-relaxed text-sm sm:text-base font-normal">
               <p>
-                Banyak talenta digital dan profesional independen memiliki kapabilitas keahlian tinggi, namun menghadapi hambatan operasional: ketiadaan departemen keuangan khusus, pencatatan piutang yang tercecer, hingga proses penagihan manual yang memakan waktu dan berisiko terlambat.
+                Kontrak adalah apa yang disepakati. RAB adalah apa yang direncanakan. Progress dan actual cost adalah apa yang terjadi di lapangan. Invoice adalah apa yang sudah direalisasikan menjadi uang. Masalahnya, data tersebut jarang dibandingkan secara konsisten sehingga memicu klausul terlewat, milestone unbilled, hingga budget overrun.
               </p>
               <p>
-                <strong>Clara</strong> hadir sebagai infrastruktur finansial mandiri yang mengotomasi seluruh siklus penagihan. Melalui konversi instruksi percakapan menjadi dokumen resmi, penataan uang muka (DP), dan verifikasi pembayaran seketika, setiap penyelesaian proyek terkonversi menjadi arus kas yang tepat waktu dan akuntabel.
+                <strong>CLARA</strong> hadir sebagai platform Contract Intelligence yang bekerja pada dua fase: <strong>Before Signing</strong> untuk menganalisis risiko, kewajiban, dan financial exposure kontrak; serta <strong>After Signing</strong> untuk memantau apakah pengerjaan, scope, biaya, dan penagihan tetap selaras dengan baseline resmi yang disepakati.
               </p>
               <div className="pt-1">
                 <Link
                   href="/dashboard"
                   className="inline-flex items-center gap-2 text-sm font-heading font-bold text-red-600 hover:text-red-700 transition-colors"
                 >
-                  <span>Eksplorasi Fitur Dashboard</span>
+                  <span>Eksplorasi Dashboard Rekonsiliasi</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -70,17 +70,17 @@ export function AboutSection() {
             <div className="relative h-60 sm:h-64 lg:h-72 w-full rounded-3xl overflow-hidden border border-zinc-200/90 shadow-sm mt-4">
               <Image
                 src="/images/corporate_fintech_ops.jpg"
-                alt="Operasional Finansial Clara"
+                alt="Operasional Finansial CLARA"
                 fill
                 className="object-cover object-center"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-5 right-5 text-white">
                 <p className="text-xs font-medium text-zinc-200">
-                  Pusat Operasional &amp; Rekonsiliasi Finansial
+                  Pusat Rekonsiliasi Multidimensi
                 </p>
                 <p className="text-sm font-heading font-bold text-white">
-                  Otomasi Pembayaran Berstandar Perbankan Nasional
+                  Determinisme Bisnis Berbasis 4 Sumber Kebenaran
                 </p>
               </div>
             </div>
@@ -96,10 +96,10 @@ export function AboutSection() {
                 </div>
                 <div>
                   <h4 className="font-heading font-bold text-base text-zinc-950 mb-1.5">
-                    Ekstraksi Dokumen Cerdas
+                    Ekstraksi Kontrak &amp; Baseline V1
                   </h4>
                   <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                    Menerjemahkan instruksi kerja ke dalam format penagihan komersial dengan rincian biaya, tenggat waktu, dan identitas proyek yang presisi.
+                    Mengonversi dokumen PKS, SOW, dan RAB menjadi format data terstruktur. Pengesahan mandiri (Human-in-the-loop) mengunci Baseline V1 sebagai standar kebenaran proyek.
                   </p>
                 </div>
               </div>
@@ -113,10 +113,10 @@ export function AboutSection() {
                 </div>
                 <div>
                   <h4 className="font-heading font-bold text-base text-zinc-950 mb-1.5">
-                    Tata Kelola Termin &amp; Uang Muka
+                    Engine Rekonsiliasi Multidimensi
                   </h4>
                   <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                    Mengamankan arus kas pengerjaan melalui pembagian tahapan termin yang mengikat secara profesional sebelum dokumen akhir diserahkan.
+                    Mendeteksi Scope Variance (fitur di luar SOW), Budget Variance (biaya melampaui RAB), dan Billing Gap (pekerjaan selesai namun belum ditagihkan) secara real-time.
                   </p>
                 </div>
               </div>
@@ -130,10 +130,10 @@ export function AboutSection() {
                 </div>
                 <div>
                   <h4 className="font-heading font-bold text-base text-zinc-950 mb-1.5">
-                    Verifikasi Transaksi Terpadu
+                    Change Request &amp; Baseline Versioning
                   </h4>
                   <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                    Integrasi payment gateway resmi memvalidasi mutasi pelunasan seketika tanpa perlu verifikasi tanda terima manual secara konvensional.
+                    Setiap penambahan atau adendum resmi yang disetujui otomatis memperbarui baseline proyek menjadi V2, V3 dengan riwayat audit trail yang akuntabel.
                   </p>
                 </div>
               </div>
@@ -156,13 +156,13 @@ export function AboutSection() {
             {/* Visi Perusahaan (5 cols) */}
             <div className="lg:col-span-5 bg-zinc-50/80 rounded-3xl p-8 sm:p-10 border border-zinc-200/80">
               <span className="text-xs font-bold text-red-600 uppercase tracking-widest font-mono block mb-3">
-                VISI PERUSAHAAN
+                VISI PRODUK
               </span>
               <h3 className="text-2xl font-heading font-bold text-zinc-950 tracking-tight mb-4">
-                Kemandirian Ekonomi Talenta Unggul
+                Living Business Intelligence for Every Contract
               </h3>
               <p className="text-sm sm:text-base text-zinc-700 leading-relaxed font-normal">
-                Menjadi ekosistem teknologi finansial terdepan di Indonesia yang mentransformasi profesional mandiri dan kreator independen dengan infrastruktur penagihan setara korporasi global.
+                Menjadi standar platform contract intelligence yang mentransformasi kontrak dari arsip pasif menjadi instrumen navigasi bisnis yang melindungi margin, kepatuhan, dan realisasi pendapatan bisnis berbasis proyek di Indonesia.
               </p>
             </div>
 
@@ -173,7 +173,7 @@ export function AboutSection() {
                   MISI STRATEGIS CLARA
                 </span>
                 <h3 className="text-2xl font-heading font-bold text-zinc-950 tracking-tight">
-                  Tiga Komitmen Pembangunan Berkelanjutan
+                  Tiga Komitmen Perlindungan Nilai Bisnis
                 </h3>
               </div>
 
@@ -184,10 +184,10 @@ export function AboutSection() {
                   </span>
                   <div>
                     <h4 className="font-heading font-bold text-sm sm:text-base text-zinc-950 mb-1">
-                      Otomasi Tanpa Hambatan Birokrasi
+                      Eliminasi Blindspot Before Signing
                     </h4>
                     <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                      Menghadirkan pemrosesan bahasa alami untuk mengonversi kesepakatan kerja menjadi dokumen faktur legal secara instan dan akuntabel.
+                      Menganalisis klausul kritis, potensi liabilitas finansial, dan risiko kepatuhan sebelum kontrak disepakati agar bisnis terhindar dari sengketa.
                     </p>
                   </div>
                 </div>
@@ -198,10 +198,10 @@ export function AboutSection() {
                   </span>
                   <div>
                     <h4 className="font-heading font-bold text-sm sm:text-base text-zinc-950 mb-1">
-                      Perlindungan Arus Kas &amp; Likuiditas
+                      Rekonsiliasi Deterministik 4 Pilar
                     </h4>
                     <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                      Menegakkan tata kelola uang muka (DP) dan termin milestone terverifikasi guna menjamin kepastian pembayaran tepat waktu bagi setiap hasil karya.
+                      Menyelaraskan kesepakatan kontrak, rencana anggaran RAB, progres pengerjaan tim, dan penagihan invoice secara real-time dan terukur.
                     </p>
                   </div>
                 </div>
@@ -212,10 +212,10 @@ export function AboutSection() {
                   </span>
                   <div>
                     <h4 className="font-heading font-bold text-sm sm:text-base text-zinc-950 mb-1">
-                      Kemitraan Komersial Terpercaya
+                      Proteksi Revenue &amp; Realisasi Kontrak
                     </h4>
                     <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                      Menyediakan standar dokumentasi penagihan formal yang mematuhi protokol audit pembukuan mitra berskala kampus, UKM, hingga perseroan resmi.
+                      Mencegah pekerjaan tak tertagih (unbilled milestones) dan mendeteksi scope creep tanpa addendum resmi yang merugikan margin bisnis.
                     </p>
                   </div>
                 </div>
@@ -228,10 +228,10 @@ export function AboutSection() {
         <div className="pt-16 mt-16 border-t border-zinc-200">
           <div className="mb-8">
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono block mb-2">
-              PUSAT RISET &amp; OPERASIONAL
+              PUSAT RISET &amp; REKAYASA TEKNOLOGI
             </span>
             <h3 className="text-2xl sm:text-3xl font-heading font-bold text-zinc-950 tracking-tight">
-              Basis Operasional &amp; Rekayasa Teknologi Clara
+              Basis Rekayasa Contract Intelligence CLARA
             </h3>
           </div>
 
@@ -246,7 +246,7 @@ export function AboutSection() {
                 <div className="relative w-full h-full flex items-center justify-center">
                   <Image
                     src="/images/yupiens_office_transparent.png"
-                    alt="Visual Gedung Kantor Clara"
+                    alt="Visual Gedung Kantor CLARA"
                     fill
                     className="object-contain object-center filter drop-shadow-2xl scale-110 sm:scale-120"
                     priority
@@ -258,16 +258,25 @@ export function AboutSection() {
               <div className="lg:col-span-7 space-y-6">
                 <div>
                   <span className="text-xs sm:text-sm font-mono font-bold text-red-600 uppercase tracking-widest block mb-2">
-                    LOKASI OPERASIONAL RESMI
+                    LOKASI RISET &amp; OPERASIONAL RESMI
                   </span>
-                  <div className="my-4 sm:my-5">
-                    <Image
-                      src="/images/clara_logo.svg"
-                      alt="Clara"
-                      width={400}
-                      height={120}
-                      className="h-16 sm:h-20 md:h-24 w-auto object-contain filter drop-shadow-xs"
-                    />
+                  <div className="flex items-center gap-3 my-4 sm:my-5">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 via-red-700 to-zinc-950 p-[1.5px] shadow-sm shrink-0">
+                      <div className="w-full h-full rounded-[10px] bg-zinc-950 flex items-center justify-center">
+                        <span className="font-heading font-black text-white text-lg tracking-tight">C</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-heading font-extrabold text-2xl tracking-tight text-zinc-950 leading-none">
+                          CLARA
+                        </span>
+                        <span className="w-2 h-2 rounded-full bg-red-600" />
+                      </div>
+                      <span className="text-[10px] font-mono font-bold tracking-widest text-zinc-400 uppercase mt-1">
+                        Contract Intelligence
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-start gap-3.5 text-base sm:text-lg text-zinc-800 leading-relaxed font-normal">
                     <MapPin className="w-6 h-6 text-red-600 shrink-0 mt-1" />
@@ -289,13 +298,13 @@ export function AboutSection() {
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2 text-xs font-bold font-mono text-zinc-500 uppercase tracking-wider">
                       <Clock className="w-4 h-4 text-zinc-700" />
-                      <span>Jam Layanan Operasional</span>
+                      <span>Layanan Rekonsiliasi &amp; Dukungan</span>
                     </div>
                     <p className="text-xs sm:text-sm font-semibold text-zinc-900">
                       Senin – Jumat: 08.30 – 17.30 WIB
                     </p>
                     <p className="text-xs text-zinc-500 leading-relaxed">
-                      Sistem otomasi gateway beroperasi aktif 24/7
+                      Engine ekstraksi AI &amp; baseline monitoring aktif 24/7
                     </p>
                   </div>
 
@@ -313,8 +322,8 @@ export function AboutSection() {
                   </div>
 
                   <div className="sm:col-span-2 pt-3 border-t border-zinc-100 flex flex-wrap items-center justify-between gap-4 text-xs text-zinc-500 font-mono">
-                    <span>Pusat Inovasi Teknologi Finansial</span>
-                    <span>Dukungan Operasional Talenta Mandiri Indonesia</span>
+                    <span>Platform Contract Intelligence &amp; Project Monitoring</span>
+                    <span>Optimasi Nilai Bisnis Melalui Data &amp; Wawasan Terintegrasi</span>
                   </div>
                 </div>
               </div>

@@ -1,4 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 220" fill="none">
+# Generate full Clara SOPHIE-style logo with organic cut-paper edge displacement
+import os
+
+svg_code = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 220" fill="none">
   <defs>
     <!-- Papercut / Screenprint edge texture filter matching the SOPHIE typography -->
     <filter id="cutPaperEdge" x="-5%" y="-5%" width="110%" height="110%">
@@ -94,3 +97,13 @@
              Z" />
   </g>
 </svg>
+'''
+
+with open(r'c:\Users\ASUS TUF\OneDrive\Dokumen\Exploration\public\images\clara_logo.svg', 'w', encoding='utf-8') as f:
+    f.write(svg_code)
+
+white_svg = svg_code.replace('#D31D24', '#FFFFFF')
+with open(r'c:\Users\ASUS TUF\OneDrive\Dokumen\Exploration\public\images\clara_logo_white.svg', 'w', encoding='utf-8') as f:
+    f.write(white_svg)
+
+print("Both red and white CLARA logos updated successfully!")

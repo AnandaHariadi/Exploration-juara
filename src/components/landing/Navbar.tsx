@@ -7,9 +7,9 @@ import { useState, useEffect } from "react";
 
 const navItems = [
   { id: "beranda", label: "Beranda", href: "#beranda" },
-  { id: "tentang", label: "Tentang Clara", href: "#tentang" },
-  { id: "kategori", label: "Kategori Klien", href: "#kategori" },
-  { id: "alur", label: "Alur Penagihan", href: "#alur" },
+  { id: "tentang", label: "Tentang CLARA", href: "#tentang" },
+  { id: "kategori", label: "Target Industri", href: "#kategori" },
+  { id: "alur", label: "Alur Rekonsiliasi", href: "#alur" },
   { id: "faq", label: "FAQ", href: "#faq" },
 ];
 
@@ -39,21 +39,24 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-6">
-        {/* Brand Identity - Clara Elegant Logo */}
+        {/* Brand Identity - CLARA Enterprise Logo */}
         <div className="flex items-center shrink-0">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-600 via-rose-600 to-red-600 flex items-center justify-center text-white font-heading font-black text-lg shadow-sm group-hover:scale-105 transition-transform shrink-0">
-              C
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 via-red-700 to-zinc-950 p-[1.5px] shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all shrink-0">
+              <div className="w-full h-full rounded-[10px] bg-zinc-950 flex items-center justify-center">
+                <span className="font-heading font-black text-white text-lg tracking-tight">C</span>
+              </div>
             </div>
-            <div className="flex items-center">
-              <Image
-                src="/images/clara_logo.svg"
-                alt="Clara"
-                width={120}
-                height={36}
-                className="h-7 sm:h-8 w-auto object-contain"
-                priority
-              />
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="font-heading font-extrabold text-xl tracking-tight text-zinc-950 leading-none group-hover:text-red-600 transition-colors">
+                  CLARA
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
+              </div>
+              <span className="text-[9px] font-mono font-bold tracking-widest text-zinc-400 uppercase mt-1">
+                Contract Intelligence
+              </span>
             </div>
           </Link>
         </div>

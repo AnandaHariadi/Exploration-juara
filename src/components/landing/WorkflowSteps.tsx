@@ -11,23 +11,23 @@ interface Step {
 const steps: Step[] = [
   {
     number: "01",
-    title: "Ketik Instruksi Bebas",
-    description: "Tuliskan kebutuhan penagihan seperti berkirim pesan harian. Cukup sebutkan nama mitra kerja, nominal kontrak proyek, dan pembagian skema uang muka (DP)."
+    title: "Ingestion Kontrak & RAB",
+    description: "Unggah dokumen perjanjian kerja (PKS, SPK, SOW) dan file RAB proyek. AI mengekstrak deliverables, milestone penagihan, serta pos anggaran menjadi data terstruktur."
   },
   {
     number: "02",
-    title: "Tinjau & Konfirmasi Draft",
-    description: "Sistem menyajikan draft rincian termin otomatis secara transparan. Anda memegang kendali penuh 100% untuk memeriksa dan menyetujui sebelum dokumen resmi diterbitkan."
+    title: "Konfirmasi & Kunci Baseline V1",
+    description: "Project Owner dan Finance memeriksa hasil ekstraksi (Human-in-the-loop). Setelah diverifikasi, sistem mengunci Baseline V1 resmi sebagai acuan tunggal proyek."
   },
   {
     number: "03",
-    title: "Kirim Tautan Pembayaran",
-    description: "Klien menerima tautan tagihan resmi berisi opsi pembayaran QRIS dan Virtual Account nasional tanpa perlu registrasi akun atau mengunduh aplikasi apa pun."
+    title: "Rekonsiliasi Multidimensi",
+    description: "Engine deterministik mencocokkan progress lapangan dan biaya aktual terhadap baseline untuk mendeteksi Scope Variance, Budget Overrun, dan Unbilled Milestones."
   },
   {
     number: "04",
-    title: "Pencairan Kas Otomatis",
-    description: "Saat pembayaran diselesaikan klien, webhook gateway langsung memverifikasi transaksi secara seketika dan kas tercatat otomatis tanpa verifikasi struk manual."
+    title: "Change Request & Realisasi Nilai",
+    description: "Setiap addendum atau penambahan scope resmi disahkan menjadi Baseline V2/V3 dengan audit trail lengkap, memastikan seluruh nilai kontrak terealisasi utuh."
   }
 ];
 
@@ -107,14 +107,14 @@ export function WorkflowSteps() {
           <div className="flex items-center gap-3 mb-4">
             <span className="w-8 h-[2px] bg-red-600 inline-block" />
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
-              Alur Penagihan Terpadu
+              Alur Kerja Contract Intelligence
             </span>
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-bold text-zinc-950 tracking-tight mb-4">
-            Empat Tahapan Alur Kerja Otomatis
+            Empat Tahapan Rekonsiliasi Terpadu
           </h2>
           <p className="text-base sm:text-lg text-zinc-600 leading-relaxed font-normal">
-            Seluruh proses penagihan dirancang intuitif, akuntabel, dan terotomasi penuh dari instruksi awal hingga rekonsiliasi kas masuk.
+            Dari ekstraksi dokumen hingga pencocokan deterministik, seluruh alur dirancang akuntabel dengan konfirmasi manusia di setiap titik keputusan penting.
           </p>
         </div>
 

@@ -15,27 +15,27 @@ interface OfficeSlide {
 const officeSlides: OfficeSlide[] = [
   {
     src: "/images/yupiens_hq.jpg",
-    badge: "GEDUNG PUSAT CLARA",
-    caption: "Pusat Inovasi Finansial",
-    title: "Infrastruktur Transaksi Mandiri Terintegrasi",
+    badge: "CONTRACT INTELLIGENCE PLATFORM",
+    caption: "Living Business Intelligence",
+    title: "Mengubah Kontrak Pasif Menjadi Baseline Bisnis Aktif",
   },
   {
     src: "/images/yupiens_office_lobby.jpg",
-    badge: "EXECUTIVE INNOVATION ATRIUM",
-    caption: "Pusat Kolaborasi Strategis",
-    title: "Ruang Kemitraan Komersial & Inkubasi Produk Digital",
+    badge: "BEFORE & AFTER SIGNING",
+    caption: "Mitigasi Risiko & Eksekusi",
+    title: "Pahami Risiko Sebelum Tanda Tangan, Pantau Realisasi Setelahnya",
   },
   {
     src: "/images/corporate_fintech_ops.jpg",
-    badge: "FINTECH OPERATIONS & GATEWAY",
-    caption: "Divisi Operasional & Gateway",
-    title: "Pemantauan Arus Kas & Rekonsiliasi Real-Time 24/7",
+    badge: "MULTIDIMENSIONAL RECONCILIATION",
+    caption: "Sinkronisasi 4 Pilar Bisnis",
+    title: "Rekonsiliasi Presisi: Kontrak, RAB, Progress Lapangan & Invoice",
   },
   {
     src: "/images/corporate_tech_rd.jpg",
-    badge: "TECHNOPARK R&D LAB",
-    caption: "Laboratorium Riset & Rekayasa",
-    title: "Pusat Rekayasa Algoritma & Keamanan Finansial Nasional",
+    badge: "VALUE REALIZATION ENGINE",
+    caption: "Audit Trail & Versioning",
+    title: "Eliminasi Scope Creep, Budget Overrun, dan Unbilled Milestones",
   },
 ];
 
@@ -94,31 +94,51 @@ export function HeroSection() {
           <div className="inline-flex items-center justify-center gap-3 mb-6">
             <span className="w-8 h-[2px] bg-red-600 inline-block" />
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
-              Ekosistem Teknologi Finansial Clara
+              CLARA — CONTRACT INTELLIGENCE FOR BUSINESS VALUE
             </span>
             <span className="w-8 h-[2px] bg-red-600 inline-block" />
           </div>
 
-          {/* Grand Commanding Clara Wordmark (Main Brand Focal Point) */}
-          <div className="flex justify-center items-center my-6 sm:my-8">
-            <Image
-              src="/images/clara_logo.svg"
-              alt="Clara"
-              width={900}
-              height={270}
-              priority
-              className="h-28 sm:h-36 md:h-44 lg:h-52 xl:h-60 w-auto object-contain filter drop-shadow-xs"
-            />
+          {/* Grand Commanding Modern Enterprise Brand Lockup */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 my-8 sm:my-10 group">
+            {/* Architectural Precision Prism Emblem */}
+            <div className="relative w-18 h-18 sm:w-22 sm:h-22 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-red-500 via-red-600 to-zinc-950 p-[2px] shadow-[0_12px_30px_-8px_rgba(220,38,38,0.4)] group-hover:scale-105 transition-transform duration-500">
+              <div className="w-full h-full rounded-[14px] sm:rounded-[22px] bg-gradient-to-b from-zinc-900 to-zinc-950 flex items-center justify-center relative overflow-hidden border border-white/10">
+                {/* Specular sheen */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.08] to-red-500/20 pointer-events-none" />
+                <span className="font-heading font-black text-4xl sm:text-5xl text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-100 to-red-400">
+                  C
+                </span>
+                {/* Precision corner badge */}
+                <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
+              </div>
+            </div>
+
+            {/* Razor-sharp Typography with Micro-tagline */}
+            <div className="text-center sm:text-left">
+              <div className="flex items-center justify-center sm:justify-start gap-2.5">
+                <span className="font-heading font-extrabold text-5xl sm:text-6xl md:text-7xl tracking-tighter text-zinc-950">
+                  CLARA
+                </span>
+                <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-red-600 shadow-[0_0_14px_rgba(220,38,38,0.7)] mt-3 sm:mt-4" />
+              </div>
+              <div className="flex items-center justify-center sm:justify-start gap-2 mt-1">
+                <span className="h-[1.5px] w-6 bg-red-600 inline-block" />
+                <span className="text-xs sm:text-sm font-mono font-bold tracking-[0.28em] text-zinc-500 uppercase">
+                  Contract Intelligence
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Sub-headline - Guaranteed Single Line (No Spillover / Tidak Nyisa) */}
           <h1 className="text-sm sm:text-base md:text-xl lg:text-2xl font-heading font-semibold text-zinc-800 tracking-tight whitespace-nowrap mb-5 max-w-5xl mx-auto">
-            Infrastruktur Finansial &amp; Otomasi Penagihan Profesional
+            Turn Contracts into Living Business Intelligence
           </h1>
 
           {/* Elevating Clara Company Copy - Corporate, Visionary & Prestigious */}
           <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-3xl mx-auto">
-            Sebagai pelopor otomasi administrasi digital, Clara membangun infrastruktur cerdas terintegrasi yang mentransformasi efisiensi transaksi, melindungi arus kas operasional, dan menghadirkan keunggulan bisnis berdaya saing tinggi bagi para profesional mandiri di seluruh Indonesia.
+            Kontrak adalah apa yang disepakati. RAB adalah apa yang direncanakan. Progress dan actual cost adalah apa yang terjadi. Invoice adalah apa yang direalisasikan menjadi uang. CLARA mencocokkan semuanya secara deterministik untuk melindungi margin dan mengoptimalkan nilai bisnis proyek Anda.
           </p>
 
           {/* Action Buttons - Centered */}
@@ -127,14 +147,14 @@ export function HeroSection() {
               href="/dashboard"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-red-600 hover:bg-red-700 text-white font-heading font-semibold text-sm sm:text-base px-8 py-3.5 sm:py-4 rounded-xl shadow-sm hover:shadow transition-all"
             >
-              <span>Buka Dashboard Sekarang</span>
+              <span>Mulai Rekonsiliasi Kontrak</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
             <a
               href="#alur"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-zinc-700 hover:text-zinc-950 font-heading font-semibold text-sm sm:text-base px-7 py-3.5 sm:py-4 rounded-xl border border-zinc-300 hover:border-zinc-400 bg-white hover:bg-zinc-50 transition-all"
             >
-              <span>Pelajari Alur Penagihan</span>
+              <span>Pelajari Alur Rekonsiliasi</span>
               <ChevronRight className="w-4 h-4 text-zinc-400" />
             </a>
           </div>
@@ -238,10 +258,10 @@ export function HeroSection() {
             </div>
             <div>
               <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
-                Arsitektur Teknologi Cerdas
+                Ekstraksi Kontrak &amp; RAB Cerdas
               </h4>
               <p className="text-xs text-zinc-600 leading-relaxed">
-                Pemrosesan data transaksi presisi berbasis kecerdasan buatan untuk mereduksi beban administrasi manual.
+                AI mengekstrak klausul, milestone, deliverable, dan pos anggaran dari PKS, SOW, dan RAB menjadi data terstruktur.
               </p>
             </div>
           </div>
@@ -252,10 +272,10 @@ export function HeroSection() {
             </div>
             <div>
               <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
-                Tata Kelola Arus Kas Terpadu
+                Rekonsiliasi Multidimensi
               </h4>
               <p className="text-xs text-zinc-600 leading-relaxed">
-                Sistem termin bertahap yang mengamankan kepastian arus kas dan melindungi nilai setiap hasil pekerjaan.
+                Deteksi otomatis Scope Variance, Budget Variance, dan Billing Gap secara deterministik untuk mencegah kebocoran margin.
               </p>
             </div>
           </div>
@@ -266,10 +286,10 @@ export function HeroSection() {
             </div>
             <div>
               <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
-                Kepatuhan &amp; Kontrol Penuh
+                Konfirmasi Baseline &amp; Versioning
               </h4>
               <p className="text-xs text-zinc-600 leading-relaxed">
-                Standar tata kelola komersial resmi dengan kendali verifikasi mandiri 100% sebelum dokumen diterbitkan.
+                Prinsip Human Confirms the Truth mengunci Baseline V1, dengan dukungan Change Request resmi untuk Baseline V2 dan V3.
               </p>
             </div>
           </div>
