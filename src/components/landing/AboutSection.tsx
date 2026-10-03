@@ -260,11 +260,10 @@ export function AboutSection() {
                   <span className="text-xs sm:text-sm font-mono font-bold text-red-600 uppercase tracking-widest block mb-2">
                     LOKASI RISET &amp; OPERASIONAL RESMI
                   </span>
-                  <div className="flex items-center gap-2.5 sm:gap-3 my-4 sm:my-6">
-                    <span className="font-heading font-black text-4xl sm:text-5xl lg:text-6xl tracking-tighter bg-gradient-to-r from-orange-500 via-orange-600 to-red-600 bg-clip-text text-transparent leading-none">
+                  <div className="my-4 sm:my-6">
+                    <span className="font-heading font-black text-4xl sm:text-5xl lg:text-6xl tracking-tighter bg-gradient-to-r from-orange-500 via-orange-600 to-red-600 bg-clip-text text-transparent leading-none inline-block">
                       CLARA
                     </span>
-                    <span className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-red-600 self-end mb-1.5 sm:mb-2 shadow-[0_0_10px_rgba(220,38,38,0.6)]" />
                   </div>
                   <div className="flex items-start gap-3.5 text-base sm:text-lg text-zinc-800 leading-relaxed font-normal">
                     <MapPin className="w-6 h-6 text-red-600 shrink-0 mt-1" />
