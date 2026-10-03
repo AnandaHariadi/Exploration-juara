@@ -76,7 +76,6 @@ test('pitch: reset → V1 → monitoring → alerts with evidence → CR → V2 
 
   // UAT completed, no invoice
   await tab(page, 'Pemantauan');
-  await page.getByLabel('Tahap', { exact: true }).selectOption({ label: /UAT/i.test('UAT diterima') ? undefined : undefined } as never).catch(() => undefined);
   const uatOption = page.locator('#mon-milestone option', { hasText: /UAT/ });
   await page.locator('#mon-milestone').selectOption(await uatOption.getAttribute('value') as string);
   await page.getByRole('button', { name: 'Tandai selesai' }).click();
