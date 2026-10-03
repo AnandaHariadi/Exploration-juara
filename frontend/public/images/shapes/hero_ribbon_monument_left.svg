@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 1000" fill="none">
+  <defs>
+    <!-- Ambient Radiance -->
+    <radialGradient id="ambGlowL" cx="30%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#DC2626" stop-opacity="0.18" />
+      <stop offset="60%" stop-color="#EF4444" stop-opacity="0.06" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Primary Front Ribbon Gradient (Ruby Luster) -->
+    <linearGradient id="frontRibbonL" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#F87171" />
+      <stop offset="20%" stop-color="#EF4444" />
+      <stop offset="55%" stop-color="#DC2626" />
+      <stop offset="85%" stop-color="#B91C1C" />
+      <stop offset="100%" stop-color="#7F1D1D" />
+    </linearGradient>
+
+    <!-- 3D Underbelly / Twist Fold (Deep Architectural Shadow) -->
+    <linearGradient id="underFoldL" x1="80%" y1="20%" x2="20%" y2="80%">
+      <stop offset="0%" stop-color="#991B1B" />
+      <stop offset="45%" stop-color="#7F1D1D" />
+      <stop offset="100%" stop-color="#450A0A" />
+    </linearGradient>
+
+    <!-- Translucent Companion Ribbon -->
+    <linearGradient id="echoRibbonL" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F87171" stop-opacity="0.4" />
+      <stop offset="40%" stop-color="#EF4444" stop-opacity="0.25" />
+      <stop offset="80%" stop-color="#DC2626" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#991B1B" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Luminous Crest Highlight -->
+    <linearGradient id="crestHighlightL" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9" />
+      <stop offset="30%" stop-color="#FECACA" stop-opacity="0.75" />
+      <stop offset="70%" stop-color="#F87171" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#DC2626" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Drop Shadows for Multi-Layer Depth -->
+    <filter id="monumentShadowL" x="-20%" y="-20%" width="150%" height="150%">
+      <feDropShadow dx="-8" dy="16" stdDeviation="20" flood-color="#7F1D1D" flood-opacity="0.28" />
+    </filter>
+    <filter id="softGlowL" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="35" />
+    </filter>
+  </defs>
+
+  <!-- Layer 0: Ambient Background Aura -->
+  <circle cx="280" cy="450" r="320" fill="url(#ambGlowL)" filter="url(#softGlowL)" />
+
+  <!-- Layer 1: Ethereal Translucent Companion Wing -->
+  <path d="M 40 80 
+           C 220 180, 420 340, 360 580 
+           C 310 780, 110 860, 140 960 
+           C 220 980, 420 860, 480 640 
+           C 540 400, 320 200, 120 40 Z" 
+        fill="url(#echoRibbonL)" />
+
+  <!-- Layer 2: 3D Underbelly Fold (Back Face of the Twist) -->
+  <path d="M 280 430 
+           C 360 510, 370 630, 270 730 
+           C 210 790, 120 830, 150 910 
+           C 180 920, 260 870, 330 780 
+           C 410 670, 415 540, 325 435 Z" 
+        fill="url(#underFoldL)" />
+
+  <!-- Layer 3: Grand 3D Primary Architectural Ribbon (Sculptural Sweep) -->
+  <path d="M 90 70 
+           C 240 180, 380 320, 320 500 
+           C 280 620, 170 690, 180 820 
+           C 190 920, 280 940, 340 910 
+           C 280 840, 240 760, 290 640 
+           C 360 480, 430 310, 200 80 
+           C 160 40, 110 50, 90 70 Z" 
+        fill="url(#frontRibbonL)" 
+        filter="url(#monumentShadowL)" />
+
+  <!-- Layer 4: Dynamic Specular Ridge Line (Reflective Chrome Highlight) -->
+  <path d="M 105 75 
+           C 245 185, 375 315, 320 495 
+           C 280 610, 175 680, 185 810 
+           C 192 880, 240 915, 290 915" 
+        stroke="url(#crestHighlightL)" 
+        stroke-width="4.5" 
+        stroke-linecap="round" />
+
+  <!-- Layer 5: Precision FinTech Flow Trails (Micro-Strata) -->
+  <path d="M 140 110 
+           C 270 210, 395 340, 355 500 
+           C 320 630, 210 700, 220 820 
+           C 225 870, 260 900, 300 900" 
+        stroke="#FFFFFF" 
+        stroke-opacity="0.35" 
+        stroke-width="1.8" 
+        stroke-dasharray="6 8" 
+        stroke-linecap="round" />
+
+  <path d="M 70 140 
+           C 180 230, 290 350, 255 490 
+           C 220 620, 130 680, 140 780" 
+        stroke="#FFFFFF" 
+        stroke-opacity="0.22" 
+        stroke-width="1.2" 
+        stroke-dasharray="3 5" />
+
+  <!-- Layer 6: Precision Orbital Financial Nodes -->
+  <circle cx="320" cy="500" r="4.5" fill="#FFFFFF" fill-opacity="0.8" />
+  <circle cx="320" cy="500" r="9" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="1.2" />
+  
+  <circle cx="180" cy="820" r="3.5" fill="#FFFFFF" fill-opacity="0.75" />
+  <circle cx="180" cy="820" r="7" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="1" />
+</svg>

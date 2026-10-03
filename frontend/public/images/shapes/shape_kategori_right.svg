@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 850" fill="none">
+  <defs>
+    <linearGradient id="kR_open_grad" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#EF4444" />
+      <stop offset="50%" stop-color="#DC2626" />
+      <stop offset="100%" stop-color="#991B1B" />
+    </linearGradient>
+    <filter id="kR_open_shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="6" dy="12" stdDeviation="15" flood-color="#7F1D1D" flood-opacity="0.22" />
+    </filter>
+  </defs>
+  <!-- Sweeping Open Wave -->
+  <path d="M 410 90 
+           C 290 200, 190 360, 260 530 
+           C 320 670, 410 730, 370 810 
+           C 310 820, 240 730, 200 610 
+           C 150 460, 220 260, 350 90 Z" 
+        fill="url(#kR_open_grad)" filter="url(#kR_open_shadow)" />
+  <path d="M 410 90 C 290 200, 190 360, 260 530 C 320 670, 410 730, 370 810" 
+        stroke="#FCA5A5" stroke-width="4.5" stroke-linecap="round" />
+  <path d="M 370 130 C 270 230, 205 375, 260 515 C 300 620, 365 675, 340 755" 
+        stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="1.5" stroke-dasharray="4 6" />
+</svg>

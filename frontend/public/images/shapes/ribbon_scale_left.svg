@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 850" fill="none">
+  <defs>
+    <linearGradient id="baseGrad" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#EF4444" stop-opacity="0.95" />
+      <stop offset="35%" stop-color="#DC2626" stop-opacity="0.98" />
+      <stop offset="70%" stop-color="#B91C1C" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#7F1D1D" stop-opacity="0.9" />
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCA5A5" stop-opacity="0.9" />
+      <stop offset="50%" stop-color="#F87171" stop-opacity="0.75" />
+      <stop offset="100%" stop-color="#DC2626" stop-opacity="0.15" />
+    </linearGradient>
+    <linearGradient id="transGrad" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#DC2626" stop-opacity="0.22" />
+      <stop offset="60%" stop-color="#991B1B" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#7F1D1D" stop-opacity="0.0" />
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="150%" height="150%">
+      <feDropShadow dx="-6" dy="12" stdDeviation="16" flood-color="#991B1B" flood-opacity="0.2" />
+    </filter>
+  </defs>
+
+  <!-- 1. Ambient Under-wing -->
+  <path d="M 40 100 C 190 180, 290 360, 230 550 C 170 720, 40 780, 90 850 C 170 850, 270 760, 310 620 C 350 460, 250 250, 100 100 Z" fill="url(#transGrad)" />
+
+  <!-- 2. Main Solid 3D Flow Ribbon -->
+  <path d="M 60 130 C 195 210, 265 370, 210 540 C 160 685, 60 745, 95 820 C 150 820, 230 750, 265 635 C 300 505, 225 310, 120 130 Z" fill="url(#baseGrad)" filter="url(#softShadow)" />
+
+  <!-- 3. Luminous Edge Spine -->
+  <path d="M 60 130 C 195 210, 265 370, 210 540 C 160 685, 60 745, 95 820" stroke="url(#glowGrad)" stroke-width="5" stroke-linecap="round" />
+
+  <!-- 4. Micro-dot Financial Stream Accent -->
+  <path d="M 95 160 C 205 235, 245 370, 205 520 C 170 635, 90 690, 115 775" stroke="#FFFFFF" stroke-opacity="0.28" stroke-width="1.5" stroke-dasharray="4 6" stroke-linecap="round" />
+</svg>
