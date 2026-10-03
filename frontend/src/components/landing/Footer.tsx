@@ -9,7 +9,14 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 pb-12 border-b border-zinc-800 text-xs text-zinc-400">
           {/* Col 1: Brand & Narration */}
           <div className="lg:col-span-4 space-y-4">
-            <div>
+            <div className="flex items-center gap-2.5">
+              <Image
+                src="/images/clara_icon.png"
+                alt="CLARA Brandmark"
+                width={32}
+                height={32}
+                className="w-7 h-7 object-contain"
+              />
               <span className="font-heading font-black text-2xl tracking-tighter text-white inline-block">
                 CLARA
               </span>

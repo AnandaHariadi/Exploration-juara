@@ -39,9 +39,17 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-6">
-        {/* Brand Identity - CLARA Gradient Wordmark */}
+        {/* Brand Identity - CLARA Icon + Gradient Wordmark */}
         <div className="flex items-center shrink-0">
-          <Link href="/" className="flex items-center group">
+          <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group">
+            <Image
+              src="/images/clara_icon.png"
+              alt="CLARA Brandmark"
+              width={40}
+              height={40}
+              className="w-8 h-8 sm:w-9 sm:h-9 object-contain group-hover:scale-105 transition-transform drop-shadow-xs"
+              priority
+            />
             <span className="font-heading font-black text-2xl sm:text-3xl tracking-tighter bg-gradient-to-r from-orange-500 via-orange-600 to-red-600 bg-clip-text text-transparent group-hover:opacity-90 transition-opacity">
               CLARA
             </span>
