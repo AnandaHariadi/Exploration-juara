@@ -65,8 +65,7 @@ export function DraftCard({ draft, run, projectName, defaultOpen = false }: { dr
         <div className="mt-3 space-y-3">
           {editing ? (
             <>
-              <label htmlFor={`draft-${draft.id}`} className="sr-only">Isi draf</label>
-              <textarea id={`draft-${draft.id}`} rows={16} value={content} onChange={(e) => setContent(e.target.value)} className={`${inputClass} font-mono text-xs`} />
+              <textarea id={`draft-${draft.id}`} aria-label="Isi draf" rows={16} value={content} onChange={(e) => setContent(e.target.value)} className={`${inputClass} font-mono text-xs`} />
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={() => { setEditing(false); setContent(draft.content); }} className={btn.ghost}>Batal</button>
                 <button type="button" disabled={busy !== null} onClick={() => void act('save', () => dataClient.reviseDocument(draft.projectId, draft.id, { content }), 'Draf disimpan dan divalidasi ulang.', () => setEditing(false))} className={btn.primary}>{busy === 'save' ? 'Memvalidasi…' : 'Simpan & validasi ulang'}</button>
