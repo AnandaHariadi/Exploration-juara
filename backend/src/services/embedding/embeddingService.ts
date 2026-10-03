@@ -4,7 +4,7 @@
  * (768 dimensions, optimised for semantic similarity / retrieval tasks).
  */
 import { GoogleGenerativeAI, TaskType } from "@google/generative-ai";
-import { env } from "../../config/env";
+import { env, geminiRequestOptions } from "../../config/env";
 
 const genAI = new GoogleGenerativeAI(env.GOOGLE_AI_API_KEY);
 
@@ -20,7 +20,7 @@ export async function embedText(
   text: string,
   taskType: TaskType = TaskType.RETRIEVAL_DOCUMENT,
 ): Promise<number[]> {
-  const model = genAI.getGenerativeModel({ model: env.EMBEDDING_MODEL });
+  const model = genAI.getGenerativeModel({ model: env.EMBEDDING_MODEL }, geminiRequestOptions());
   const result = await model.embedContent({
     content: { parts: [{ text }], role: "user" },
     taskType,
