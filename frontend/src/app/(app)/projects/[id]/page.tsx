@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Activity, AlertTriangle, FileText, FolderGit2, GitPullRequest, Receipt } from 'lucide-react';
+import { Activity, AlertTriangle, Bot, FileText, FolderGit2, GitPullRequest, Receipt } from 'lucide-react';
 import type { Alert } from '@/types';
 import { useProject } from '@/hooks/useClaraData';
 import { formatRupiah, isOpenAlert } from '@/lib/utils';
@@ -17,12 +17,14 @@ import { BaselineTab } from '@/components/project/BaselineTab';
 import { MonitoringTab } from '@/components/project/MonitoringTab';
 import { FinanceTab } from '@/components/project/FinanceTab';
 import { ChangeRequestsTab } from '@/components/project/ChangeRequestsTab';
+import { DocumentsTab } from '@/components/project/DocumentsTab';
 
 const TABS = [
   { key: 'overview', label: 'Ringkasan', icon: FolderGit2 },
   { key: 'baseline', label: 'Acuan proyek', icon: FileText },
   { key: 'monitoring', label: 'Pemantauan', icon: Activity },
   { key: 'finance', label: 'Keuangan', icon: Receipt },
+  { key: 'documents', label: 'Dokumen & AI', icon: Bot },
   { key: 'change-requests', label: 'Perubahan', icon: GitPullRequest },
   { key: 'alerts', label: 'Peringatan', icon: AlertTriangle },
 ] as const;
@@ -103,7 +105,14 @@ function ProjectDetail() {
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const selected = activeTab === tab.key;
-              const badge = tab.key === 'alerts' ? openAlerts.length : tab.key === 'change-requests' ? project.changeRequests.filter((c) => c.status === 'PENDING').length : 0;
+              const badge =
+                tab.key === 'alerts'
+                  ? openAlerts.length
+                  : tab.key === 'change-requests'
+                    ? project.changeRequests.filter((c) => ['DRAFT', 'PENDING', 'FINANCE_REVIEWED', 'INTERNAL_APPROVED'].includes(c.status)).length
+                    : tab.key === 'documents'
+                      ? project.documents.filter((d) => d.status === 'PROCESSING' || d.status === 'NEEDS_REVIEW' || d.status === 'FAILED').length + project.drafts.filter((d) => d.status === 'READY_FOR_REVIEW' || d.status === 'NEEDS_FIX').length
+                      : 0;
               return (
                 <button key={tab.key} type="button" role="tab" aria-selected={selected} onClick={() => setTab(tab.key)} className={`flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 transition-colors ${selected ? 'border-red-600 bg-red-50/50 text-red-700' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-800'}`}>
                   <Icon className="h-4 w-4" />
@@ -119,6 +128,7 @@ function ProjectDetail() {
             {activeTab === 'baseline' && <BaselineTab project={project} />}
             {activeTab === 'monitoring' && <MonitoringTab project={project} run={run} onProposeChange={(title) => { setPrefillScope(title); setTab('change-requests'); }} />}
             {activeTab === 'finance' && <FinanceTab project={project} run={run} />}
+            {activeTab === 'documents' && <DocumentsTab project={project} run={run} onOpenAlert={setSelectedAlert} />}
             {activeTab === 'change-requests' && <ChangeRequestsTab project={project} run={run} prefillScope={prefillScope} onPrefillUsed={() => setPrefillScope(undefined)} />}
             {activeTab === 'alerts' && (
               <div className="space-y-4">
