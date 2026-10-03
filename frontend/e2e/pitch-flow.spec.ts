@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// The full pitch scenario, driven only through the UI. Rerunnable: it starts
-// with "Atur ulang data demo". UI_MODE=AI uses real AI analysis; otherwise the
-// labelled sample data path is used.
+// The full pitch story, driven only through the UI. Rerunnable: it starts with
+// "Atur ulang data demo". UI_MODE=AI expects automatic AI analysis (real key or
+// the Gemini stub); otherwise the labelled sample-data path is used.
 const MODE = process.env.UI_MODE === 'AI' ? 'AI' : 'SAMPLE';
 
 function watchErrors(page: Page) {
@@ -15,136 +15,155 @@ function watchErrors(page: Page) {
   return errors;
 }
 
-async function notice(page: Page, text: RegExp) {
-  await expect(page.getByRole('status').filter({ hasText: text }).first()).toBeVisible();
+const notice = (page: Page, text: RegExp) => expect(page.getByRole('status').filter({ hasText: text }).first()).toBeVisible();
+const tab = (page: Page, name: string) => page.getByRole('tab', { name: new RegExp(name) }).click();
+
+async function persona(page: Page, name: RegExp) {
+  await page.locator('header button[aria-haspopup="menu"]').click();
+  await page.getByRole('menuitem', { name }).click();
+  await expect(page.getByRole('menu')).toHaveCount(0);
 }
 
-async function tab(page: Page, name: string) {
-  await page.getByRole('tab', { name: new RegExp(name) }).click();
-}
-
-test('pitch: reset → V1 → monitoring → alerts with evidence → CR → V2 → persistence', async ({ page }) => {
+test('pitch: detect → explain → quantify → resolve → approve → monitor', async ({ page }) => {
+  test.setTimeout(300_000);
   const errors = watchErrors(page);
 
+  // Phase A — project start
   await page.goto('/dashboard');
   await page.getByRole('button', { name: 'Atur ulang data demo' }).first().click();
   await page.waitForURL('**/dashboard');
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-
-  // Persona: Budi
-  await page.getByRole('button', { name: /Budi|BS/ }).first().click();
-  await page.getByRole('menuitem', { name: /Budi Santoso/ }).click();
+  await persona(page, /Budi Santoso/);
   await expect(page.getByRole('heading', { name: 'Eksekusi proyek' })).toBeVisible();
+  await page.getByRole('link', { name: 'Proyek baru' }).click();
+  await page.getByLabel('Nama proyek').fill('Sistem Manajemen Armada');
+  await page.getByLabel('Nama klien').fill('PT Astra Sahabat Logistik');
+  await page.getByText('Gunakan berkas contoh (demo)').click();
+  await page.getByRole('button', { name: /Buat proyek/ }).click();
+  await expect(page.getByRole('heading', { name: 'Sistem Manajemen Armada' })).toBeVisible();
 
-  // Open the pitch project waiting for a baseline
-  await page.getByRole('link', { name: /Siapkan acuan/ }).first().click();
-  await expect(page.getByRole('heading', { name: 'Sistem Manajemen Armada & Logistik' })).toBeVisible();
-  await expect(page.getByText('Kontrak-PKS-ASL-2026-089.pdf')).toBeVisible();
-
-  // Analyse
-  if (MODE === 'AI') await page.getByRole('button', { name: /Analisis dengan AI/ }).click();
-  else await page.getByRole('button', { name: /Muat data contoh/ }).click();
-  await expect(page.getByRole('heading', { name: '3 · Tinjau dan koreksi' })).toBeVisible({ timeout: 180_000 });
-
-  // Review extracted values and evidence
+  if (MODE === 'AI') {
+    // No click: CLARA analyzes the uploaded contract automatically.
+    await expect(page.getByRole('heading', { name: '3 · Tinjau dan koreksi' })).toBeVisible({ timeout: 120_000 });
+    await expect(page.getByText('Hasil analisis AI — wajib ditinjau')).toBeVisible();
+  } else {
+    await expect(page.getByRole('button', { name: /Muat data contoh/ })).toBeEnabled({ timeout: 60_000 });
+    await page.getByRole('button', { name: /Muat data contoh/ }).click();
+    await expect(page.getByRole('heading', { name: '3 · Tinjau dan koreksi' })).toBeVisible();
+  }
   await expect(page.getByLabel('Nilai kontrak (Rp)')).toHaveValue('120000000');
   await expect(page.getByLabel('Tenggat')).toHaveValue('2026-11-30');
   await expect(page.getByLabel('Batas revisi termasuk nilai kontrak')).toHaveValue('3');
   await expect(page.locator('#ms-pct-0')).toHaveValue('25');
+  await expect(page.locator('#term-revisionUnitPrice')).toHaveValue('2000000');
   await expect(page.getByText(/Total Rp\s?75\.000\.000/)).toBeVisible();
   await expect(page.getByText(/4\.1 Sebesar 25% dari nilai kontrak/).first()).toBeVisible();
-  await expect(page.getByText(/Ditemukan di dokumen · hal\. 2/).first()).toBeVisible();
-
-  // Confirm baseline V1
   await page.getByRole('button', { name: /Setujui sebagai acuan V1/ }).click();
   await expect(page.getByText('Acuan V1', { exact: true }).first()).toBeVisible();
-  await expect(page.getByRole('tab', { name: /Ringkasan/ })).toBeVisible();
 
-  // Progress 60%
+  // Phase B — continuous monitoring
   await tab(page, 'Pemantauan');
   await page.getByLabel('Progres (%)').fill('60');
   await page.getByRole('button', { name: 'Simpan', exact: true }).click();
   await notice(page, /Progres diperbarui ke 60%/);
-
-  // Actual cost Rp64M
   await tab(page, 'Keuangan');
   await page.getByLabel('Jumlah (Rp)').fill('64000000');
   await page.getByLabel('Keterangan').fill('Biaya tim sampai UAT');
   await page.getByRole('button', { name: 'Catat biaya' }).click();
   await notice(page, /Biaya .* dicatat/);
-  await expect(page.getByText(/85,3% dari/)).toBeVisible();
-
-  // UAT completed, no invoice
   await tab(page, 'Pemantauan');
-  const uatOption = page.locator('#mon-milestone option', { hasText: /UAT/ });
-  await page.locator('#mon-milestone').selectOption(await uatOption.getAttribute('value') as string);
+  const uatValue = await page.locator('#mon-milestone option', { hasText: /UAT/ }).getAttribute('value');
+  await page.locator('#mon-milestone').selectOption(uatValue as string);
   await page.getByRole('button', { name: 'Tandai selesai' }).click();
   await notice(page, /ditandai selesai/);
 
-  // 5 revisions
+  // Phase C — scope / revision anomaly
   await page.getByLabel('Jumlah', { exact: true }).fill('5');
   await page.getByLabel('Keterangan', { exact: true }).fill('Revisi dashboard dispatcher');
   await page.getByRole('button', { name: 'Catat', exact: true }).click();
   await notice(page, /5 revisi dicatat/);
-
-  // Overview: reconciliation numbers
   await tab(page, 'Ringkasan');
   await expect(page.getByText(/85,3% anggaran terpakai/)).toBeVisible();
-  await expect(page.getByText('5 dari 3')).toBeVisible();
-  await expect(page.getByText('+2 di luar acuan')).toBeVisible();
   await expect(page.getByText(/Belum ditagih Rp\s?30\.000\.000/)).toBeVisible();
 
-  // Billing alert evidence
   await tab(page, 'Peringatan');
-  const billing = page.locator('article', { hasText: 'selesai, belum ditagih' });
-  await billing.getByRole('button', { name: 'Lihat bukti' }).click();
+  await page.locator('article', { hasText: 'selesai, belum ditagih' }).getByRole('button', { name: 'Lihat bukti' }).click();
   const drawer = page.getByRole('dialog');
   await expect(drawer.getByText(/4\.1 Sebesar 25% dari nilai kontrak dibayarkan setelah UAT diterima/)).toBeVisible();
   await expect(drawer.getByText('Tagihan untuk tahap ini tidak ditemukan')).toBeVisible();
-  await expect(drawer.getByText(/25% × Rp\s?120\.000\.000 = Rp\s?30\.000\.000/)).toBeVisible();
-  await expect(drawer.getByText('Selisih terverifikasi').first()).toBeVisible();
+  await expect(drawer.getByText('Perhitungan terverifikasi').first()).toBeVisible();
+  if (MODE === 'AI') {
+    await drawer.getByRole('button', { name: /Jelaskan dampak bisnis/ }).click();
+    await expect(drawer.getByText(/angka berasal dari perhitungan terverifikasi/)).toBeVisible();
+  }
   await drawer.getByRole('button', { name: 'Tutup rincian peringatan' }).click();
 
-  // Revision alert evidence
-  const revision = page.locator('article', { hasText: 'revisi di luar acuan V1' });
-  await revision.getByRole('button', { name: 'Lihat bukti' }).click();
+  // Phase D — AI remediation
+  await page.locator('article', { hasText: 'revisi di luar acuan V1' }).getByRole('button', { name: 'Lihat bukti' }).click();
   await expect(page.getByRole('dialog').getByText(/5 revisi aktual − 3 revisi termasuk = 2/)).toBeVisible();
-  await page.getByRole('dialog').getByRole('button', { name: 'Tutup rincian peringatan' }).click();
+  await expect(page.getByRole('dialog').getByText(/Rp\s?4\.000\.000/).first()).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: 'Buat permintaan perubahan (AI)' }).click();
+  await expect(page.getByText('Disiapkan CLARA').first()).toBeVisible({ timeout: 60_000 });
+  const card = page.locator('article', { hasText: 'Tambahan 2 putaran revisi' }).first();
+  await expect(card.getByText(/2 × Rp\s?2\.000\.000 per putaran/)).toBeVisible();
+  await card.getByRole('button', { name: 'Ajukan untuk persetujuan internal' }).click();
+  await notice(page, /diajukan ke keuangan/);
 
-  // Change request: +2 revisions, +Rp4M, +5 days
-  await tab(page, 'Perubahan');
-  await page.getByRole('button', { name: 'Isi otomatis' }).click();
-  await expect(page.getByLabel('Tambahan revisi')).toHaveValue('2');
-  await page.getByLabel('Tambahan nilai (Rp)').fill('4000000');
-  await page.getByLabel('Perpanjangan (hari)').fill('5');
-  await page.getByRole('button', { name: 'Ajukan', exact: true }).click();
-  await notice(page, /Permintaan perubahan diajukan/);
+  // Phase E — finance review
+  await persona(page, /Siti Rahma/);
+  await page.getByRole('link', { name: 'Dashboard' }).first().click();
+  await page.getByRole('link', { name: /Tinjau dampak keuangan CR\// }).click();
+  await page.getByRole('button', { name: 'Konfirmasi dampak & teruskan' }).click();
+  await notice(page, /Diteruskan ke pimpinan/);
+
+  // Phase F — decision
+  await persona(page, /Hendra Wijaya/);
+  await page.getByRole('link', { name: 'Dashboard' }).first().click();
+  await page.getByRole('link', { name: /Putuskan CR\// }).click();
+  await page.getByRole('button', { name: 'Setujui internal' }).click();
+  await notice(page, /disetujui internal/);
   await expect(page.getByText('Acuan V1', { exact: true }).first()).toBeVisible();
-  await page.getByRole('button', { name: 'Setujui perubahan' }).click();
-  await notice(page, /disetujui/);
 
-  // V2 active, V1 archived, revision alert recomputed
+  // Phase G — official change with client evidence
+  await persona(page, /Budi Santoso/);
+  await tab(page, 'Dokumen');
+  await page.getByRole('button', { name: /Surat persetujuan klien/ }).click();
+  await notice(page, /dilampirkan/);
+  await expect(page.locator('article', { hasText: 'Persetujuan-Klien-CR-ASL.pdf' }).getByText(/^(Dianalisis|Analisis gagal)$/).first()).toBeVisible({ timeout: 60_000 });
+  await tab(page, 'Perubahan');
+  const approvalOption = await page.locator('select[id^="cd-"] option', { hasText: 'Persetujuan-Klien-CR-ASL.pdf' }).getAttribute('value');
+  await page.locator('select[id^="cd-"]').selectOption(approvalOption as string);
+  await page.locator('input[id^="cref-"]').fill('Surat 045/ASL-PROC/X/2026');
+  await page.getByRole('button', { name: 'Catat persetujuan klien & resmikan' }).click();
+  await notice(page, /resmi/);
+
+  // Phase H — close the loop
   await expect(page.getByText('Acuan V2', { exact: true }).first()).toBeVisible();
   await tab(page, 'Acuan proyek');
-  await expect(page.getByText('Diarsipkan')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Acuan aktif V2' })).toBeVisible();
+  await expect(page.getByText('Diarsipkan')).toBeVisible();
   await expect(page.getByText(/Nilai kontrak: .*Rp\s?120\.000\.000.*→.*Rp\s?124\.000\.000/)).toBeVisible();
   await expect(page.getByText(/Tenggat: .*30 Nov 2026.*→.*5 Des 2026/)).toBeVisible();
-  await tab(page, 'Ringkasan');
-  await expect(page.getByText('5 dari 5')).toBeVisible();
   await tab(page, 'Peringatan');
   await expect(page.locator('article', { hasText: 'revisi di luar acuan' })).toHaveCount(0);
-  await expect(page.locator('article', { hasText: 'selesai, belum ditagih' })).toHaveCount(1);
+  await page.getByLabel('Tampilkan yang selesai').check();
+  await expect(page.locator('article', { hasText: 'revisi di luar acuan' }).getByText('Dijelaskan perubahan resmi')).toBeVisible();
 
-  // Persistence across reload
+  await tab(page, 'Dokumen');
+  const draftCard = page.locator('article').filter({ hasText: 'Validasi draf' }).filter({ hasText: 'Tambahan 2 putaran revisi' }).first();
+  await draftCard.getByRole('button', { name: 'Setujui draf' }).click();
+  await notice(page, /siap dikirim/);
+  const download = page.waitForEvent('download');
+  await draftCard.getByRole('button', { name: 'Ekspor PDF untuk dikirim' }).click();
+  expect((await download).suggestedFilename()).toMatch(/\.(pdf|md)$/);
+  await expect(draftCard.getByText('Diekspor untuk dikirim')).toBeVisible();
+
   await page.reload();
   await expect(page.getByText('Acuan V2', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText(/Rp\s?124\.000\.000/).first()).toBeVisible();
-
-  // Dashboard reflects the same numbers
   await page.getByRole('link', { name: 'Dashboard' }).first().click();
-  await expect(page.getByText('Belum ditagih', { exact: true })).toBeVisible();
   await expect(page.locator('div', { hasText: /^Belum ditagihRp 30 Jt/ }).first()).toBeVisible();
+  await page.getByRole('link', { name: 'Pusat AI' }).first().click();
+  await expect(page.getByRole('heading', { name: 'Pusat AI' })).toBeVisible();
+  await expect(page.getByText('Persetujuan-Klien-CR-ASL.pdf').first()).toBeVisible();
 
   expect(errors, errors.join('\n')).toEqual([]);
 });
