@@ -46,53 +46,115 @@ export default function FinancePage() {
     setMounted(true);
   }, []);
 
-  const handleExportCsv = () => {
-    const rows: string[][] = [];
-    rows.push(['REKAPITULASI LAPORAN KEUANGAN PORTOFOLIO - CLARA CONTRACT INTELLIGENCE']);
-    rows.push([`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}`]);
-    rows.push([]);
-    rows.push(['RINGKASAN METRIK KEUANGAN']);
-    rows.push(['Total Nilai Kontrak', `Rp ${totalContract.toLocaleString('id-ID')}`]);
-    rows.push(['Total Siap Ditagih', `Rp ${totalBillable.toLocaleString('id-ID')}`]);
-    rows.push(['Total Tagihan Tercatat', `Rp ${totalBilled.toLocaleString('id-ID')}`]);
-    rows.push(['Total Belum Ditagih (Unbilled)', `Rp ${totalUnbilled.toLocaleString('id-ID')}`]);
-    rows.push(['Total Pembayaran Lunas', `Rp ${totalPaid.toLocaleString('id-ID')}`]);
-    rows.push([]);
-    rows.push(['RINCIAN KEUANGAN PROYEK']);
-    rows.push(['No', 'Nama Proyek', 'Klien', 'Nilai Kontrak', 'Rencana Biaya', 'Biaya Aktual', 'Progres', 'Status']);
-    projects.forEach((p, idx) => {
-      rows.push([
-        String(idx + 1),
-        `"${p.name.replace(/"/g, '""')}"`,
-        `"${p.client.replace(/"/g, '""')}"`,
-        `Rp ${p.contractValue.toLocaleString('id-ID')}`,
-        `Rp ${p.plannedCost.toLocaleString('id-ID')}`,
-        `Rp ${p.actualCost.toLocaleString('id-ID')}`,
-        `${p.progress}%`,
-        p.status
-      ]);
-    });
-    rows.push([]);
-    rows.push(['RINCIAN INVOICE / TAGIHAN']);
-    rows.push(['No Invoice', 'Nama Proyek', 'Milestone', 'Nominal Tagihan', 'Tanggal Terbit', 'Jatuh Tempo', 'Status']);
-    allInvoices.forEach((inv) => {
-      rows.push([
-        inv.invoiceNumber,
-        `"${inv.projectName.replace(/"/g, '""')}"`,
-        `"${(inv.milestoneTitle || '-').replace(/"/g, '""')}"`,
-        `Rp ${inv.amount.toLocaleString('id-ID')}`,
-        inv.issueDate,
-        inv.dueDate,
-        inv.status === 'PAID' ? 'Lunas' : 'Belum Lunas'
-      ]);
-    });
+  const handleExportExcel = () => {
+    const today = new Date().toLocaleDateString('id-ID', { dateStyle: 'full' });
+    const isoDate = new Date().toISOString().slice(0, 10);
 
-    const csvContent = '\uFEFF' + rows.map((r) => r.join(';')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const excelHtml = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<!--[if gte mso 9]>
+<xml>
+ <x:ExcelWorkbook>
+  <x:ExcelWorksheets>
+   <x:ExcelWorksheet>
+    <x:Name>Rekapitulasi Keuangan CLARA</x:Name>
+    <x:WorksheetOptions>
+     <x:DisplayGridlines/>
+    </x:WorksheetOptions>
+   </x:ExcelWorksheet>
+  </x:ExcelWorksheets>
+ </x:ExcelWorkbook>
+</xml>
+<![endif]-->
+<style>
+  body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10pt; }
+  table { border-collapse: collapse; }
+  .title-main { font-size: 14pt; font-weight: bold; color: #dc2626; padding: 10px 0; }
+  .meta-info { font-size: 9pt; color: #475569; padding-bottom: 12px; }
+  .section-header { background-color: #1e293b; color: #ffffff; font-weight: bold; font-size: 11pt; padding: 8px 12px; border: 1px solid #0f172a; }
+  .th-sub { background-color: #f1f5f9; color: #1e293b; font-weight: bold; font-size: 9.5pt; border: 1px solid #cbd5e1; padding: 6px 10px; }
+  .th-brand { background-color: #dc2626; color: #ffffff; font-weight: bold; font-size: 9.5pt; border: 1px solid #b91c1c; padding: 6px 10px; }
+  td { border: 1px solid #e2e8f0; padding: 6px 10px; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .font-bold { font-weight: bold; }
+  .bg-alt { background-color: #f8fafc; }
+  .status-paid { background-color: #dcfce7; color: #15803d; font-weight: bold; text-align: center; }
+  .status-unpaid { background-color: #ffedd5; color: #c2410c; font-weight: bold; text-align: center; }
+</style>
+</head>
+<body>
+<table>
+  <tr><td colspan="8" class="title-main">REKAPITULASI LAPORAN KEUANGAN PORTOFOLIO - CLARA CONTRACT INTELLIGENCE</td></tr>
+  <tr><td colspan="8" class="meta-info">Tanggal Laporan: ${today} &nbsp;|&nbsp; Entitas: CLARA Value Assurance &amp; Contract Intelligence Platform</td></tr>
+  <tr></tr>
+
+  <tr><th colspan="4" class="section-header">RINGKASAN METRIK KEUANGAN PORTOFOLIO</th></tr>
+  <tr class="bg-alt"><td class="font-bold" colspan="2">Total Nilai Kontrak Seluruh Proyek</td><td class="text-right font-bold" colspan="2">Rp ${totalContract.toLocaleString('id-ID')}</td></tr>
+  <tr><td class="font-bold" colspan="2">Total Nilai Pekerjaan Siap Ditagih</td><td class="text-right font-bold" colspan="2">Rp ${totalBillable.toLocaleString('id-ID')}</td></tr>
+  <tr class="bg-alt"><td class="font-bold" colspan="2">Total Tagihan Tercatat (Invoiced)</td><td class="text-right font-bold" colspan="2">Rp ${totalBilled.toLocaleString('id-ID')}</td></tr>
+  <tr><td class="font-bold" colspan="2">Total Belum Ditagih (Unbilled)</td><td class="text-right font-bold" colspan="2">Rp ${totalUnbilled.toLocaleString('id-ID')}</td></tr>
+  <tr class="bg-alt"><td class="font-bold" colspan="2">Total Realisasi Pembayaran Diterima</td><td class="text-right font-bold" colspan="2">Rp ${totalPaid.toLocaleString('id-ID')}</td></tr>
+  <tr></tr>
+
+  <tr><th colspan="8" class="section-header">RINCIAN KEUANGAN PER PROYEK</th></tr>
+  <tr>
+    <th class="th-brand text-center">No</th>
+    <th class="th-brand">Nama Proyek</th>
+    <th class="th-brand">Klien</th>
+    <th class="th-brand text-right">Nilai Kontrak</th>
+    <th class="th-brand text-right">Rencana Biaya</th>
+    <th class="th-brand text-right">Biaya Aktual</th>
+    <th class="th-brand text-center">Progres</th>
+    <th class="th-brand text-center">Status</th>
+  </tr>
+  ${projects.map((p, idx) => `
+  <tr class="${idx % 2 === 1 ? 'bg-alt' : ''}">
+    <td class="text-center">${idx + 1}</td>
+    <td class="font-bold">${p.name}</td>
+    <td>${p.client}</td>
+    <td class="text-right font-bold">Rp ${p.contractValue.toLocaleString('id-ID')}</td>
+    <td class="text-right">Rp ${p.plannedCost.toLocaleString('id-ID')}</td>
+    <td class="text-right">Rp ${p.actualCost.toLocaleString('id-ID')}</td>
+    <td class="text-center font-bold">${p.progress}%</td>
+    <td class="text-center">${p.status}</td>
+  </tr>
+  `).join('')}
+  <tr></tr>
+
+  <tr><th colspan="7" class="section-header">DAFTAR TAGIHAN &amp; PENERIMAAN (INVOICES)</th></tr>
+  <tr>
+    <th class="th-brand text-center">No. Invoice</th>
+    <th class="th-brand">Nama Proyek</th>
+    <th class="th-brand">Milestone / Tahap</th>
+    <th class="th-brand text-right">Nominal Tagihan</th>
+    <th class="th-brand text-center">Tanggal Terbit</th>
+    <th class="th-brand text-center">Jatuh Tempo</th>
+    <th class="th-brand text-center">Status Pembayaran</th>
+  </tr>
+  ${allInvoices.map((inv, idx) => `
+  <tr class="${idx % 2 === 1 ? 'bg-alt' : ''}">
+    <td class="font-bold text-center">${inv.invoiceNumber}</td>
+    <td class="font-bold">${inv.projectName}</td>
+    <td>${inv.milestoneTitle || '-'}</td>
+    <td class="text-right font-bold">Rp ${inv.amount.toLocaleString('id-ID')}</td>
+    <td class="text-center">${inv.issueDate}</td>
+    <td class="text-center">${inv.dueDate}</td>
+    <td class="${inv.status === 'PAID' ? 'status-paid' : 'status-unpaid'}">${inv.status === 'PAID' ? 'LUNAS' : 'TERCATAT'}</td>
+  </tr>
+  `).join('')}
+</table>
+</body>
+</html>
+    `;
+
+    const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `Rekap_Keuangan_CLARA_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `Rekap_Keuangan_CLARA_${isoDate}.xls`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -410,7 +472,7 @@ export default function FinancePage() {
               <div className="flex items-center gap-2.5 w-full sm:w-auto">
                 <button
                   type="button"
-                  onClick={handleExportCsv}
+                  onClick={handleExportExcel}
                   className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all whitespace-nowrap"
                 >
                   <FileSpreadsheet className="w-4 h-4" />
