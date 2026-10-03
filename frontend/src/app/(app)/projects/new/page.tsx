@@ -4,15 +4,14 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import {
   UploadCloud,
-  FileCheck2,
-  Sparkles,
+  FileText,
   ArrowRight,
   CheckCircle2,
   FileSpreadsheet,
   AlertCircle,
-  ShieldCheck,
-  Edit2,
-  Lock
+  Lock,
+  Layers,
+  FileCheck
 } from 'lucide-react';
 import { storageService } from '@/services/storage';
 import { Project } from '@/types';
@@ -21,7 +20,7 @@ import { formatRupiah } from '@/lib/utils';
 export default function NewProjectFlowPage() {
   const router = useRouter();
 
-  // Stepper state: 1 = Form & Upload, 2 = AI Processing, 3 = Confirmation & Lock
+  // Stepper state: 1 = Form & Upload, 2 = Document Parsing, 3 = Confirmation & Lock
   const [step, setStep] = React.useState<1 | 2 | 3>(1);
 
   // Form inputs
@@ -37,29 +36,32 @@ export default function NewProjectFlowPage() {
   const [revisionLimit, setRevisionLimit] = React.useState<number>(3);
   const [paymentTerms, setPaymentTerms] = React.useState('30% DP, 40% UAT Staging, 30% Final Go-Live');
 
-  // AI Extraction Progress simulation
-  const [extractionProgress, setExtractionProgress] = React.useState<string>('Membaca dokumen kontrak PDF...');
+  // Extraction Progress simulation
+  const [parsingStage, setParsingStage] = React.useState<string>('Ekstraksi teks digital dari dokumen PKS PDF...');
+  const [parsingPercent, setParsingPercent] = React.useState<number>(25);
 
   const handleStartExtraction = (e: React.FormEvent) => {
     e.preventDefault();
     setStep(2);
 
-    // Simulate AI extraction pipeline
     setTimeout(() => {
-      setExtractionProgress('Melakukan OCR dan ekstraksi pasal-pasal kontrak hukum...');
-    }, 1200);
+      setParsingStage('Segmentasi pasal kontrak (Klausul pembayaran, batas revisi & penalti)...');
+      setParsingPercent(50);
+    }, 1000);
 
     setTimeout(() => {
-      setExtractionProgress('Membaca item rincian RAB dari spreadsheet...');
-    }, 2400);
+      setParsingStage('Ekstraksi baris anggaran biaya rencana (RAB)...');
+      setParsingPercent(75);
+    }, 2000);
 
     setTimeout(() => {
-      setExtractionProgress('Mencocokkan klausul pembayaran dan batas revisi (Cross-validation)...');
-    }, 3600);
+      setParsingStage('Mencocokkan termin kontrak dengan milestone deliverable...');
+      setParsingPercent(100);
+    }, 3000);
 
     setTimeout(() => {
       setStep(3);
-    }, 4500);
+    }, 3800);
   };
 
   const handleConfirmAndLock = () => {
@@ -121,9 +123,9 @@ export default function NewProjectFlowPage() {
           projectId: newProjectId,
           type: 'MILESTONE_COMPLETED',
           title: 'Project Initialized & Baseline Locked',
-          description: 'Kontrak dan RAB berhasil diverifikasi oleh Business Owner sebagai Baseline V1.0.',
+          description: 'Kontrak dan RAB resmi diverifikasi oleh Project Owner sebagai Baseline V1.0.',
           date: new Date().toISOString().split('T')[0],
-          author: 'Human Approver',
+          author: 'Project Owner',
         },
       ],
       changeRequests: [],
@@ -138,36 +140,36 @@ export default function NewProjectFlowPage() {
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300 pb-16">
       {/* Header */}
       <div className="text-center space-y-2">
-        <span className="text-[11px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
-          New Baseline Onboarding
+        <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
+          Commercial Onboarding
         </span>
-        <h1 className="text-2xl font-bold text-slate-900">Upload Kontrak & Kunci Baseline</h1>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Setup Kontrak Baru & Kunci Baseline</h1>
         <p className="text-xs text-slate-500 max-w-lg mx-auto">
-          Unggah dokumen PKS / Kontrak dan RAB. AI CLARA akan mengekstrak klausul komersial secara terstruktur untuk dikonfirmasi.
+          Unggah dokumen PKS / Kontrak dan RAB. Sistem CLARA akan memetakan klausul komersial secara terstruktur untuk diverifikasi oleh user.
         </p>
       </div>
 
       {/* Stepper Progress */}
       <div className="flex items-center justify-center gap-4 text-xs font-semibold">
-        <div className={`flex items-center gap-2 ${step >= 1 ? 'text-blue-600' : 'text-slate-400'}`}>
-          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-slate-200'}`}>1</span>
+        <div className={`flex items-center gap-2 ${step >= 1 ? 'text-blue-700' : 'text-slate-400'}`}>
+          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 1 ? 'bg-blue-700 text-white' : 'bg-slate-200'}`}>1</span>
           <span>Upload Dokumen</span>
         </div>
-        <div className={`w-8 h-0.5 ${step >= 2 ? 'bg-blue-600' : 'bg-slate-200'}`} />
-        <div className={`flex items-center gap-2 ${step >= 2 ? 'text-blue-600' : 'text-slate-400'}`}>
-          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-slate-200'}`}>2</span>
-          <span>AI Extraction</span>
+        <div className={`w-8 h-0.5 ${step >= 2 ? 'bg-blue-700' : 'bg-slate-200'}`} />
+        <div className={`flex items-center gap-2 ${step >= 2 ? 'text-blue-700' : 'text-slate-400'}`}>
+          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 2 ? 'bg-blue-700 text-white' : 'bg-slate-200'}`}>2</span>
+          <span>Document Parsing</span>
         </div>
-        <div className={`w-8 h-0.5 ${step >= 3 ? 'bg-blue-600' : 'bg-slate-200'}`} />
-        <div className={`flex items-center gap-2 ${step >= 3 ? 'text-blue-600' : 'text-slate-400'}`}>
-          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step >= 3 ? 'bg-blue-600 text-white' : 'bg-slate-200'}`}>3</span>
-          <span>Review & Lock Baseline</span>
+        <div className={`w-8 h-0.5 ${step >= 3 ? 'bg-blue-700' : 'bg-slate-200'}`} />
+        <div className={`flex items-center gap-2 ${step >= 3 ? 'text-blue-700' : 'text-slate-400'}`}>
+          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 3 ? 'bg-blue-700 text-white' : 'bg-slate-200'}`}>3</span>
+          <span>Verifikasi & Kunci Baseline</span>
         </div>
       </div>
 
       {/* STEP 1: FORM & UPLOAD */}
       {step === 1 && (
-        <form onSubmit={handleStartExtraction} className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+        <form onSubmit={handleStartExtraction} className="bg-white p-8 rounded-2xl border border-slate-200 shadow-2xs space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Nama Project</label>
@@ -176,7 +178,7 @@ export default function NewProjectFlowPage() {
                 required
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 placeholder="Contoh: Implementasi Core Banking"
               />
             </div>
@@ -187,7 +189,7 @@ export default function NewProjectFlowPage() {
                 required
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 placeholder="Contoh: PT Bank Mandiri Syariah"
               />
             </div>
@@ -195,25 +197,25 @@ export default function NewProjectFlowPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
             {/* Upload Kontrak */}
-            <div className="p-6 border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl text-center bg-slate-50/50 hover:bg-blue-50/30 transition-all cursor-pointer group">
-              <UploadCloud className="w-10 h-10 text-slate-400 group-hover:text-blue-600 mx-auto mb-3 transition-colors" />
-              <h3 className="text-sm font-bold text-slate-800">Upload Dokumen Kontrak / PKS</h3>
-              <p className="text-xs text-slate-500 mt-1">Format PDF (Maks 25MB)</p>
+            <div className="p-6 border border-dashed border-slate-300 hover:border-slate-500 rounded-2xl text-center bg-slate-50/50 hover:bg-slate-50 transition-all cursor-pointer group">
+              <UploadCloud className="w-8 h-8 text-slate-400 group-hover:text-slate-700 mx-auto mb-3 transition-colors" />
+              <h3 className="text-xs font-bold text-slate-800">Upload Dokumen Kontrak / PKS</h3>
+              <p className="text-[11px] text-slate-500 mt-1">Format PDF (Maks 25MB)</p>
               <div className="mt-4">
-                <span className="inline-block bg-white border border-slate-200 text-slate-700 font-semibold text-xs px-3 py-1.5 rounded-lg shadow-sm">
-                  {contractFile ? contractFile.name : 'PKS_Pelabuhan_SmartPort_2026.pdf (Sample Ready)'}
+                <span className="inline-block bg-white border border-slate-200 text-slate-700 font-semibold text-xs px-3 py-1.5 rounded-lg shadow-2xs font-mono">
+                  {contractFile ? contractFile.name : 'PKS_SmartPort_2026_Final.pdf (Sample Ready)'}
                 </span>
               </div>
             </div>
 
             {/* Upload RAB */}
-            <div className="p-6 border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl text-center bg-slate-50/50 hover:bg-emerald-50/30 transition-all cursor-pointer group">
-              <FileSpreadsheet className="w-10 h-10 text-slate-400 group-hover:text-emerald-600 mx-auto mb-3 transition-colors" />
-              <h3 className="text-sm font-bold text-slate-800">Upload Rencana Anggaran Biaya (RAB)</h3>
-              <p className="text-xs text-slate-500 mt-1">Format XLSX / CSV (Maks 15MB)</p>
+            <div className="p-6 border border-dashed border-slate-300 hover:border-slate-500 rounded-2xl text-center bg-slate-50/50 hover:bg-slate-50 transition-all cursor-pointer group">
+              <FileSpreadsheet className="w-8 h-8 text-slate-400 group-hover:text-slate-700 mx-auto mb-3 transition-colors" />
+              <h3 className="text-xs font-bold text-slate-800">Upload Rencana Anggaran Biaya (RAB)</h3>
+              <p className="text-[11px] text-slate-500 mt-1">Format XLSX / CSV (Maks 15MB)</p>
               <div className="mt-4">
-                <span className="inline-block bg-white border border-slate-200 text-slate-700 font-semibold text-xs px-3 py-1.5 rounded-lg shadow-sm">
-                  {rabFile ? rabFile.name : 'RAB_SmartPort_V1_Approved.xlsx (Sample Ready)'}
+                <span className="inline-block bg-white border border-slate-200 text-slate-700 font-semibold text-xs px-3 py-1.5 rounded-lg shadow-2xs font-mono">
+                  {rabFile ? rabFile.name : 'RAB_SmartPort_Approved_V1.xlsx (Sample Ready)'}
                 </span>
               </div>
             </div>
@@ -222,31 +224,39 @@ export default function NewProjectFlowPage() {
           <div className="flex items-center justify-end pt-4 border-t border-slate-100">
             <button
               type="submit"
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3 rounded-xl shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transition-all cursor-pointer"
+              className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>Mulai Ekstraksi AI & Analisis</span>
+              <span>Mulai Proses Parsing & Rekonsiliasi</span>
               <ArrowRight className="w-4 h-4 ml-1" />
             </button>
           </div>
         </form>
       )}
 
-      {/* STEP 2: AI EXTRACTION IN PROGRESS */}
+      {/* STEP 2: DOCUMENT PARSING IN PROGRESS (CLEAN CORPORATE) */}
       {step === 2 && (
-        <div className="bg-white p-12 rounded-2xl border border-slate-200 shadow-sm text-center space-y-6 animate-pulse">
-          <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-inner">
-            <Sparkles className="w-8 h-8 animate-spin" />
+        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-2xs text-center space-y-6">
+          <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center mx-auto">
+            <Layers className="w-6 h-6 text-blue-700 animate-pulse" />
           </div>
-          <div>
-            <h3 className="text-lg font-bold text-slate-900">AI Intelligence Engine Sedang Bekerja...</h3>
-            <p className="text-xs font-mono text-blue-600 mt-2 bg-blue-50 py-2 px-4 rounded-lg inline-block border border-blue-200">
-              {extractionProgress}
+
+          <div className="space-y-2">
+            <h3 className="text-base font-bold text-slate-900">Document Parsing & Cross-Reconciliation</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              Memproses dokumen secara deterministik: membaca klausul hukum, menghitung termin komersial, dan memetakan alokasi biaya RAB.
             </p>
           </div>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            CLARA mengonversi dokumen pasif menjadi data terstruktur: nilai kesepakatan, termin pembayaran, batasan revisi, dan item biaya.
-          </p>
+
+          {/* Clean Corporate Progress Bar */}
+          <div className="max-w-md mx-auto space-y-2">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
+              <span className="text-[11px] font-mono">{parsingStage}</span>
+              <span>{parsingPercent}%</span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+              <div className="bg-blue-700 h-full rounded-full transition-all duration-500" style={{ width: `${parsingPercent}%` }} />
+            </div>
+          </div>
         </div>
       )}
 
@@ -254,21 +264,21 @@ export default function NewProjectFlowPage() {
       {step === 3 && (
         <div className="space-y-6">
           <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
-            <div className="text-xs text-amber-800">
-              <strong className="font-bold">Human Confirmation Required:</strong> AI telah mengekstrak data dari dokumen. Silakan periksa kembali dan sesuaikan field di bawah jika ada kesalahan sebelum mengunci baseline. Baseline yang sudah dikunci menjadi acuan perbandingan selama project berjalan.
+            <AlertCircle className="w-5 h-5 text-amber-700 mt-0.5 shrink-0" />
+            <div className="text-xs text-amber-900">
+              <strong className="font-bold">Human Verification Required:</strong> Sistem telah memetakan data komersial dari dokumen. Mohon periksa kembali kesepakatan di bawah ini sebelum mengunci baseline project.
             </div>
           </div>
 
-          <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+          <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-2xs space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Hasil Ekstraksi Baseline Kontrak & RAB</h3>
-                <p className="text-xs text-slate-500">Konfirmasi kesepakatan komersial dan anggaran rencana.</p>
+                <h3 className="text-base font-bold text-slate-900">Draft Baseline Komersial & Anggaran</h3>
+                <p className="text-xs text-slate-500">Konfirmasi kesepakatan legal dan alokasi biaya rencana.</p>
               </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Confidence: 98%
+              <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded bg-slate-100 text-slate-800 border border-slate-200 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                Parsed with 98% Confidence
               </span>
             </div>
 
@@ -282,7 +292,7 @@ export default function NewProjectFlowPage() {
                     type="number"
                     value={contractValue}
                     onChange={(e) => setContractValue(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                   <span className="text-xs font-semibold text-slate-400 absolute right-4 top-3">
                     {formatRupiah(contractValue)}
@@ -299,7 +309,7 @@ export default function NewProjectFlowPage() {
                     type="number"
                     value={plannedCost}
                     onChange={(e) => setPlannedCost(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                   <span className="text-xs font-semibold text-slate-400 absolute right-4 top-3">
                     {formatRupiah(plannedCost)}
@@ -309,25 +319,25 @@ export default function NewProjectFlowPage() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Deadline / Target Penyelesaian
+                  Deadline Target Penyelesaian
                 </label>
                 <input
                   type="date"
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Batas Revisi Gratis (Revision Limit)
+                  Batas Revisi Gratis (Revision Allowance)
                 </label>
                 <input
                   type="number"
                   value={revisionLimit}
                   onChange={(e) => setRevisionLimit(Number(e.target.value))}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
@@ -339,7 +349,7 @@ export default function NewProjectFlowPage() {
                   type="text"
                   value={paymentTerms}
                   onChange={(e) => setPaymentTerms(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
             </div>
@@ -356,9 +366,9 @@ export default function NewProjectFlowPage() {
               <button
                 type="button"
                 onClick={handleConfirmAndLock}
-                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/30 transition-all cursor-pointer"
+                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-xs transition-colors cursor-pointer"
               >
-                <Lock className="w-4 h-4" />
+                <Lock className="w-4 h-4 text-emerald-400" />
                 <span>Confirm & Lock Baseline (V1.0)</span>
               </button>
             </div>
