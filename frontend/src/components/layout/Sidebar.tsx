@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, AlertTriangle, ChevronLeft, ChevronRight, FileText, FolderKanban, Home, LayoutDashboard, ReceiptText, RotateCcw, X } from 'lucide-react';
+import { Activity, AlertTriangle, Bot, ChevronLeft, ChevronRight, FileText, FolderKanban, Home, LayoutDashboard, ReceiptText, RotateCcw, X } from 'lucide-react';
 import { dataClient } from '@/services/dataClient';
 import { useAlerts } from '@/hooks/useClaraData';
 

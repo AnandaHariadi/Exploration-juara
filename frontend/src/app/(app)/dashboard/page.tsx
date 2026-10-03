@@ -71,16 +71,6 @@ export default function DashboardPage() {
     </section>
   );
 
-    {notice && <div role="status" className="flex items-start justify-between gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900"><span>{notice}</span><button type="button" aria-label="Tutup pesan" onClick={() => setNotice(null)}>×</button></div>}
-    {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">Gagal memuat data: {error}</div>}
-    {loading ? <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-sm text-zinc-500">Memuat ringkasan proyek…</div> : <>
-      <section aria-label="Angka seluruh proyek" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Nilai kontrak" value={formatCompactRupiah(total('contractValue'))} detail={`Total dari ${projects.length} proyek dalam data demo`} href="/projects" />
-        <MetricCard label="Biaya tercatat" value={formatCompactRupiah(actualCost)} detail={`Rencana biaya ${formatCompactRupiah(plannedCost)} · selisih ${formatCompactRupiah(actualCost - plannedCost)}`} href="/finance" />
-        <MetricCard label="Belum ditagih" value={formatCompactRupiah(unbilled)} detail="Nilai tahap selesai yang belum dibuatkan tagihan" href="/finance" />
-        <MetricCard label="Sudah dibayar" value={formatCompactRupiah(total('paidValue'))} detail={`Dari tagihan ${formatCompactRupiah(billed)} yang telah dibuat`} href="/finance" />
-      </section>
-
   const billingPanel = (
     <Panel title="Siap ditagih, belum ada tagihan" description="Tahap selesai yang belum ditagih penuh" action={<Link href="/finance" className="text-sm font-semibold text-red-700 hover:underline">Keuangan →</Link>}>
       {readyToBill.length === 0 ? (
