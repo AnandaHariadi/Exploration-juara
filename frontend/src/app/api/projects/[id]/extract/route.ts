@@ -3,10 +3,10 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest } from 'next/server';
 import { ok, oneOf, readJson, route } from '@/lib/api';
-import { runExtraction } from '@/lib/extraction';
+import { runExtraction } from '@/lib/guardian';
 import { projectIdFrom, type ProjectParams } from '@/lib/routeParams';
 
-/** Run document analysis: mode AI (default), SAMPLE (labelled sample data) or MANUAL. Produces a candidate, never a baseline. */
+/** Baseline candidate: AI (re)analysis of the contract, SAMPLE (labelled sample data) or MANUAL. Never activates a baseline. */
 export const POST = route('POST /api/projects/[id]/extract', async (req: NextRequest, ctx: ProjectParams) => {
   const id = await projectIdFrom(ctx);
   const body = await readJson(req);
