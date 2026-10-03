@@ -1,58 +1,22 @@
 import type {
-  ActualCostItem,
+  AiHealth,
   Alert,
-  ChangeRequest,
+  LegalAnswer,
+  PortfolioSummary,
   Project,
-  ProjectEvent,
+  ProjectEventType,
   UserPersonaId,
 } from '@/types';
 
 /**
- * Contract used by pages and components. Reads and writes are asynchronous so
- * a server API can replace the browser adapter without changing page layouts.
- *
- * Semua operasi melempar Error berisi pesan dari server bila gagal. Pemanggil
- * wajib menampilkan pesannya; kegagalan tidak boleh tampak seperti data kosong.
+ * The browser's only door to business data. Every call goes to a Next.js API
+ * route; the server (SQLite + deterministic engine) is the single source of
+ * truth. Failures always throw ApiError with the server's message — callers
+ * must show it, never fall back to fake data.
  */
-export interface ClaraDataSource {
-  getProjects(): Promise<Project[]>;
-  getProject(id: string): Promise<Project | undefined>;
-  getAllAlerts(): Promise<Alert[]>;
-  getActivePersona(): Promise<UserPersonaId>;
-  addProject(project: Project): Promise<void>;
-  addProjectEvent(
-    projectId: string,
-    event: Omit<ProjectEvent, 'id' | 'projectId'> & { milestoneId?: string },
-  ): Promise<Project>;
-  addActualCost(projectId: string, cost: Omit<ActualCostItem, 'id' | 'projectId'>): Promise<Project>;
-  addChangeRequest(projectId: string, request: Omit<ChangeRequest, 'id' | 'projectId' | 'createdAt' | 'status'>): Promise<Project>;
-  approveChangeRequest(projectId: string, requestId: string): Promise<Project>;
-  createInvoice(projectId: string, milestoneId: string): Promise<Project>;
-  recordPayment(projectId: string, invoiceId: string, paymentDate?: string): Promise<Project>;
-  acknowledgeAlert(alertId: string): Promise<void>;
-  setActivePersona(persona: UserPersonaId): Promise<void>;
-  /** withSeed=true (default) memulihkan proyek contoh; false mengosongkan semua proyek. */
-  resetDemo(withSeed?: boolean): Promise<void>;
-  subscribeData(listener: () => void): () => void;
-  subscribePersona(listener: () => void): () => void;
-}
-
-const subscribe = (eventName: string, listener: () => void): (() => void) => {
-  if (typeof window === 'undefined') return () => {};
-  window.addEventListener(eventName, listener);
-  return () => window.removeEventListener(eventName, listener);
-};
-
-const notifyData = () => {
-  if (typeof window !== 'undefined') window.dispatchEvent(new Event('clara_data_updated'));
-};
-
-const notifyPersona = () => {
-  if (typeof window !== 'undefined') window.dispatchEvent(new Event('clara_persona_changed'));
-};
 
 export class ApiError extends Error {
-  constructor(message: string, public status: number) {
+  constructor(message: string, public status: number, public code = 'ERROR') {
     super(message);
     this.name = 'ApiError';
   }
@@ -61,142 +25,145 @@ export class ApiError extends Error {
 interface ApiEnvelope<T> {
   success: boolean;
   data?: T;
-  error?: string;
+  error?: { code: string; message: string } | string;
   message?: string;
 }
 
-/**
- * Kirim request ke API dan pastikan keberhasilannya. Respons non-2xx, body
- * bukan JSON, atau success=false selalu menjadi ApiError.
- */
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(url, init);
+    res = await fetch(url, { cache: 'no-store', ...init });
   } catch {
-    throw new ApiError('Tidak dapat terhubung ke server. Periksa koneksi lalu coba lagi.', 0);
+    throw new ApiError('Tidak dapat terhubung ke server. Periksa koneksi lalu coba lagi.', 0, 'NETWORK');
   }
-
   let json: ApiEnvelope<T> | undefined;
   try {
     json = (await res.json()) as ApiEnvelope<T>;
   } catch {
     json = undefined;
   }
-
   if (!res.ok || !json || !json.success) {
-    throw new ApiError(json?.error || `Permintaan gagal (HTTP ${res.status}).`, res.status);
+    const error = json?.error;
+    const message = typeof error === 'string' ? error : error?.message;
+    const code = typeof error === 'object' && error ? error.code : 'ERROR';
+    throw new ApiError(message || `Permintaan gagal (HTTP ${res.status}).`, res.status, code);
   }
   return json.data as T;
 }
 
-const postJson = <T>(url: string, body?: unknown) =>
+const send = <T>(method: string, url: string, body?: unknown) =>
   request<T>(url, {
-    method: 'POST',
+    method,
     headers: { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
-/**
- * SQLite Server API Data Source
- * Connects directly to Next.js server Route Handlers backed by clara.db (SQLite)
- */
-const apiDataSource: ClaraDataSource = {
-  async getProjects() {
-    // Saat build/SSR tidak ada server API yang dapat dipanggil dari klien.
-    if (typeof window === 'undefined') return [];
-    return request<Project[]>('/api/projects');
-  },
+const notify = (name: string) => {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(name));
+};
+const DATA_EVENT = 'clara_data_updated';
+const PERSONA_EVENT = 'clara_persona_changed';
 
-  async getProject(id) {
-    if (typeof window === 'undefined') return undefined;
+/** Run a mutation and tell every mounted view to refetch on success. */
+async function mutation<T>(run: () => Promise<T>): Promise<T> {
+  const result = await run();
+  notify(DATA_EVENT);
+  return result;
+}
+
+const subscribe = (eventName: string, listener: () => void): (() => void) => {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener(eventName, listener);
+  return () => window.removeEventListener(eventName, listener);
+};
+
+export type MonitoringEventInput =
+  | { type: Extract<ProjectEventType, 'PROGRESS_UPDATED'>; progress: number; projectedFinishDate?: string; title?: string; description?: string; date?: string }
+  | { type: Extract<ProjectEventType, 'MILESTONE_COMPLETED'>; milestoneId: string; title?: string; description?: string; date?: string }
+  | { type: Extract<ProjectEventType, 'REVISION_LOGGED'>; revisionCount: number; title?: string; description?: string; date?: string }
+  | { type: Extract<ProjectEventType, 'SCOPE_ADDED'>; title: string; description?: string; date?: string };
+
+export interface ChangeRequestInput {
+  title: string;
+  description?: string;
+  reason?: string;
+  additionalScope: string[];
+  additionalValue: number;
+  additionalRevisions: number;
+  deadlineExtensionDays: number;
+  submit?: boolean;
+}
+
+export const dataClient = {
+  // Reads
+  getProjects: () => request<Project[]>('/api/projects'),
+  getProject: async (id: string): Promise<Project | undefined> => {
     try {
-      return await request<Project>(`/api/projects/${id}`);
+      return await request<Project>(`/api/projects/${encodeURIComponent(id)}`);
     } catch (error) {
-      // 404 berarti proyek memang tidak ada; kegagalan lain tetap dilempar.
-      if (error instanceof ApiError && error.status === 404) return undefined;
+      if (error instanceof ApiError && (error.status === 404 || error.status === 400)) return undefined;
       throw error;
     }
   },
+  getAllAlerts: () => request<Alert[]>('/api/alerts'),
+  getDashboardSummary: () => request<PortfolioSummary>('/api/dashboard/summary'),
+  getAiHealth: () => request<AiHealth>('/api/ai/health'),
+  getActivePersona: async () => (await request<{ activePersonaId: UserPersonaId }>('/api/demo/session')).activePersonaId,
 
-  async getAllAlerts() {
-    if (typeof window === 'undefined') return [];
-    return request<Alert[]>('/api/alerts');
+  // Project setup
+  createProject: (input: { name: string; client: string; useSample?: boolean }) => mutation(() => send<Project>('POST', '/api/projects', input)),
+  updateProject: (id: string, input: { name?: string; client?: string }) => mutation(() => send<Project>('PATCH', `/api/projects/${id}`, input)),
+  deleteProject: (id: string) => mutation(() => send<{ id: string }>('DELETE', `/api/projects/${id}`)),
+  uploadDocument: (projectId: string, kind: 'CONTRACT' | 'RAB', file: File) =>
+    mutation(() => {
+      const form = new FormData();
+      form.append('kind', kind);
+      form.append('file', file);
+      return request<{ project: Project }>(`/api/projects/${projectId}/documents`, { method: 'POST', body: form });
+    }),
+  attachSampleDocuments: (projectId: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/documents/sample`)),
+  extract: (projectId: string, mode: 'AI' | 'SAMPLE' | 'MANUAL') => mutation(() => send<Project>('POST', `/api/projects/${projectId}/extract`, { mode })),
+  updateCandidate: (projectId: string, patch: Record<string, unknown>) =>
+    mutation(() => send<{ project: Project; validation: string[] }>('PUT', `/api/projects/${projectId}/baseline/candidate`, patch)),
+  confirmBaseline: (projectId: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/baseline/confirm`)),
+
+  // Monitoring
+  addEvent: (projectId: string, event: MonitoringEventInput) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/events`, event)),
+  reviewScope: (projectId: string, scopeId: string, note?: string) => mutation(() => send<Project>('PATCH', `/api/projects/${projectId}/scope/${scopeId}`, { decision: 'MATCH', note })),
+
+  // Finance
+  addCost: (projectId: string, cost: { amount: number; category: string; description: string; date?: string }) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/costs`, cost)),
+  createInvoice: (projectId: string, milestoneId: string, amount?: number) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/invoices`, { milestoneId, amount })),
+  recordPayment: (projectId: string, invoiceId: string, amount?: number) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/payments`, { invoiceId, amount })),
+
+  // Change requests
+  createChangeRequest: (projectId: string, input: ChangeRequestInput) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/change-requests`, input)),
+  submitChangeRequest: (projectId: string, crId: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/change-requests/${crId}/submit`)),
+  approveChangeRequest: (projectId: string, crId: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/change-requests/${crId}/approve`)),
+  rejectChangeRequest: (projectId: string, crId: string, note?: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/change-requests/${crId}/reject`, { note })),
+
+  // Alerts
+  acknowledgeAlert: (alertId: string) => mutation(() => send<Alert>('POST', `/api/alerts/${alertId}/acknowledge`)),
+  resolveAlert: (alertId: string, note: string) => mutation(() => send<Alert>('POST', `/api/alerts/${alertId}/resolve`, { note })),
+
+  // AI
+  askLegal: (question: string, projectId?: string, history: { role: 'user' | 'assistant'; content: string }[] = []) =>
+    send<LegalAnswer & { projectId: string | null }>('POST', '/api/ai/query', { question, projectId, history }),
+
+  // Demo
+  setActivePersona: async (persona: UserPersonaId) => {
+    await send('POST', '/api/demo/session', { personaId: persona });
+    notify(PERSONA_EVENT);
+  },
+  resetDemo: async () => {
+    await send('POST', '/api/demo/reset');
+    notify(DATA_EVENT);
+    notify(PERSONA_EVENT);
   },
 
-  async getActivePersona() {
-    if (typeof window === 'undefined') return 'BUDI';
-    const session = await request<{ activePersonaId: UserPersonaId }>('/api/demo/session');
-    return session.activePersonaId;
-  },
-
-  async addProject(project) {
-    await postJson<Project>('/api/projects', project);
-    notifyData();
-  },
-
-  async addProjectEvent(projectId, event) {
-    const project = await postJson<Project>(`/api/projects/${projectId}/events`, event);
-    notifyData();
-    return project;
-  },
-
-  async addActualCost(projectId, cost) {
-    const project = await postJson<Project>(`/api/projects/${projectId}/costs`, cost);
-    notifyData();
-    return project;
-  },
-
-  async addChangeRequest(projectId, changeRequest) {
-    const project = await postJson<Project>(`/api/projects/${projectId}/change-requests`, changeRequest);
-    notifyData();
-    return project;
-  },
-
-  async approveChangeRequest(projectId, requestId) {
-    const project = await postJson<Project>(
-      `/api/projects/${projectId}/change-requests/${requestId}/approve`,
-    );
-    notifyData();
-    return project;
-  },
-
-  async createInvoice(projectId, milestoneId) {
-    const project = await postJson<Project>(`/api/projects/${projectId}/invoices`, { milestoneId });
-    notifyData();
-    return project;
-  },
-
-  async recordPayment(projectId, invoiceId, paymentDate) {
-    const project = await postJson<Project>(`/api/projects/${projectId}/payments`, { invoiceId, paymentDate });
-    notifyData();
-    return project;
-  },
-
-  async acknowledgeAlert(alertId) {
-    await postJson<unknown>(`/api/alerts/${alertId}/acknowledge`);
-    notifyData();
-  },
-
-  async setActivePersona(persona) {
-    await postJson<unknown>('/api/demo/session', { personaId: persona });
-    notifyPersona();
-  },
-
-  async resetDemo(withSeed = true) {
-    await postJson<unknown>('/api/demo/reset', { withSeed });
-    notifyData();
-    notifyPersona();
-  },
-
-  subscribeData(listener) {
-    return subscribe('clara_data_updated', listener);
-  },
-
-  subscribePersona(listener) {
-    return subscribe('clara_persona_changed', listener);
-  },
+  subscribeData: (listener: () => void) => subscribe(DATA_EVENT, listener),
+  subscribePersona: (listener: () => void) => subscribe(PERSONA_EVENT, listener),
 };
 
-// Connected to SQLite API
-export const dataClient: ClaraDataSource = apiDataSource;
+export const documentUrl = (projectId: string, documentId: string, page?: number | null) =>
+  `/api/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}${page ? `#page=${page}` : ''}`;
