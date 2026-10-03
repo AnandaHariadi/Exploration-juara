@@ -368,7 +368,8 @@ export function confirmBaseline(project: Project, ctx: Ctx): BaselineVersion {
     terms: { ...EMPTY_TERMS, ...c.terms },
   };
   for (const doc of project.documents) {
-    if ((doc.kind === 'CONTRACT' || doc.kind === 'RAB') && doc.status !== 'FAILED') {
+    // The human confirmed the baseline from these documents (whatever path produced the candidate).
+    if (doc.kind === 'CONTRACT' || doc.kind === 'RAB') {
       doc.status = 'APPROVED';
       doc.statusAt = ctx.now;
     }
