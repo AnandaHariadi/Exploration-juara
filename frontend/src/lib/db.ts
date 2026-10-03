@@ -11,6 +11,15 @@ import { actorFor, randomId, type Ctx } from './domain';
 import { notFound } from './api';
 import { buildSeed } from './seed';
 import { clearUploads, saveDocumentFile } from './files';
+import {
+  isSupabaseConfigured,
+  syncProjectToSupabase,
+  deleteProjectFromSupabase,
+  syncSessionToSupabase,
+  syncSeedToSupabase,
+  fetchProjectsFromSupabase,
+  fetchSessionFromSupabase,
+} from './supabase';
 
 /** Bump when the stored project shape changes; older databases are re-seeded. */
 const DATA_VERSION = '4';
@@ -27,7 +36,7 @@ const migrationsDir = path.join(dataDir, 'migrations');
 db.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL);`);
 if (!fs.existsSync(migrationsDir)) throw new Error(`Folder migrasi SQLite tidak ditemukan: ${migrationsDir}`);
 const applied = new Set((db.prepare('SELECT version FROM schema_migrations').all() as { version: string }[]).map((r) => r.version));
-for (const file of fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort()) {
+for (const file of fs.readdirSync(migrationsDir).filter((f) => /^\d+.*\.sql$/.test(f)).sort()) {
   if (applied.has(file)) continue;
   const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
   db.transaction(() => {
@@ -75,6 +84,8 @@ function writeProject(project: Project) {
     db.prepare(`INSERT INTO projects (name, client, status, contract_value, planned_cost, actual_cost, billable_value, billed_value, paid_value,
       progress, baseline_version, start_date, end_date, revision_limit, active_revision_count, data_json, id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(...values, project.id);
   }
+  lastSyncTime = Date.now();
+  void syncProjectToSupabase(project);
 }
 
 function readProject(id: string): Project | undefined {
@@ -92,17 +103,97 @@ function resetDemoData(): void {
   })();
   clearUploads();
   for (const file of seed.files) saveDocumentFile(file.projectId, file.id, file.data);
+  void syncSeedToSupabase(seed.projects);
   console.log(`[DEMO] reset complete: ${seed.projects.length} projects seeded`);
 }
 
 const version = db.prepare("SELECT value FROM demo_meta WHERE key = 'data_version'").get() as { value: string } | undefined;
 if (version?.value !== DATA_VERSION) resetDemoData();
 
+let inFlightSync: Promise<void> | null = null;
+let lastSyncTime = 0;
+const SYNC_THROTTLE_MS = 2500;
+
+export async function pullLatestFromSupabase(): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  const now = Date.now();
+  if (now - lastSyncTime < SYNC_THROTTLE_MS) return;
+  if (inFlightSync) return inFlightSync;
+
+  inFlightSync = (async () => {
+    try {
+      const [remoteProjects, remotePersona] = await Promise.all([
+        fetchProjectsFromSupabase(),
+        fetchSessionFromSupabase(),
+      ]);
+
+      if (remotePersona) {
+        db.prepare('UPDATE demo_session SET active_user_id = ?, updated_at = ? WHERE id = 1').run(remotePersona, new Date().toISOString());
+      }
+
+      if (remoteProjects && remoteProjects.length > 0) {
+        const remoteIds = new Set(remoteProjects.map((p) => p.id));
+        db.transaction(() => {
+          // 1. Remove projects locally that were deleted in Supabase
+          const localRows = db.prepare('SELECT id FROM projects').all() as { id: string }[];
+          for (const row of localRows) {
+            if (!remoteIds.has(row.id)) {
+              db.prepare('DELETE FROM projects WHERE id = ?').run(row.id);
+            }
+          }
+
+          // 2. Upsert each project from Supabase, reconciling metrics
+          for (const raw of remoteProjects) {
+            const reconciled = reconcile(raw, new Date().toISOString());
+            const json = JSON.stringify(reconciled);
+            const values = [
+              reconciled.name,
+              reconciled.client,
+              reconciled.status,
+              reconciled.contractValue,
+              reconciled.plannedCost,
+              reconciled.actualCost,
+              reconciled.billableValue,
+              reconciled.billedValue,
+              reconciled.paidValue,
+              reconciled.progress,
+              reconciled.baselineVersion,
+              reconciled.startDate,
+              reconciled.endDate,
+              reconciled.agreementBaseline?.revisionLimit ?? 0,
+              reconciled.activeRevisionCount,
+              json,
+            ];
+            const updated = db.prepare(`UPDATE projects SET name=?, client=?, status=?, contract_value=?, planned_cost=?, actual_cost=?, billable_value=?, billed_value=?, paid_value=?, progress=?, baseline_version=?, start_date=?, end_date=?, revision_limit=?, active_revision_count=?, data_json=? WHERE id=?`).run(...values, reconciled.id);
+            if (updated.changes === 0) {
+              db.prepare(`INSERT INTO projects (name, client, status, contract_value, planned_cost, actual_cost, billable_value, billed_value, paid_value, progress, baseline_version, start_date, end_date, revision_limit, active_revision_count, data_json, id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(...values, reconciled.id);
+            }
+          }
+        })();
+        console.log(`[SUPABASE] two-way sync: pulled ${remoteProjects.length} projects into local engine`);
+      }
+      lastSyncTime = Date.now();
+    } catch (err) {
+      console.warn('[SUPABASE] two-way sync error (fallback to local SQLite):', err instanceof Error ? err.message : err);
+    } finally {
+      inFlightSync = null;
+    }
+  })();
+
+  return inFlightSync;
+}
+
+if (isSupabaseConfigured()) {
+  void pullLatestFromSupabase();
+}
+
 export function makeCtx(): Ctx {
   return { now: new Date().toISOString(), actor: actorFor(claraDb.getActivePersona()), nextId: randomId };
 }
 
 export const claraDb = {
+  pullFromSupabase: pullLatestFromSupabase,
+
   getDemoUsers() {
     return db.prepare('SELECT * FROM demo_users ORDER BY rowid').all();
   },
@@ -114,6 +205,8 @@ export const claraDb = {
 
   setActivePersona(personaId: UserPersonaId) {
     db.prepare('UPDATE demo_session SET active_user_id = ?, updated_at = ? WHERE id = 1').run(personaId, new Date().toISOString());
+    lastSyncTime = Date.now();
+    void syncSessionToSupabase(personaId);
   },
 
   getProjects(): Project[] {
@@ -158,6 +251,8 @@ export const claraDb = {
   deleteProject(id: string): void {
     const result = db.prepare('DELETE FROM projects WHERE id = ?').run(id);
     if (result.changes === 0) throw notFound('Proyek tidak ditemukan.', 'PROJECT_NOT_FOUND');
+    lastSyncTime = Date.now();
+    void deleteProjectFromSupabase(id);
   },
 
   findAlertProject(alertId: string): Project {

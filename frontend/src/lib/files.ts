@@ -22,7 +22,7 @@ export const SAMPLE_FILES = {
 export type SampleKey = keyof typeof SAMPLE_FILES;
 
 export const MAX_CONTRACT_BYTES = 10 * 1024 * 1024;
-export const MAX_RAB_BYTES = 2 * 1024 * 1024;
+export const MAX_RAB_BYTES = 5 * 1024 * 1024;
 
 export const CONTRACT_TYPES: Record<string, string> = {
   pdf: 'application/pdf',
@@ -31,7 +31,11 @@ export const CONTRACT_TYPES: Record<string, string> = {
   jpeg: 'image/jpeg',
   webp: 'image/webp',
 };
-export const RAB_TYPES: Record<string, string> = { csv: 'text/csv' };
+export const RAB_TYPES: Record<string, string> = {
+  csv: 'text/csv',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  xls: 'application/vnd.ms-excel',
+};
 
 const SAFE_ID = /^[A-Za-z0-9_-]{1,80}$/;
 
@@ -44,11 +48,36 @@ export function saveDocumentFile(projectId: string, documentId: string, data: Bu
   const target = documentPath(projectId, documentId);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, data);
+  void import('./supabase').then(({ uploadFileToSupabase }) => {
+    void uploadFileToSupabase(`${projectId}/${documentId}.bin`, data, 'application/octet-stream');
+  }).catch(() => null);
 }
 
 export function readDocumentFile(projectId: string, documentId: string): Buffer | null {
   const target = documentPath(projectId, documentId);
   return fs.existsSync(target) ? fs.readFileSync(target) : null;
+}
+
+/**
+ * Reads a document file from local storage, falling back to Supabase Storage if missing.
+ */
+export async function getDocumentFile(projectId: string, documentId: string): Promise<Buffer | null> {
+  const local = readDocumentFile(projectId, documentId);
+  if (local) return local;
+
+  try {
+    const { downloadFileFromSupabase } = await import('./supabase');
+    const remote = await downloadFileFromSupabase(`${projectId}/${documentId}.bin`);
+    if (remote) {
+      const target = documentPath(projectId, documentId);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, remote);
+      return remote;
+    }
+  } catch (err) {
+    console.warn(`[FILES] download ${projectId}/${documentId} from Supabase error:`, err);
+  }
+  return null;
 }
 
 export function readSample(fileName: string): Buffer {
