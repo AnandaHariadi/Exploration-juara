@@ -11,8 +11,8 @@ import { EMPTY_TERMS } from '@/types';
 import { badRequest, conflict, HttpError } from './api';
 import { claraDb, makeCtx } from './db';
 import { findDocument, latestDocument } from './domain';
-import { readDocumentFile } from './files';
-import { parseRabCsv } from './rab';
+import { getDocumentFile, readDocumentFile } from './files';
+import { parseRabBuffer } from './rab';
 import { manualCandidate, sampleCandidate } from './samples';
 import { aiAnalyzeDocument, type NormalizedAnalysis } from './ai';
 import { idr } from './engine';
@@ -30,7 +30,7 @@ function rabFromProject(project: Project): ExtractionCandidate['rab'] {
   const file = readDocumentFile(project.id, doc.id);
   if (!file) return { items: [], total: null, sourceFile: doc.fileName, warnings: ['Berkas RAB tidak ditemukan di penyimpanan. Unggah ulang RAB.'] };
   try {
-    const parsed = parseRabCsv(file.toString('utf8'));
+    const parsed = parseRabBuffer(file, doc.fileName);
     return { items: parsed.items, total: parsed.total, sourceFile: doc.fileName, warnings: parsed.warnings };
   } catch (error) {
     return { items: [], total: null, sourceFile: doc.fileName, warnings: [`RAB tidak dapat dibaca: ${error instanceof Error ? error.message : 'format tidak dikenali'}`] };
@@ -114,9 +114,9 @@ export function startDocumentAnalysis(projectId: string, documentId: string): Pr
 async function runAnalysis(projectId: string, doc: ProjectDocument, startedAt: string): Promise<Project> {
   try {
     if (doc.kind === 'RAB') {
-      const file = readDocumentFile(projectId, doc.id);
+      const file = (await getDocumentFile(projectId, doc.id)) ?? readDocumentFile(projectId, doc.id);
       if (!file) throw new HttpError(404, 'FILE_MISSING', 'Berkas RAB tidak ditemukan. Unggah ulang.');
-      const parsed = parseRabCsv(file.toString('utf8'));
+      const parsed = parseRabBuffer(file, doc.fileName);
       return claraDb.mutate(projectId, (project) => {
         const target = findDocument(project, doc.id);
         target.status = project.baselines.length ? 'APPROVED' : 'ANALYZED';
@@ -135,7 +135,7 @@ async function runAnalysis(projectId: string, doc: ProjectDocument, startedAt: s
       }).project;
     }
 
-    const file = readDocumentFile(projectId, doc.id);
+    const file = (await getDocumentFile(projectId, doc.id)) ?? readDocumentFile(projectId, doc.id);
     if (!file) throw new HttpError(404, 'FILE_MISSING', 'Berkas dokumen tidak ditemukan di penyimpanan. Unggah ulang.');
     const result = await aiAnalyzeDocument(file, doc.fileName, doc.mimeType, doc.id, aiKind(doc));
     const finished = claraDb.mutate(projectId, (project) => {
