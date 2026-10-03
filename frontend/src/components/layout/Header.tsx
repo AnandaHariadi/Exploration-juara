@@ -3,8 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ChevronDown, Menu, Plus, X } from 'lucide-react';
-import { useActivePersona, useProjects } from '@/hooks/useClaraData';
+import { Bot, ChevronDown, Menu, Plus, X } from 'lucide-react';
+import { useActivePersona, useAiHealth, useProjects } from '@/hooks/useClaraData';
 import { USER_PERSONAS, UserPersonaId } from '@/types';
 
 const roleNames: Record<UserPersonaId, string> = {
@@ -21,6 +21,7 @@ export function Header({ mobileSidebarOpen, onToggleSidebar }: HeaderProps) {
   const pathname = usePathname();
   const { projects, loading: projectsLoading, error: projectsError } = useProjects();
   const { personaId, selectPersona } = useActivePersona();
+  const { health } = useAiHealth();
   const [roleOpen, setRoleOpen] = React.useState(false);
   const [switchError, setSwitchError] = React.useState<string | null>(null);
   const roleMenuRef = React.useRef<HTMLDivElement>(null);
@@ -54,7 +55,8 @@ export function Header({ mobileSidebarOpen, onToggleSidebar }: HeaderProps) {
       </div>
 
       <div className="col-span-2 row-start-2 flex min-w-0 items-center justify-end gap-2 lg:col-span-1 lg:col-start-2 lg:row-start-1 lg:gap-3">
-        <a href="/projects/new" aria-label="Proyek baru" className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-red-600 px-2.5 text-sm font-semibold text-white hover:bg-red-700 sm:px-4"><Plus size={17} strokeWidth={2.5} /><span className="hidden sm:inline">Proyek baru</span></a>
+        <Link href="/legal-ai" title={health?.message ?? 'Memeriksa layanan AI'} className={`hidden h-10 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold md:inline-flex ${health === null ? 'border-zinc-200 text-zinc-500' : health.available ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}><Bot size={15} />{health === null ? 'AI…' : health.available ? 'AI siap' : 'AI tidak tersedia'}</Link>
+        <Link href="/projects/new" aria-label="Proyek baru" className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-red-600 px-2.5 text-sm font-semibold text-white hover:bg-red-700 sm:px-4"><Plus size={17} strokeWidth={2.5} /><span className="hidden sm:inline">Proyek baru</span></Link>
         <div className="relative min-w-0 flex-1 lg:max-w-72 lg:flex-none lg:w-60 xl:w-72">
           <label htmlFor="pilih-proyek" className="sr-only">Buka proyek</label>
           <select id="pilih-proyek" value={currentProjectId} onChange={(event) => event.target.value && router.push(`/projects/${event.target.value}`)} className="h-10 w-full appearance-none truncate rounded-lg border border-zinc-200 bg-white pl-3 pr-8 text-sm font-medium text-zinc-800 focus:outline-none focus:ring-2 focus:ring-red-500/30">
