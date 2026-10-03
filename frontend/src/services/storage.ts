@@ -283,6 +283,32 @@ export const storageService = {
   resetToDefault(): void {
     if (typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PROJECTS));
+    localStorage.setItem('clara_active_persona', 'BUDI');
     window.dispatchEvent(new Event('clara_data_updated'));
+    window.dispatchEvent(new Event('clara_persona_changed'));
+  },
+
+  getActivePersona(): 'BUDI' | 'SITI' | 'HENDRA' | 'ADMIN' {
+    if (typeof window === 'undefined') return 'BUDI';
+    try {
+      const stored = localStorage.getItem('clara_active_persona');
+      if (stored === 'BUDI' || stored === 'SITI' || stored === 'HENDRA' || stored === 'ADMIN') {
+        return stored;
+      }
+      return 'BUDI';
+    } catch {
+      return 'BUDI';
+    }
+  },
+
+  setActivePersona(persona: 'BUDI' | 'SITI' | 'HENDRA' | 'ADMIN'): void {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem('clara_active_persona', persona);
+      window.dispatchEvent(new Event('clara_persona_changed'));
+    } catch (e) {
+      console.error('Failed to save active persona', e);
+    }
   },
 };
+
