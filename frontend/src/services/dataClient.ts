@@ -1,6 +1,8 @@
 import type {
   AiHealth,
   Alert,
+  DocumentKind,
+  DraftType,
   LegalAnswer,
   PortfolioSummary,
   Project,
@@ -114,14 +116,17 @@ export const dataClient = {
   createProject: (input: { name: string; client: string; useSample?: boolean }) => mutation(() => send<Project>('POST', '/api/projects', input)),
   updateProject: (id: string, input: { name?: string; client?: string }) => mutation(() => send<Project>('PATCH', `/api/projects/${id}`, input)),
   deleteProject: (id: string) => mutation(() => send<{ id: string }>('DELETE', `/api/projects/${id}`)),
-  uploadDocument: (projectId: string, kind: 'CONTRACT' | 'RAB', file: File) =>
+  uploadDocument: (projectId: string, kind: DocumentKind, file: File) =>
     mutation(() => {
       const form = new FormData();
       form.append('kind', kind);
       form.append('file', file);
       return request<{ project: Project }>(`/api/projects/${projectId}/documents`, { method: 'POST', body: form });
     }),
-  attachSampleDocuments: (projectId: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/documents/sample`)),
+  attachSampleDocuments: (projectId: string, samples?: string[]) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/documents/sample`, samples ? { samples } : {})),
+  reanalyzeDocument: (projectId: string, documentId: string) => mutation(() => send<Project>('POST', '/api/ai/documents/review', { projectId, documentId })),
+  decideDocument: (projectId: string, documentId: string, decision: 'APPROVED' | 'REJECTED', note?: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/documents/${documentId}/decision`, { decision, note })),
+  recordInvoiceFromDocument: (projectId: string, documentId: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/documents/${documentId}/record-invoice`)),
   extract: (projectId: string, mode: 'AI' | 'SAMPLE' | 'MANUAL') => mutation(() => send<Project>('POST', `/api/projects/${projectId}/extract`, { mode })),
   updateCandidate: (projectId: string, patch: Record<string, unknown>) =>
     mutation(() => send<{ project: Project; validation: string[] }>('PUT', `/api/projects/${projectId}/baseline/candidate`, patch)),
@@ -138,9 +143,45 @@ export const dataClient = {
 
   // Change requests
   createChangeRequest: (projectId: string, input: ChangeRequestInput) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/change-requests`, input)),
+  updateChangeRequest: (projectId: string, crId: string, patch: Partial<ChangeRequestInput>) => mutation(() => send<Project>('PATCH', `/api/projects/${projectId}/change-requests/${crId}`, patch)),
   submitChangeRequest: (projectId: string, crId: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/change-requests/${crId}/submit`)),
-  approveChangeRequest: (projectId: string, crId: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/change-requests/${crId}/approve`)),
-  rejectChangeRequest: (projectId: string, crId: string, note?: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/change-requests/${crId}/reject`, { note })),
+  financeReviewChangeRequest: (projectId: string, crId: string, note?: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/change-requests/${crId}/finance-review`, { note })),
+  decideChangeRequest: (projectId: string, crId: string, decision: 'APPROVE' | 'REJECT', note?: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/change-requests/${crId}/decision`, { decision, note })),
+  recordClientApproval: (projectId: string, crId: string, input: { decision: 'APPROVED' | 'REJECTED'; reference?: string; documentId?: string; note?: string }) =>
+    mutation(() => send<Project>('POST', `/api/projects/${projectId}/change-requests/${crId}/client-approval`, input)),
+
+  // Remediation Copilot / Document Studio
+  draftChangeRequestFromAlert: (projectId: string, alertId: string) => mutation(() => send<{ project: Project; crId: string; draftId: string }>('POST', '/api/ai/change-requests/draft', { projectId, alertId })),
+  generateDocument: (input: { projectId: string; type: DraftType; title?: string; instructions?: string; alertId?: string; changeRequestId?: string; originalClause?: string }) =>
+    mutation(() => send<{ project: Project; draftId: string }>('POST', '/api/ai/documents/generate', input)),
+  reviseDocument: (projectId: string, draftId: string, input: { instruction?: string; content?: string }) => mutation(() => send<Project>('POST', '/api/ai/documents/revise', { projectId, draftId, ...input })),
+  approveDraft: (projectId: string, draftId: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/drafts/${draftId}/approve`)),
+  rejectDraft: (projectId: string, draftId: string, note?: string) => mutation(() => send<Project>('POST', `/api/projects/${projectId}/drafts/${draftId}/reject`, { note })),
+  /** Export an approved draft: downloads the PDF (or Markdown when the PDF renderer is down). */
+  exportDraft: (projectId: string, draftId: string) =>
+    mutation(async () => {
+      let res: Response;
+      try {
+        res = await fetch(`/api/projects/${projectId}/drafts/${draftId}/export`, { method: 'POST' });
+      } catch {
+        throw new ApiError('Tidak dapat terhubung ke server.', 0, 'NETWORK');
+      }
+      if (!res.ok) {
+        const json = (await res.json().catch(() => null)) as ApiEnvelope<unknown> | null;
+        const error = json?.error;
+        throw new ApiError((typeof error === 'object' && error?.message) || `Ekspor gagal (HTTP ${res.status}).`, res.status);
+      }
+      const blob = await res.blob();
+      const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? 'draf.pdf';
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      return name;
+    }),
+  explainAlert: (alertId: string) => mutation(() => send<Alert>('POST', '/api/ai/anomalies/explain', { alertId })),
 
   // Alerts
   acknowledgeAlert: (alertId: string) => mutation(() => send<Alert>('POST', `/api/alerts/${alertId}/acknowledge`)),
@@ -148,7 +189,7 @@ export const dataClient = {
 
   // AI
   askLegal: (question: string, projectId?: string, history: { role: 'user' | 'assistant'; content: string }[] = []) =>
-    send<LegalAnswer & { projectId: string | null }>('POST', '/api/ai/query', { question, projectId, history }),
+    send<LegalAnswer & { projectId: string | null }>('POST', '/api/ai/legal/query', { question, projectId, history }),
 
   // Demo
   setActivePersona: async (persona: UserPersonaId) => {
