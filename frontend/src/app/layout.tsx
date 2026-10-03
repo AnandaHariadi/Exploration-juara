@@ -2,8 +2,13 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'CLARA — Pantau kontrak dan keuangan proyek',
-  description: 'Pantau pekerjaan, biaya, tagihan, dan perubahan kesepakatan proyek dalam satu tempat.',
+  title: 'CLARA — Contract Intelligence & Value Assurance Platform',
+  description: 'Turn Contracts into Living Business Intelligence. Rekonsiliasi presisi antara Kontrak, RAB, Progress Lapangan, dan Invoice.',
+  icons: {
+    icon: '/images/clara_icon.png',
+    shortcut: '/images/clara_icon.png',
+    apple: '/images/clara_icon.png',
+  },
 };
 
 export default function RootLayout({
