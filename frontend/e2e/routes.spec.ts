@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 // Every navigable route at desktop, laptop and phone width: loads, no console
 // or page errors, no horizontal page overflow, and no internal link that 404s.
-const ROUTES = ['/', '/dashboard', '/projects', '/projects/new', '/projects/PRJ-NSR', '/projects/PRJ-ASL', '/monitoring', '/finance', '/change-requests', '/alerts', '/legal-ai'];
+const ROUTES = ['/', '/dashboard', '/projects', '/projects/new', '/projects/PRJ-NSR', '/projects/PRJ-NSR?tab=documents', '/projects/PRJ-NSR?tab=change-requests', '/projects/PRJ-ASL', '/monitoring', '/finance', '/change-requests', '/alerts', '/ai-center', '/studio', '/legal-ai'];
 const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'laptop', width: 1280, height: 800 },
