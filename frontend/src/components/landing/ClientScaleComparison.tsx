@@ -30,121 +30,43 @@ export function ClientScaleComparison() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header - Astra Corporate Style */}
-        <div className="max-w-3xl mb-16">
+        <div className="max-w-3xl mb-16 reveal-on-scroll">
           <div className="flex items-center gap-3 mb-4">
             <span className="w-8 h-[2px] bg-red-600 inline-block" />
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
-              Kategori Mitra &amp; Skala Penagihan
+              Target Industri &amp; Model Proyek
             </span>
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-bold text-zinc-950 tracking-tight mb-4">
-            Dua Jalur Penagihan Adaptif
+            Dua Fokus Rekonsiliasi Bisnis
           </h2>
           <p className="text-base sm:text-lg text-zinc-600 leading-relaxed font-normal">
-            Sistem CLARA secara cerdas menyesuaikan kanal transaksi, format dokumen, dan tata bahasa pengingat berdasarkan profil badan hukum mitra kerja Anda.
+            Sistem CLARA secara cerdas menyesuaikan parameter rekonsiliasi berdasarkan karakteristik kontrak, jenis deliverable, dan model penagihan industri Anda.
           </p>
         </div>
 
         {/* 2-Track Enterprise Comparison Cards (Generous Size + Rich Visuals) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-stretch">
-          {/* JALUR 01: Skala Komunitas & Kampus */}
-          <div className="bg-white rounded-3xl overflow-hidden border border-zinc-200 hover:border-zinc-300 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between">
+          {/* JALUR 01: Software House & IT Outsourcing */}
+          <div className="bg-white rounded-3xl overflow-hidden border border-zinc-200 hover:border-zinc-300 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between group reveal-3d reveal-delay-1">
             <div>
               {/* Photo Banner */}
               <div className="relative h-56 sm:h-64 w-full bg-zinc-100 overflow-hidden">
                 <Image
-                  src="/images/track_community.jpg"
-                  alt="Skala Komunitas dan Kampus"
-                  fill
-                  className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-full flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5 text-orange-600" />
-                  <span className="text-xs font-bold text-zinc-900 font-mono">JALUR 01</span>
-                </div>
-                <div className="absolute bottom-4 left-4 right-4 text-white">
-                  <span className="text-xs font-medium text-orange-200 block mb-1">Ormawa, Event &amp; Komunitas</span>
-                  <h3 className="text-xl sm:text-2xl font-heading font-bold tracking-tight">
-                    Skala Komunitas &amp; Kampus
-                  </h3>
-                </div>
-              </div>
-
-              {/* Body Content */}
-              <div className="p-8 sm:p-10">
-                <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8">
-                  Dirancang khusus untuk kepanitiaan acara, organisasi mahasiswa, dan komunitas kreatif yang mengutamakan kecepatan pembayaran tanpa prosedur birokrasi berbelit.
-                </p>
-
-                {/* Structured Specifications */}
-                <div className="space-y-6 pt-6 border-t border-zinc-100">
-                  <div className="flex items-start gap-3.5">
-                    <CheckCircle2 className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
-                        01. Diplomasi Bahasa &amp; Etika
-                      </h4>
-                      <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                        Format notifikasi pengingat otomatis dengan tata bahasa santun dan diplomatis yang menjaga etika relasi kemitraan tetap terpercaya.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3.5">
-                    <CheckCircle2 className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
-                        02. Kanal Transaksi Langsung
-                      </h4>
-                      <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                        QRIS Dinamis Instan — Bendahara organisasi cukup memindai barcode melalui aplikasi e-wallet kepanitiaan tanpa transfer manual.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3.5">
-                    <CheckCircle2 className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
-                        03. Skema Termin Bertahap
-                      </h4>
-                      <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                        Uang muka 30% untuk memulai pengerjaan, dan pelunasan 70% diselesaikan sebelum penutupan Laporan Pertanggungjawaban (LPJ).
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Target Highlight */}
-            <div className="mx-8 sm:mx-10 mb-8 pt-6 border-t border-zinc-100 text-xs text-zinc-500 flex items-center justify-between">
-              <span>Rekomendasi Transaksi:</span>
-              <span className="font-semibold text-zinc-800">Cepat, Fleksibel, Multi e-Wallet</span>
-            </div>
-          </div>
-
-          {/* JALUR 02: Skala Industri & Korporat B2B */}
-          <div className="bg-white rounded-3xl overflow-hidden border border-zinc-200 hover:border-zinc-300 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between">
-            <div>
-              {/* Photo Banner */}
-              <div className="relative h-56 sm:h-64 w-full bg-zinc-100 overflow-hidden">
-                <Image
-                  src="/images/track_corporate.jpg"
-                  alt="Skala Industri dan Korporat B2B"
+                  src="/images/corporate_tech_rd.jpg"
+                  alt="Software House dan IT Outsourcing"
                   fill
                   className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-full flex items-center gap-2">
                   <Building2 className="w-3.5 h-3.5 text-red-600" />
-                  <span className="text-xs font-bold text-zinc-900 font-mono">JALUR 02</span>
+                  <span className="text-xs font-bold text-zinc-900 font-mono">SEGMEN 01</span>
                 </div>
                 <div className="absolute bottom-4 left-4 right-4 text-white">
-                  <span className="text-xs font-medium text-red-200 block mb-1">Perseroan Resmi (PT / CV)</span>
+                  <span className="text-xs font-medium text-red-200 block mb-1">Development &amp; Tech Services</span>
                   <h3 className="text-xl sm:text-2xl font-heading font-bold tracking-tight">
-                    Skala Industri &amp; Korporat B2B
+                    Software House &amp; IT Outsourcing
                   </h3>
                 </div>
               </div>
@@ -152,7 +74,7 @@ export function ClientScaleComparison() {
               {/* Body Content */}
               <div className="p-8 sm:p-10">
                 <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8">
-                  Standar transaksi formal komersial untuk agensi, perseroan berbadan hukum, dan korporasi yang membutuhkan kepatuhan administratif lengkap.
+                  Optimal untuk proyek berbasis milestone pengerjaan, rate card per developer, serta siklus sprint pengerjaan dengan risiko tinggi terjadinya scope creep dan unbilled deliverables.
                 </p>
 
                 {/* Structured Specifications */}
@@ -161,10 +83,10 @@ export function ClientScaleComparison() {
                     <CheckCircle2 className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                     <div>
                       <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
-                        01. Diplomasi Bahasa Korporasi
+                        01. Deteksi Scope Creep Sprint
                       </h4>
                       <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                        Standar korespondensi formal korporasi dilengkapi referensi Purchase Order (PO) &amp; Berita Acara resmi.
+                        Memantau penambahan fitur baru di luar SOW awal dan memicu alert sebelum memicu kerugian jam kerja dan biaya developer.
                       </p>
                     </div>
                   </div>
@@ -173,10 +95,10 @@ export function ClientScaleComparison() {
                     <CheckCircle2 className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                     <div>
                       <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
-                        02. Kanal Pembayaran Perbankan
+                        02. Milestone to Billing Trigger
                       </h4>
                       <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                        Rekening Virtual Account resmi terverifikasi otomatis seketika tanpa perlu lampiran bukti mutasi rekening manual.
+                        Mengingatkan finance secara seketika saat sprint atau milestone teknis rampung agar tagihan termin langsung diterbitkan tanpa penundaan.
                       </p>
                     </div>
                   </div>
@@ -185,10 +107,10 @@ export function ClientScaleComparison() {
                     <CheckCircle2 className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                     <div>
                       <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
-                        03. Skema Termin &amp; BAST
+                        03. Rekonsiliasi RAB &amp; Man-Days
                       </h4>
                       <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-                        Tata kelola uang muka 50% sebelum pengerjaan proyek dimulai, dan 50% pelunasan setelah Berita Acara Serah Terima (BAST).
+                        Mencocokkan alokasi man-days developer pada RAB rencana dengan aktual pengerjaan di lapangan guna menjaga batas profit margin.
                       </p>
                     </div>
                   </div>
@@ -198,8 +120,86 @@ export function ClientScaleComparison() {
 
             {/* Bottom Target Highlight */}
             <div className="mx-8 sm:mx-10 mb-8 pt-6 border-t border-zinc-100 text-xs text-zinc-500 flex items-center justify-between">
-              <span>Rekomendasi Transaksi:</span>
-              <span className="font-semibold text-zinc-800">Formal B2B, Virtual Account, Dokumen Legal</span>
+              <span>Model Pengerjaan:</span>
+              <span className="font-semibold text-zinc-800">Milestone, SOW, Time &amp; Material</span>
+            </div>
+          </div>
+
+          {/* JALUR 02: Consulting & Creative Agencies */}
+          <div className="bg-white rounded-3xl overflow-hidden border border-zinc-200 hover:border-zinc-300 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between group reveal-3d reveal-delay-2">
+            <div>
+              {/* Photo Banner */}
+              <div className="relative h-56 sm:h-64 w-full bg-zinc-100 overflow-hidden">
+                <Image
+                  src="/images/corporate_fintech_ops.jpg"
+                  alt="Consulting Firms dan Creative Agencies"
+                  fill
+                  className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-full flex items-center gap-2">
+                  <Users className="w-3.5 h-3.5 text-orange-600" />
+                  <span className="text-xs font-bold text-zinc-900 font-mono">SEGMEN 02</span>
+                </div>
+                <div className="absolute bottom-4 left-4 right-4 text-white">
+                  <span className="text-xs font-medium text-orange-200 block mb-1">Professional &amp; Advisory Services</span>
+                  <h3 className="text-xl sm:text-2xl font-heading font-bold tracking-tight">
+                    Consulting &amp; Creative Agencies
+                  </h3>
+                </div>
+              </div>
+
+              {/* Body Content */}
+              <div className="p-8 sm:p-10">
+                <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8">
+                  Dirancang khusus bagi agensi kreatif, konsultan manajemen, dan penyedia jasa profesional dengan paket deliverable tetap, kuota revisi, dan kontrak retainer berkala.
+                </p>
+
+                {/* Structured Specifications */}
+                <div className="space-y-6 pt-6 border-t border-zinc-100">
+                  <div className="flex items-start gap-3.5">
+                    <CheckCircle2 className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
+                        01. Monitoring Kuota Revisi
+                      </h4>
+                      <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
+                        Menghitung otomatis putaran revisi klien terhadap batas ketentuan kontrak, mencegah pekerjaan tak terbayar dan memicu klausul addendum.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3.5">
+                    <CheckCircle2 className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
+                        02. Pelacakan Retainer &amp; Deliverables
+                      </h4>
+                      <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
+                        Memastikan seluruh deliverable bulanan terpenuhi secara transparan sebelum invoice periode berjalan ditagihkan kepada klien.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3.5">
+                    <CheckCircle2 className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
+                        03. Rekonsiliasi Plafon Biaya Vendor
+                      </h4>
+                      <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
+                        Mengawal pengeluaran pihak ketiga (vendor media placement, talent, cetak) agar tidak melampaui alokasi plafon RAB yang disepakati.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Target Highlight */}
+            <div className="mx-8 sm:mx-10 mb-8 pt-6 border-t border-zinc-100 text-xs text-zinc-500 flex items-center justify-between">
+              <span>Model Pengerjaan:</span>
+              <span className="font-semibold text-zinc-800">Retainer, Deliverable-based, Fixed Fee</span>
             </div>
           </div>
         </div>

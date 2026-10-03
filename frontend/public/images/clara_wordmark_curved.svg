@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 220" width="100%" height="100%">
+  <defs>
+    <!-- Smooth Graceful Arched Baseline Path -->
+    <path id="claraCurve" d="M 50,175 Q 450,75 850,175" fill="none" />
+    
+    <!-- Subtle Dimensional Underglow -->
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="135%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#09090B" flood-opacity="0.12" />
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.08" />
+    </filter>
+
+    <!-- Sleek Red Dynamic Accent Wave -->
+    <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#DC2626" stop-opacity="0" />
+      <stop offset="50%" stop-color="#DC2626" stop-opacity="1" />
+      <stop offset="100%" stop-color="#EF4444" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <!-- Dynamic Accent Arc / Lekukan Modern di Bawah Text -->
+  <path d="M 180,185 Q 450,125 720,185" stroke="url(#waveGrad)" stroke-width="3.5" stroke-linecap="round" fill="none" opacity="0.85" />
+  
+  <g filter="url(#softShadow)">
+    <text font-family="'Plus Jakarta Sans', 'Inter', 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif"
+          font-weight="900"
+          font-size="130"
+          letter-spacing="8"
+          fill="#09090B">
+      <textPath href="#claraCurve" startOffset="50%" text-anchor="middle">
+        CLARA
+      </textPath>
+    </text>
+  </g>
+</svg>

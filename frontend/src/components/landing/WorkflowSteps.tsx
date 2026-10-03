@@ -11,23 +11,23 @@ interface Step {
 const steps: Step[] = [
   {
     number: "01",
-    title: "Ketik Instruksi Bebas",
-    description: "Tuliskan kebutuhan penagihan seperti berkirim pesan harian. Cukup sebutkan nama mitra kerja, nominal kontrak proyek, dan pembagian skema uang muka (DP)."
+    title: "Ingestion Kontrak & RAB",
+    description: "Unggah dokumen perjanjian kerja (PKS, SPK, SOW) dan file RAB proyek. AI mengekstrak deliverables, milestone penagihan, serta pos anggaran menjadi data terstruktur."
   },
   {
     number: "02",
-    title: "Tinjau & Konfirmasi Draft",
-    description: "Sistem menyajikan draft rincian termin otomatis secara transparan. Anda memegang kendali penuh 100% untuk memeriksa dan menyetujui sebelum dokumen resmi diterbitkan."
+    title: "Konfirmasi & Kunci Baseline V1",
+    description: "Project Owner dan Finance memeriksa hasil ekstraksi (Human-in-the-loop). Setelah diverifikasi, sistem mengunci Baseline V1 resmi sebagai acuan tunggal proyek."
   },
   {
     number: "03",
-    title: "Kirim Tautan Pembayaran",
-    description: "Klien menerima tautan tagihan resmi berisi opsi pembayaran QRIS dan Virtual Account nasional tanpa perlu registrasi akun atau mengunduh aplikasi apa pun."
+    title: "Rekonsiliasi Multidimensi",
+    description: "Engine deterministik mencocokkan progress lapangan dan biaya aktual terhadap baseline untuk mendeteksi Scope Variance, Budget Overrun, dan Unbilled Milestones."
   },
   {
     number: "04",
-    title: "Pencairan Kas Otomatis",
-    description: "Saat pembayaran diselesaikan klien, webhook gateway langsung memverifikasi transaksi secara seketika dan kas tercatat otomatis tanpa verifikasi struk manual."
+    title: "Change Request & Realisasi Nilai",
+    description: "Setiap addendum atau penambahan scope resmi disahkan menjadi Baseline V2/V3 dengan audit trail lengkap, memastikan seluruh nilai kontrak terealisasi utuh."
   }
 ];
 
@@ -48,31 +48,31 @@ interface PartnerItem {
 const partners: PartnerItem[] = [
   {
     id: 1,
-    name: "Instansi Mitra 01",
+    name: "UPN Veteran Jawa Timur",
     category: "Lembaga Akademik & Riset",
-    logo: "/images/partners/partner_1.svg", // GANTI LOGO 1 DI SINI
-    alt: "Logo Mitra Instansi 1",
+    logo: "/images/partners/logo_upnvjt.png",
+    alt: "Logo UPN Veteran Jawa Timur",
   },
   {
     id: 2,
-    name: "Instansi Mitra 02",
-    category: "Pusat Inkubasi Bisnis",
-    logo: "/images/partners/partner_2.svg", // GANTI LOGO 2 DI SINI
-    alt: "Logo Mitra Instansi 2",
+    name: "Kebun Sayur Surabaya (KSS)",
+    category: "Mitra Bisnis & Agribisnis",
+    logo: "/images/partners/logo_kss.png",
+    alt: "Logo Kebun Sayur Surabaya KSS",
   },
   {
     id: 3,
-    name: "Media Partner 03",
-    category: "Portal Finansial Nasional",
-    logo: "/images/partners/partner_3.svg", // GANTI LOGO 3 DI SINI
-    alt: "Logo Media Partner 3",
+    name: "Ngalup.co",
+    category: "Hub Kolaborasi & Ekosistem Startup",
+    logo: "/images/partners/logo_ngalup.png",
+    alt: "Logo Ngalup.co",
   },
   {
     id: 4,
-    name: "Instansi Mitra 04",
-    category: "Asosiasi Industri & Kreatif",
-    logo: "/images/partners/partner_4.svg", // GANTI LOGO 4 DI SINI
-    alt: "Logo Mitra Instansi 4",
+    name: "TTG",
+    category: "Mitra Teknologi & Transformasi Digital",
+    logo: "/images/partners/logo_ttg.png",
+    alt: "Logo TTG",
   },
 ];
 
@@ -103,25 +103,26 @@ export function WorkflowSteps() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header - Astra Corporate Style */}
-        <div className="max-w-3xl mb-16">
+        <div className="max-w-3xl mb-16 reveal-on-scroll">
           <div className="flex items-center gap-3 mb-4">
             <span className="w-8 h-[2px] bg-red-600 inline-block" />
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
-              Alur Penagihan Terpadu
+              Alur Kerja Contract Intelligence
             </span>
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-bold text-zinc-950 tracking-tight mb-4">
-            Empat Tahapan Alur Kerja Otomatis
+            <span className="block">Empat Tahapan</span>
+            <span className="block">Rekonsiliasi Terpadu</span>
           </h2>
           <p className="text-base sm:text-lg text-zinc-600 leading-relaxed font-normal">
-            Seluruh proses penagihan dirancang intuitif, akuntabel, dan terotomasi penuh dari instruksi awal hingga rekonsiliasi kas masuk.
+            Dari ekstraksi dokumen hingga pencocokan deterministik, seluruh alur dirancang akuntabel dengan konfirmasi manusia di setiap titik keputusan penting.
           </p>
         </div>
 
         {/* 4 Connected Process Steps */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 pt-10 border-t border-zinc-200">
-          {steps.map((item) => (
-            <div key={item.number} className="relative flex flex-col justify-start">
+          {steps.map((item, index) => (
+            <div key={item.number} className={`relative flex flex-col justify-start reveal-scale reveal-delay-${index + 1}`}>
               {/* Monospace Step Indicator */}
               <div className="flex items-center gap-3 mb-4">
                 <span className="font-heading font-bold text-3xl sm:text-4xl text-red-600 font-mono tracking-tight">
@@ -146,7 +147,7 @@ export function WorkflowSteps() {
         {/* ================================================================ */}
         {/* MITRA & MEDIA PARTNER SECTION (4 LOGO INSTANSI)                  */}
         {/* ================================================================ */}
-        <div className="mt-20 pt-12 border-t border-zinc-200">
+        <div className="mt-20 pt-12 border-t border-zinc-200 reveal-on-scroll">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-2">
@@ -164,33 +165,25 @@ export function WorkflowSteps() {
             </p>
           </div>
 
-          {/* 4 Partner Logo Cards */}
+          {/* 4 Partner Logo Cards (Pure Logos, Enlarged & Clean) */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {partners.map((partner) => (
               <div
                 key={partner.id}
-                className="group relative bg-zinc-50/70 hover:bg-white rounded-xl border border-zinc-200/90 hover:border-red-600/60 p-5 sm:p-6 transition-all duration-300 hover:shadow-md flex flex-col items-center justify-center min-h-[140px] text-center overflow-hidden"
+                className="group relative bg-zinc-50/70 hover:bg-white rounded-2xl border border-zinc-200/90 hover:border-red-600/50 p-6 sm:p-8 transition-all duration-300 hover:shadow-xl flex items-center justify-center h-32 sm:h-36 md:h-40 overflow-hidden"
               >
                 {/* Red hover accent bar on top */}
-                <span className="absolute top-0 left-0 right-0 h-[2px] bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <span className="absolute top-0 left-0 right-0 h-[2.5px] bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                {/* Logo slot */}
-                <div className="w-full h-14 sm:h-16 flex items-center justify-center mb-3">
+                {/* Prominent Enlarged Logo Slot */}
+                <div className="relative w-full h-full flex items-center justify-center">
                   <Image
                     src={partner.logo}
                     alt={partner.alt}
-                    width={220}
-                    height={70}
-                    className="max-h-full max-w-[85%] w-auto object-contain opacity-75 group-hover:opacity-100 filter grayscale group-hover:grayscale-0 transition-all duration-300"
+                    width={260}
+                    height={120}
+                    className="max-h-full max-w-[90%] w-auto h-auto object-contain opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 drop-shadow-xs"
                   />
-                </div>
-
-                {/* Subtitle / Role Badge */}
-                <div className="mt-auto pt-2 border-t border-zinc-200/60 w-full flex items-center justify-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 group-hover:bg-red-600 transition-colors" />
-                  <span className="text-[11px] font-mono font-medium text-zinc-500 group-hover:text-zinc-800 transition-colors truncate">
-                    {partner.category}
-                  </span>
                 </div>
               </div>
             ))}

@@ -15,32 +15,33 @@ interface OfficeSlide {
 const officeSlides: OfficeSlide[] = [
   {
     src: "/images/yupiens_hq.jpg",
-    badge: "GEDUNG PUSAT CLARA",
-    caption: "Pusat Inovasi Finansial",
-    title: "Infrastruktur Transaksi Mandiri Terintegrasi",
+    badge: "CONTRACT INTELLIGENCE PLATFORM",
+    caption: "Living Business Intelligence",
+    title: "Mengubah Kontrak Pasif Menjadi Baseline Bisnis Aktif",
   },
   {
     src: "/images/yupiens_office_lobby.jpg",
-    badge: "EXECUTIVE INNOVATION ATRIUM",
-    caption: "Pusat Kolaborasi Strategis",
-    title: "Ruang Kemitraan Komersial & Inkubasi Produk Digital",
+    badge: "BEFORE & AFTER SIGNING",
+    caption: "Mitigasi Risiko & Eksekusi",
+    title: "Pahami Risiko Sebelum Tanda Tangan, Pantau Realisasi Setelahnya",
   },
   {
     src: "/images/corporate_fintech_ops.jpg",
-    badge: "FINTECH OPERATIONS & GATEWAY",
-    caption: "Divisi Operasional & Gateway",
-    title: "Pemantauan Arus Kas & Rekonsiliasi Real-Time 24/7",
+    badge: "MULTIDIMENSIONAL RECONCILIATION",
+    caption: "Sinkronisasi 4 Pilar Bisnis",
+    title: "Rekonsiliasi Presisi: Kontrak, RAB, Progress Lapangan & Invoice",
   },
   {
     src: "/images/corporate_tech_rd.jpg",
-    badge: "TECHNOPARK R&D LAB",
-    caption: "Laboratorium Riset & Rekayasa",
-    title: "Pusat Rekayasa Algoritma & Keamanan Finansial Nasional",
+    badge: "VALUE REALIZATION ENGINE",
+    caption: "Audit Trail & Versioning",
+    title: "Eliminasi Scope Creep, Budget Overrun, dan Unbilled Milestones",
   },
 ];
 
 export function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -49,8 +50,31 @@ export function HeroSection() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrollY(window.scrollY);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % officeSlides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + officeSlides.length) % officeSlides.length);
+
+  // Dynamic 3D perspective scroll calculations (responsive on scroll up and down)
+  const scrollProgress = Math.min(1, Math.max(0, scrollY / 460));
+  const dynamicPitch = (9.5 * (1 - scrollProgress)).toFixed(2); // 9.5deg down to 0deg
+  const dynamicScale = (0.95 + 0.05 * scrollProgress).toFixed(3); // 0.95 up to 1.00
+  const dynamicElevation = (-16 * (1 - scrollProgress)).toFixed(1);
+  const leftRibbonY = scrollY * 0.15;
+  const rightRibbonY = -scrollY * 0.12;
   return (
     <section id="beranda" className="relative bg-white pt-12 pb-16 md:pt-20 md:pb-24 border-b border-zinc-200 overflow-hidden">
       {/* Background Subtle Corporate Texture */}
@@ -63,11 +87,14 @@ export function HeroSection() {
           className="object-cover object-center"
         />
       </div>
-      {/* Clara Executive Monumental Ribbon (Left Flank - 3D Architectural Flow & Radiant Aura) */}
-      <div className="absolute -left-6 sm:-left-4 lg:left-0 xl:left-2 top-0 sm:top-2 lg:top-4 w-36 sm:w-56 md:w-72 lg:w-96 xl:w-[440px] h-auto pointer-events-none select-none z-[1] opacity-85 sm:opacity-95 transition-all">
+      {/* Clara Executive Ribbon (Left Flank) with 3D Parallax */}
+      <div
+        className="absolute top-0 -left-28 sm:-left-36 md:-left-44 lg:-left-40 xl:-left-28 2xl:-left-12 w-64 sm:w-80 md:w-96 lg:w-[420px] xl:w-[480px] h-auto pointer-events-none select-none z-0 opacity-80 sm:opacity-85 lg:opacity-90 transition-transform duration-100 ease-out will-change-transform"
+        style={{ transform: `translateY(${leftRibbonY}px)` }}
+      >
         <Image
           src="/images/shapes/hero_ribbon_monument_left.svg"
-          alt="Clara Executive Ribbon Left"
+          alt="Clara Ribbon Left"
           width={650}
           height={1000}
           className="w-full h-auto object-contain"
@@ -75,11 +102,14 @@ export function HeroSection() {
         />
       </div>
 
-      {/* Clara Executive Monumental Ribbon (Right Flank - 3D Upward Momentum & FinTech Strata) */}
-      <div className="absolute -right-6 sm:-right-4 lg:right-0 xl:right-2 top-0 sm:top-2 lg:top-4 w-36 sm:w-56 md:w-72 lg:w-96 xl:w-[440px] h-auto pointer-events-none select-none z-[1] opacity-85 sm:opacity-95 transition-all">
+      {/* Clara Executive Ribbon (Right Flank) with 3D Parallax */}
+      <div
+        className="absolute top-0 -right-28 sm:-right-36 md:-right-44 lg:-right-40 xl:-right-28 2xl:-right-12 w-64 sm:w-80 md:w-96 lg:w-[420px] xl:w-[480px] h-auto pointer-events-none select-none z-0 opacity-80 sm:opacity-85 lg:opacity-90 transition-transform duration-100 ease-out will-change-transform"
+        style={{ transform: `translateY(${rightRibbonY}px)` }}
+      >
         <Image
           src="/images/shapes/hero_ribbon_monument_right.svg"
-          alt="Clara Executive Ribbon Right"
+          alt="Clara Ribbon Right"
           width={650}
           height={1000}
           className="w-full h-auto object-contain"
@@ -88,37 +118,60 @@ export function HeroSection() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Main Editorial Header - Perfectly Center-Aligned */}
-        <div className="text-center max-w-4xl mx-auto mb-16 relative z-10">
-          {/* Astra-Style Centered Corporate Kicker - Elevating Clara */}
-          <div className="inline-flex items-center justify-center gap-3 mb-6">
-            <span className="w-8 h-[2px] bg-red-600 inline-block" />
-            <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
-              Ekosistem Teknologi Finansial Clara
-            </span>
-            <span className="w-8 h-[2px] bg-red-600 inline-block" />
-          </div>
+        {/* Main Editorial Header - Perfectly Center-Aligned with Ample Ribbon Clearance */}
+        <div className="text-center max-w-3xl mx-auto mb-16 relative z-10 px-4">
 
-          {/* Grand Commanding Clara Wordmark (Main Brand Focal Point) */}
-          <div className="flex justify-center items-center my-6 sm:my-8">
-            <Image
-              src="/images/clara_logo.svg"
-              alt="Clara"
-              width={900}
-              height={270}
-              priority
-              className="h-28 sm:h-36 md:h-44 lg:h-52 xl:h-60 w-auto object-contain filter drop-shadow-xs"
-            />
+          {/* Massive Commanding CLARA Wordmark with Sculpted Arch & Dynamic Red-Orange Gradient */}
+          <div className="relative my-6 sm:my-10 flex flex-col items-center justify-center select-none group px-2 sm:px-6">
+            {/* The Majestic Arched CLARA Typography (Enlarged Scale + Red & Orange Gradient) */}
+            <div className="flex items-center justify-center tracking-tight font-heading font-black text-7xl sm:text-8xl md:text-9xl lg:text-[11.5rem] xl:text-[13rem] leading-none filter drop-shadow-[0_10px_25px_rgba(220,38,38,0.15)]">
+              <span className="inline-block transform translate-y-3 sm:translate-y-4 lg:translate-y-6 -rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
+                C
+              </span>
+              <span className="inline-block transform translate-y-1 sm:translate-y-1.5 lg:translate-y-2 -rotate-3 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
+                L
+              </span>
+              <span className="inline-block transform -translate-y-1 sm:-translate-y-2 lg:-translate-y-2.5 rotate-0 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-amber-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
+                A
+              </span>
+              <span className="inline-block transform translate-y-1 sm:translate-y-1.5 lg:translate-y-2 rotate-3 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-orange-500 to-red-600 bg-clip-text text-transparent">
+                R
+              </span>
+              <span className="inline-block transform translate-y-3 sm:translate-y-4 lg:translate-y-6 rotate-6 transition-transform group-hover:scale-105 duration-300 bg-gradient-to-b from-orange-400 via-red-500 to-red-600 bg-clip-text text-transparent">
+                A
+              </span>
+            </div>
+
+            {/* Sleek Dynamic Lekukan Horizon Arc with Matching Red-Orange Glow */}
+            <div className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mt-3 sm:mt-4 px-4 pointer-events-none">
+              <svg viewBox="0 0 600 40" fill="none" className="w-full h-auto">
+                <path
+                  d="M 20 32 Q 300 6 580 32"
+                  stroke="url(#claraCurveGlow)"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                />
+                <defs>
+                  <linearGradient id="claraCurveGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#DC2626" stopOpacity="0" />
+                    <stop offset="20%" stopColor="#DC2626" stopOpacity="0.8" />
+                    <stop offset="50%" stopColor="#F97316" stopOpacity="1" />
+                    <stop offset="80%" stopColor="#DC2626" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#DC2626" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
           </div>
 
           {/* Sub-headline - Guaranteed Single Line (No Spillover / Tidak Nyisa) */}
-          <h1 className="text-sm sm:text-base md:text-xl lg:text-2xl font-heading font-semibold text-zinc-800 tracking-tight whitespace-nowrap mb-5 max-w-5xl mx-auto">
-            Infrastruktur Finansial &amp; Otomasi Penagihan Profesional
+          <h1 className="text-sm sm:text-base md:text-xl lg:text-2xl font-heading font-semibold text-zinc-800 tracking-tight whitespace-nowrap mb-5 max-w-2xl mx-auto">
+            Turn Contracts into Living Business Intelligence
           </h1>
 
           {/* Elevating Clara Company Copy - Corporate, Visionary & Prestigious */}
-          <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-3xl mx-auto">
-            Sebagai pelopor otomasi administrasi digital, Clara membangun infrastruktur cerdas terintegrasi yang mentransformasi efisiensi transaksi, melindungi arus kas operasional, dan menghadirkan keunggulan bisnis berdaya saing tinggi bagi para profesional mandiri di seluruh Indonesia.
+          <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-2xl mx-auto">
+            Kontrak adalah apa yang disepakati. RAB adalah apa yang direncanakan. Progress dan actual cost adalah apa yang terjadi. Invoice adalah apa yang direalisasikan menjadi uang. CLARA mencocokkan semuanya secara deterministik untuk melindungi margin dan mengoptimalkan nilai bisnis proyek Anda.
           </p>
 
           {/* Action Buttons - Centered */}
@@ -127,14 +180,14 @@ export function HeroSection() {
               href="/dashboard"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-red-600 hover:bg-red-700 text-white font-heading font-semibold text-sm sm:text-base px-8 py-3.5 sm:py-4 rounded-xl shadow-sm hover:shadow transition-all"
             >
-              <span>Buka Dashboard Sekarang</span>
+              <span>Mulai Rekonsiliasi Kontrak</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
             <a
               href="#alur"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-zinc-700 hover:text-zinc-950 font-heading font-semibold text-sm sm:text-base px-7 py-3.5 sm:py-4 rounded-xl border border-zinc-300 hover:border-zinc-400 bg-white hover:bg-zinc-50 transition-all"
             >
-              <span>Pelajari Alur Penagihan</span>
+              <span>Pelajari Alur Rekonsiliasi</span>
               <ChevronRight className="w-4 h-4 text-zinc-400" />
             </a>
           </div>
@@ -147,7 +200,12 @@ export function HeroSection() {
           <div className="absolute -bottom-8 sm:-bottom-12 left-24 sm:left-32 right-24 sm:right-32 h-16 sm:h-20 bg-gradient-to-r from-red-600/25 via-red-500/15 to-red-600/25 blur-3xl rounded-full -z-10 pointer-events-none" />
 
           {/* 3D Beveled Hardware Chassis with Perspective Pitch */}
-          <div className="relative rounded-[26px] sm:rounded-[36px] p-2 sm:p-3 md:p-3.5 bg-gradient-to-b from-zinc-200 via-zinc-100 to-zinc-300 shadow-[0_30px_70px_-15px_rgba(0,0,0,0.35),0_12px_28px_-6px_rgba(0,0,0,0.18),0_1px_2px_rgba(255,255,255,0.95)_inset,0_0_0_1px_rgba(255,255,255,0.7)_inset] ring-1 ring-zinc-900/10 transition-all duration-700 ease-out [transform:perspective(1600px)_rotateX(3.5deg)] hover:[transform:perspective(1600px)_rotateX(0.5deg)_translateY(-8px)_scale(1.008)]">
+          <div
+            className="relative rounded-[26px] sm:rounded-[36px] p-2 sm:p-3 md:p-3.5 bg-gradient-to-b from-zinc-200 via-zinc-100 to-zinc-300 shadow-[0_30px_70px_-15px_rgba(0,0,0,0.35),0_12px_28px_-6px_rgba(0,0,0,0.18),0_1px_2px_rgba(255,255,255,0.95)_inset,0_0_0_1px_rgba(255,255,255,0.7)_inset] ring-1 ring-zinc-900/10 will-change-transform transition-transform duration-100 ease-out group-hover:scale-[1.008]"
+            style={{
+              transform: `perspective(1400px) rotateX(${dynamicPitch}deg) scale(${dynamicScale}) translateY(${dynamicElevation}px)`,
+            }}
+          >
             {/* Top Metallic Chamfer Highlight */}
             <div className="absolute top-0 left-12 right-12 h-[2px] bg-gradient-to-r from-transparent via-white to-transparent opacity-90 rounded-full pointer-events-none" />
 
@@ -238,10 +296,10 @@ export function HeroSection() {
             </div>
             <div>
               <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
-                Arsitektur Teknologi Cerdas
+                Ekstraksi Kontrak &amp; RAB Cerdas
               </h4>
               <p className="text-xs text-zinc-600 leading-relaxed">
-                Pemrosesan data transaksi presisi berbasis kecerdasan buatan untuk mereduksi beban administrasi manual.
+                AI mengekstrak klausul, milestone, deliverable, dan pos anggaran dari PKS, SOW, dan RAB menjadi data terstruktur.
               </p>
             </div>
           </div>
@@ -252,10 +310,10 @@ export function HeroSection() {
             </div>
             <div>
               <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
-                Tata Kelola Arus Kas Terpadu
+                Rekonsiliasi Multidimensi
               </h4>
               <p className="text-xs text-zinc-600 leading-relaxed">
-                Sistem termin bertahap yang mengamankan kepastian arus kas dan melindungi nilai setiap hasil pekerjaan.
+                Deteksi otomatis Scope Variance, Budget Variance, dan Billing Gap secara deterministik untuk mencegah kebocoran margin.
               </p>
             </div>
           </div>
@@ -266,10 +324,10 @@ export function HeroSection() {
             </div>
             <div>
               <h4 className="font-heading font-bold text-sm text-zinc-950 mb-1">
-                Kepatuhan &amp; Kontrol Penuh
+                Konfirmasi Baseline &amp; Versioning
               </h4>
               <p className="text-xs text-zinc-600 leading-relaxed">
-                Standar tata kelola komersial resmi dengan kendali verifikasi mandiri 100% sebelum dokumen diterbitkan.
+                Prinsip Human Confirms the Truth mengunci Baseline V1, dengan dukungan Change Request resmi untuk Baseline V2 dan V3.
               </p>
             </div>
           </div>

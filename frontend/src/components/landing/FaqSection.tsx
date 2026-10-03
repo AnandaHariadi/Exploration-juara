@@ -16,32 +16,32 @@ const faqs: FaqItem[] = [
   {
     id: "q1",
     number: "01",
-    question: "Apakah mitra klien harus membuat akun untuk menyelesaikan pembayaran?",
-    answer: "Sama sekali tidak. Mitra kerja Anda (baik bendahara kepanitiaan ormawa maupun departemen finance korporat) cukup mengakses tautan invoice resmi yang dikirimkan. Di halaman tersebut, mitra dapat langsung memindai QRIS via m-Banking/e-wallet atau menyalin nomor Virtual Account tanpa registrasi apa pun."
+    question: "Apa perbedaan CLARA dengan Contract Management biasa atau Project Tracker?",
+    answer: "CLARA bukan sekadar tempat menyimpan PDF atau to-do list tugas. CLARA adalah platform Contract Intelligence rekonsiliasi yang secara deterministik menghubungkan 4 pilar data: Kontrak (apa yang disepakati), RAB (apa yang direncanakan), Progress Lapangan (apa yang terjadi), dan Invoice (apa yang direalisasikan). Sistem secara proaktif mendeteksi mismatch, scope creep, dan unbilled revenue yang kerap lolos dari pengawasan tim."
   },
   {
     id: "q2",
     number: "02",
-    question: "Bagaimana jika sistem salah mengidentifikasi nominal proyek atau nama mitra?",
-    answer: "CLARA menerapkan standar pengesahan mandiri (Human-in-the-loop) yang ketat. Sebelum lembar tagihan resmi diterbitkan atau dikirimkan ke mitra kerja, sistem selalu menampilkan peninjauan draft terlebih dahulu. Anda memegang kendali penuh 100% untuk mengoreksi nama, nilai kontrak, maupun persentase uang muka (DP)."
+    question: "Dokumen apa saja yang dapat diunggah dan dianalisis di CLARA?",
+    answer: "CLARA mendukung dokumen Perjanjian Kerja Sama (PKS), Surat Perintah Kerja (SPK), Scope of Work (SOW), Kontrak Payung, MoU operasional, addendum, serta file Rencana Anggaran Biaya (RAB) / Quotation dalam format PDF, gambar dokumen, maupun lembar sebar."
   },
   {
     id: "q3",
     number: "03",
-    question: "Metode pembayaran apa saja yang didukung oleh sistem?",
-    answer: "Sistem terhubung langsung dengan payment gateway berlisensi resmi Bank Indonesia melalui Xendit. Mendukung pembayaran QRIS dinamis seluruh bank & e-wallet nasional (BCA, Mandiri, BNI, BRI, GoPay, OVO, ShopeePay, DANA) serta rekening Virtual Account perbankan terkemuka di Indonesia."
+    question: "Bagaimana cara kerja prinsip 'Human Confirms the Truth' di CLARA?",
+    answer: "CLARA memegang prinsip: AI understands language, backend calculates facts, frontend explains the state, dan human confirms the truth. Hasil ekstraksi AI tidak langsung dijadikan kebenaran mutlak; Project Owner atau Finance selalu diberi ruang verifikasi untuk mengonfirmasi data sebelum Baseline V1 resmi dikunci sebagai standar kebenaran proyek."
   },
   {
     id: "q4",
     number: "04",
-    question: "Bagaimana mekanisme pengingat otomatis (auto-reminder) dijalankan?",
-    answer: "Sistem menjadwalkan notifikasi penagihan bertahap menjelang tanggal jatuh tempo secara terjadwal. Tata bahasa pengingat disesuaikan secara diplomatis dan santun sesuai kategori mitra, menjaga profesionalitas relasi bisnis tanpa menimbulkan rasa canggung."
+    question: "Bagaimana CLARA mendeteksi Scope Creep dan Unbilled Revenue?",
+    answer: "Engine deterministik CLARA secara berkala membandingkan deliverable aktual di lapangan dengan daftar ruang lingkup pada baseline. Bila ada task tambahan di luar kesepakatan, sistem memicu alert Scope Variance. Bila ada milestone yang sudah berstatus selesai namun belum ada invoice terkait, sistem memicu alert Unbilled Revenue agar penagihan segera diterbitkan."
   },
   {
     id: "q5",
     number: "05",
-    question: "Apakah dokumen invoice dapat diunduh dalam format PDF komersial resmi?",
-    answer: "Ya. Setiap lembar invoice publik dilengkapi dengan fitur cetak dan unduh dokumen PDF resmi berstandar komersial yang siap diarsipkan untuk keperluan pembukuan internal maupun lampiran audit pertanggungjawaban mitra."
+    question: "Bagaimana jika ada addendum atau perubahan kontrak di tengah jalan?",
+    answer: "CLARA menyediakan fitur Change Request & Baseline Versioning. Setiap addendum atau perubahan resmi yang disetujui akan menaikkan versi baseline proyek (menjadi Baseline V2, V3, dst.) secara transparan dengan jejak audit lengkap, sehingga riwayat perubahan nilai kontrak dan alokasi RAB tetap terdokumentasi akuntabel."
   }
 ];
 
@@ -79,7 +79,7 @@ export function FaqSection() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
           {/* Left Column: Sticky Editorial Heading & Support Card */}
-          <div className="lg:col-span-5 lg:sticky lg:top-28">
+          <div className="lg:col-span-5 lg:sticky lg:top-28 reveal-left">
             <div className="flex items-center gap-3 mb-4">
               <span className="w-8 h-[2px] bg-red-600 inline-block" />
               <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
@@ -90,32 +90,32 @@ export function FaqSection() {
               Pertanyaan yang Sering Diajukan
             </h2>
             <p className="text-base text-zinc-600 leading-relaxed font-normal mb-8">
-              Informasi mendasar seputar tata cara penagihan, keamanan transaksi, dan integrasi pembayaran resmi CLARA.
+              Informasi mendasar seputar intelijen kontrak, pencegahan risiko klausul, dan rekonsiliasi finansial proyek CLARA.
             </p>
 
             {/* Direct Consultation Card */}
-            <div className="bg-zinc-50 border border-zinc-200/90 rounded-2xl p-6 sm:p-8">
+            <div className="bg-zinc-50 border border-zinc-200/90 rounded-2xl p-6 sm:p-8 reveal-3d">
               <span className="text-xs font-bold font-mono text-zinc-400 uppercase tracking-wider block mb-2">
-                Simulasi Sistem
+                Simulasi Rekonsiliasi
               </span>
               <h4 className="font-heading font-bold text-base text-zinc-950 mb-2">
-                Ingin langsung mencoba alur kerja?
+                Ingin mencoba rekonsiliasi proyek?
               </h4>
               <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed mb-6">
-                Masukkan instruksi penagihan perdana Anda di dashboard dan amati bagaimana sistem mengonversi teks percakapan menjadi dokumen komersial resmi.
+                Unggah draft kontrak atau file RAB Anda di dashboard dan amati bagaimana engine CLARA membangun baseline deterministik secara otomatis.
               </p>
               <Link
                 href="/dashboard"
                 className="inline-flex items-center gap-2 text-xs sm:text-sm font-heading font-semibold text-white bg-zinc-900 hover:bg-zinc-800 px-5 py-2.5 rounded-lg transition-colors"
               >
-                <span>Akses Dashboard Mandiri</span>
+                <span>Akses Dashboard CLARA</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
 
           {/* Right Column: Clean Spacious Accordion List */}
-          <div className="lg:col-span-7 divide-y divide-zinc-200 border-t border-b border-zinc-200">
+          <div className="lg:col-span-7 divide-y divide-zinc-200 border-t border-b border-zinc-200 reveal-right">
             {faqs.map((item) => {
               const isOpen = openId === item.id;
               return (

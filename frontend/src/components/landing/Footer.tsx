@@ -4,51 +4,85 @@ import Link from "next/link";
 export function Footer() {
   return (
     <footer className="bg-zinc-950 text-white pt-16 pb-12 border-t border-zinc-800">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Corporate Footer Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-zinc-800 text-xs text-zinc-400">
-          <div className="md:col-span-2 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white font-heading font-black text-base shrink-0">
-                C
-              </div>
-              <Image
-                src="/images/clara_logo_white.svg"
-                alt="Clara"
-                width={120}
-                height={36}
-                className="h-6 sm:h-7 w-auto object-contain"
-              />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 pb-12 border-b border-zinc-800 text-xs text-zinc-400">
+          {/* Col 1: Brand & Narration */}
+          <div className="lg:col-span-4 space-y-4">
+            <div>
+              <span className="font-heading font-black text-2xl tracking-tighter text-white inline-block">
+                CLARA
+              </span>
             </div>
-            <p className="max-w-md leading-relaxed text-zinc-400">
-              Platform otomasi finansial terintegrasi dari <strong>Clara</strong> untuk pekerja lepas, talenta kreatif, dan solopreneur Indonesia. Menghubungkan instruksi percakapan dengan infrastruktur penagihan dan rekonsiliasi pembayaran resmi.
+            <p className="max-w-sm leading-relaxed text-zinc-400">
+              Platform Contract Intelligence &amp; Project Monitoring dari <strong>CLARA</strong>. Menghubungkan apa yang disepakati (Kontrak), apa yang direncanakan (RAB), apa yang terjadi (Progress), dan apa yang direalisasikan (Invoice) untuk melindungi margin bisnis proyek Anda.
             </p>
           </div>
 
-          <div className="space-y-2.5">
+          {/* Col 2: Navigasi Cepat */}
+          <div className="space-y-2.5 lg:col-span-2">
             <span className="font-heading font-bold text-white text-xs uppercase tracking-wider block mb-3">
               Navigasi Cepat
             </span>
-            <p><a href="#tentang" className="hover:text-white transition-colors">Tentang Clara</a></p>
-            <p><a href="#kategori" className="hover:text-white transition-colors">Kategori Klien</a></p>
-            <p><a href="#alur" className="hover:text-white transition-colors">Alur Penagihan</a></p>
-            <p><Link href="/dashboard" className="hover:text-white transition-colors">Dashboard Finansial</Link></p>
+            <p><a href="#tentang" className="hover:text-white transition-colors">Tentang CLARA</a></p>
+            <p><a href="#kategori" className="hover:text-white transition-colors">Target Industri</a></p>
+            <p><a href="#alur" className="hover:text-white transition-colors">Alur Rekonsiliasi</a></p>
+            <p><Link href="/dashboard" className="hover:text-white transition-colors">Dashboard Rekonsiliasi</Link></p>
           </div>
 
-          <div className="space-y-2.5">
+          {/* Col 3: Infrastruktur & Kepatuhan */}
+          <div className="space-y-2.5 lg:col-span-3">
             <span className="font-heading font-bold text-white text-xs uppercase tracking-wider block mb-3">
               Infrastruktur &amp; Kepatuhan
             </span>
-            <p className="text-zinc-400">Terintegrasi Gateway Xendit</p>
-            <p className="text-zinc-400">Standar QRIS Bank Indonesia</p>
-            <p className="text-zinc-400">Enkripsi Token End-to-End</p>
+            <p className="text-zinc-400">Ekstraksi Dokumen &amp; Baseline Lock</p>
+            <p className="text-zinc-400">Deterministic Reconciliation Engine</p>
+            <p className="text-zinc-400">Audit Trail &amp; Baseline Versioning</p>
+          </div>
+
+          {/* Col 4: Lokasi Riset & Operasional (Sejajar dengan kolom lainnya) */}
+          <div className="space-y-2.5 lg:col-span-3">
+            <span className="font-heading font-bold text-white text-xs uppercase tracking-wider block mb-3">
+              Lokasi Riset &amp; Operasional
+            </span>
+
+            <a
+              href="https://maps.google.com/?q=-7.331941,112.787123"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block group"
+            >
+              {/* Compact Map Preview */}
+              <div className="relative w-full h-24 rounded-lg overflow-hidden border border-zinc-800 group-hover:border-zinc-600 transition-colors mb-2.5 bg-zinc-900">
+                <Image
+                  src="/images/map_upnvjt_real.png"
+                  alt="Visual Peta Lokasi Kampus UPN Veteran Jawa Timur"
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  sizes="280px"
+                />
+              </div>
+
+              {/* Location Details Sejajar */}
+              <div className="space-y-1">
+                <p className="font-bold text-zinc-200 text-xs leading-snug group-hover:text-white transition-colors">
+                  Gedung Technopark UPNVJT
+                </p>
+                <p className="text-[11px] text-zinc-400 leading-snug">
+                  Jl. Raya Rungkut Madya No. 1, Surabaya
+                </p>
+                <p className="text-[11px] font-mono text-orange-400 pt-0.5">
+                  Titik Koordinat: -7.331941, 112.787123
+                </p>
+              </div>
+            </a>
           </div>
         </div>
 
         {/* Copyright */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-zinc-500">
-          <p>© 2026 Clara — Inovasi Teknologi Finansial Talenta Mandiri Indonesia. Hak cipta dilindungi.</p>
-          <p className="text-zinc-500">Mendukung Transaksi Komunitas Kampus hingga Korporat B2B</p>
+          <p>© 2026 CLARA — Contract Intelligence for Business Value. Hak cipta dilindungi.</p>
+          <p className="text-zinc-500">Mengoptimalkan Nilai Bisnis Melalui Data &amp; Wawasan Terintegrasi</p>
         </div>
       </div>
     </footer>
