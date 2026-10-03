@@ -1,0 +1,13 @@
+{
+  "name": "clara",
+  "private": true,
+  "description": "CLARA — Contract Intelligence for Business Value (business app + AI service)",
+  "scripts": {
+    "install:all": "npm --prefix frontend install && npm --prefix backend install",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:ai": "npm --prefix backend run dev",
+    "dev": "npm run dev:ai & npm run dev:frontend",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "test": "npm --prefix backend test && npm --prefix frontend run test:api"
+  }
+}
