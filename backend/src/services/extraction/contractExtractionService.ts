@@ -235,7 +235,7 @@ function asDate(value: unknown, field: string, warnings: string[]): string | nul
 
 const strOrNull = (v: unknown, max = 300) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
 const strList = (v: unknown, maxItems = 30) => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()).map((x: string) => x.trim().slice(0, 300)).slice(0, maxItems) : []);
-const severity = (v: unknown) => (v === "HIGH" || v === "MEDIUM" || v === "LOW" ? v : "MEDIUM");
+const severity = (v: unknown): "LOW" | "MEDIUM" | "HIGH" => (v === "HIGH" || v === "MEDIUM" || v === "LOW" ? v : "MEDIUM");
 
 function evidenceFields(raw: string, source: unknown, keys: Record<string, string>, warnings: string[]) {
   const fieldEvidenceRaw = (source ?? {}) as Record<string, unknown>;
