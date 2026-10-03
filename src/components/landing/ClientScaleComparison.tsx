@@ -30,7 +30,7 @@ export function ClientScaleComparison() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header - Astra Corporate Style */}
-        <div className="max-w-3xl mb-16">
+        <div className="max-w-3xl mb-16 reveal-on-scroll">
           <div className="flex items-center gap-3 mb-4">
             <span className="w-8 h-[2px] bg-red-600 inline-block" />
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
@@ -48,7 +48,7 @@ export function ClientScaleComparison() {
         {/* 2-Track Enterprise Comparison Cards (Generous Size + Rich Visuals) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-stretch">
           {/* JALUR 01: Software House & IT Outsourcing */}
-          <div className="bg-white rounded-3xl overflow-hidden border border-zinc-200 hover:border-zinc-300 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between group">
+          <div className="bg-white rounded-3xl overflow-hidden border border-zinc-200 hover:border-zinc-300 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between group reveal-3d reveal-delay-1">
             <div>
               {/* Photo Banner */}
               <div className="relative h-56 sm:h-64 w-full bg-zinc-100 overflow-hidden">
@@ -126,7 +126,7 @@ export function ClientScaleComparison() {
           </div>
 
           {/* JALUR 02: Consulting & Creative Agencies */}
-          <div className="bg-white rounded-3xl overflow-hidden border border-zinc-200 hover:border-zinc-300 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between group">
+          <div className="bg-white rounded-3xl overflow-hidden border border-zinc-200 hover:border-zinc-300 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between group reveal-3d reveal-delay-2">
             <div>
               {/* Photo Banner */}
               <div className="relative h-56 sm:h-64 w-full bg-zinc-100 overflow-hidden">

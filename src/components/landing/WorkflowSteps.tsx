@@ -103,7 +103,7 @@ export function WorkflowSteps() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header - Astra Corporate Style */}
-        <div className="max-w-3xl mb-16">
+        <div className="max-w-3xl mb-16 reveal-on-scroll">
           <div className="flex items-center gap-3 mb-4">
             <span className="w-8 h-[2px] bg-red-600 inline-block" />
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
@@ -111,7 +111,8 @@ export function WorkflowSteps() {
             </span>
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-bold text-zinc-950 tracking-tight mb-4">
-            Empat Tahapan Rekonsiliasi Terpadu
+            <span className="block">Empat Tahapan</span>
+            <span className="block">Rekonsiliasi Terpadu</span>
           </h2>
           <p className="text-base sm:text-lg text-zinc-600 leading-relaxed font-normal">
             Dari ekstraksi dokumen hingga pencocokan deterministik, seluruh alur dirancang akuntabel dengan konfirmasi manusia di setiap titik keputusan penting.
@@ -120,8 +121,8 @@ export function WorkflowSteps() {
 
         {/* 4 Connected Process Steps */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 pt-10 border-t border-zinc-200">
-          {steps.map((item) => (
-            <div key={item.number} className="relative flex flex-col justify-start">
+          {steps.map((item, index) => (
+            <div key={item.number} className={`relative flex flex-col justify-start reveal-scale reveal-delay-${index + 1}`}>
               {/* Monospace Step Indicator */}
               <div className="flex items-center gap-3 mb-4">
                 <span className="font-heading font-bold text-3xl sm:text-4xl text-red-600 font-mono tracking-tight">
@@ -146,7 +147,7 @@ export function WorkflowSteps() {
         {/* ================================================================ */}
         {/* MITRA & MEDIA PARTNER SECTION (4 LOGO INSTANSI)                  */}
         {/* ================================================================ */}
-        <div className="mt-20 pt-12 border-t border-zinc-200">
+        <div className="mt-20 pt-12 border-t border-zinc-200 reveal-on-scroll">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-2">

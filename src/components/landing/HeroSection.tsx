@@ -68,13 +68,13 @@ export function HeroSection() {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % officeSlides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + officeSlides.length) % officeSlides.length);
 
-  // Dynamic 3D perspective scroll calculations
-  const scrollProgress = Math.min(1, Math.max(0, scrollY / 420));
-  const dynamicPitch = (7 * (1 - scrollProgress)).toFixed(2); // 7deg down to 0deg
-  const dynamicScale = (0.97 + 0.03 * scrollProgress).toFixed(3); // 0.97 up to 1.00
-  const dynamicElevation = (-12 * (1 - scrollProgress)).toFixed(1);
-  const leftRibbonY = scrollY * 0.12;
-  const rightRibbonY = -scrollY * 0.08;
+  // Dynamic 3D perspective scroll calculations (responsive on scroll up and down)
+  const scrollProgress = Math.min(1, Math.max(0, scrollY / 460));
+  const dynamicPitch = (9.5 * (1 - scrollProgress)).toFixed(2); // 9.5deg down to 0deg
+  const dynamicScale = (0.95 + 0.05 * scrollProgress).toFixed(3); // 0.95 up to 1.00
+  const dynamicElevation = (-16 * (1 - scrollProgress)).toFixed(1);
+  const leftRibbonY = scrollY * 0.15;
+  const rightRibbonY = -scrollY * 0.12;
   return (
     <section id="beranda" className="relative bg-white pt-12 pb-16 md:pt-20 md:pb-24 border-b border-zinc-200 overflow-hidden">
       {/* Background Subtle Corporate Texture */}

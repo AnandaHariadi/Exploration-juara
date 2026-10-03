@@ -79,7 +79,7 @@ export function FaqSection() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
           {/* Left Column: Sticky Editorial Heading & Support Card */}
-          <div className="lg:col-span-5 lg:sticky lg:top-28">
+          <div className="lg:col-span-5 lg:sticky lg:top-28 reveal-left">
             <div className="flex items-center gap-3 mb-4">
               <span className="w-8 h-[2px] bg-red-600 inline-block" />
               <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
@@ -94,7 +94,7 @@ export function FaqSection() {
             </p>
 
             {/* Direct Consultation Card */}
-            <div className="bg-zinc-50 border border-zinc-200/90 rounded-2xl p-6 sm:p-8">
+            <div className="bg-zinc-50 border border-zinc-200/90 rounded-2xl p-6 sm:p-8 reveal-3d">
               <span className="text-xs font-bold font-mono text-zinc-400 uppercase tracking-wider block mb-2">
                 Simulasi Rekonsiliasi
               </span>
@@ -115,7 +115,7 @@ export function FaqSection() {
           </div>
 
           {/* Right Column: Clean Spacious Accordion List */}
-          <div className="lg:col-span-7 divide-y divide-zinc-200 border-t border-b border-zinc-200">
+          <div className="lg:col-span-7 divide-y divide-zinc-200 border-t border-b border-zinc-200 reveal-right">
             {faqs.map((item) => {
               const isOpen = openId === item.id;
               return (

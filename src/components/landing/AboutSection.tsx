@@ -29,7 +29,7 @@ export function AboutSection() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header - Astra Corporate Style */}
-        <div className="max-w-3xl mb-16">
+        <div className="max-w-3xl mb-16 reveal-on-scroll">
           <div className="flex items-center gap-3 mb-4">
             <span className="w-8 h-[2px] bg-red-600 inline-block" />
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
@@ -47,7 +47,7 @@ export function AboutSection() {
         {/* Editorial Grid: Perfectly Balanced Symmetrical Columns */}
         <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-start pt-8 border-t border-zinc-200">
           {/* Left Column: Narrative + Action Link + Seamless Corporate Photo */}
-          <div className="lg:col-span-6 flex flex-col justify-between h-full space-y-6">
+          <div className="lg:col-span-6 flex flex-col justify-between h-full space-y-6 reveal-left">
             <div className="space-y-5 text-zinc-700 leading-relaxed text-sm sm:text-base font-normal">
               <p>
                 Di lanskap industri modern, kontrak bukan sekadar lembar arsip hukum pasif. Kontrak adalah komitmen finansial hidup yang menentukan kepastian arus kas, integritas pengerjaan, dan kredibilitas jangka panjang perusahaan. Namun selama bertahun-tahun, banyak bisnis berbasis proyek menghadapi jurang data: kesepakatan tertahan di divisi legal, kalkulasi rencana terkunci di spreadsheet, dinamika tim terisolasi di lapangan, dan penagihan tertunda di meja keuangan.
@@ -89,7 +89,7 @@ export function AboutSection() {
           {/* Right Column: 3 Core Value Pillars - Shifted Down, Strictly Monochrome */}
           <div className="lg:col-span-6 space-y-5 pt-2 sm:pt-6 lg:pt-10">
             {/* Card 1 */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 group">
+            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 group reveal-right reveal-delay-1">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
                   <FileCheck className="w-5 h-5" />
@@ -106,7 +106,7 @@ export function AboutSection() {
             </div>
 
             {/* Card 2 */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 group">
+            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 group reveal-right reveal-delay-2">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
                   <Layers className="w-5 h-5" />
@@ -123,7 +123,7 @@ export function AboutSection() {
             </div>
 
             {/* Card 3 */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 group">
+            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 group reveal-right reveal-delay-3">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
                   <ShieldCheck className="w-5 h-5" />
@@ -236,7 +236,7 @@ export function AboutSection() {
           </div>
 
           {/* Unified Executive Card: Left Transparent Building Visual + Right UPN Address */}
-          <div className="rounded-3xl bg-zinc-50/80 border border-zinc-200/80 p-6 sm:p-10 lg:p-12 overflow-hidden shadow-xs relative">
+          <div className="rounded-3xl bg-zinc-50/80 border border-zinc-200/80 p-6 sm:p-10 lg:p-12 overflow-hidden shadow-xs relative reveal-3d">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
               {/* Left Side: Transparent Building Cutout Visual - Substantially Enlarged & Pres */}
               <div className="lg:col-span-5 h-[380px] sm:h-[440px] lg:h-[480px] flex items-center justify-center relative">
