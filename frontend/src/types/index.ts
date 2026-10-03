@@ -207,3 +207,74 @@ export interface ExtractionResult {
   };
   confidenceScore: number;
 }
+
+export type UserPersonaId = 'BUDI' | 'SITI' | 'HENDRA' | 'ADMIN';
+
+export interface UserProfile {
+  id: UserPersonaId;
+  name: string;
+  roleTitle: string;
+  department: string;
+  initials: string;
+  badgeBg: string;
+  badgeText: string;
+  avatarBg: string;
+  description: string;
+  primaryFocus: string;
+  allowedActions: string[];
+}
+
+export const USER_PERSONAS: Record<UserPersonaId, UserProfile> = {
+  BUDI: {
+    id: 'BUDI',
+    name: 'Budi Santoso',
+    roleTitle: 'Project Owner & Delivery Lead',
+    department: 'Operations & Engineering',
+    initials: 'BS',
+    badgeBg: 'bg-blue-50',
+    badgeText: 'text-blue-700 border-blue-200',
+    avatarBg: 'bg-blue-600',
+    description: 'Bertanggung jawab atas delivery teknis, kepatuhan batas revisi, dan penguncian baseline kontrak.',
+    primaryFocus: 'Delivery Progress, Scope Reconciliation, Revision Limits, Baseline Lock & Change Requests',
+    allowedActions: ['NEW_PROJECT', 'LOCK_BASELINE', 'LOG_EVENT', 'CREATE_CHANGE_REQUEST'],
+  },
+  SITI: {
+    id: 'SITI',
+    name: 'Siti Rahma',
+    roleTitle: 'Finance & Billing Controller',
+    department: 'Finance & Accounting',
+    initials: 'SR',
+    badgeBg: 'bg-emerald-50',
+    badgeText: 'text-emerald-700 border-emerald-200',
+    avatarBg: 'bg-emerald-600',
+    description: 'Mengontrol pengeluaran biaya riil, arus kas termin, dan penyelesaian unbilled gap invoice.',
+    primaryFocus: 'Unbilled Realization, Actual Cost vs RAB, Invoice Generation, Cash Inflow Tracking',
+    allowedActions: ['RECORD_ACTUAL_COST', 'GENERATE_INVOICE', 'MARK_INVOICE_PAID'],
+  },
+  HENDRA: {
+    id: 'HENDRA',
+    name: 'Hendra Wijaya',
+    roleTitle: 'Managing Director & Partner',
+    department: 'Executive Board',
+    initials: 'HW',
+    badgeBg: 'bg-slate-100',
+    badgeText: 'text-slate-800 border-slate-300',
+    avatarBg: 'bg-slate-900',
+    description: 'Mengawasi profitabilitas portofolio makro, nilai risiko finansial, dan audit klausul hukum.',
+    primaryFocus: 'Total Portfolio Contract Value, Financial Exposure at Risk, Legal Audit & Executive ROI',
+    allowedActions: ['AUDIT_EVIDENCE', 'APPROVE_CHANGE_REQUEST', 'QUERY_LEGAL_AI', 'EXECUTIVE_EXPORT'],
+  },
+  ADMIN: {
+    id: 'ADMIN',
+    name: 'Administrator',
+    roleTitle: 'System Super Admin',
+    department: 'Governance & Tech Ops',
+    initials: 'SA',
+    badgeBg: 'bg-purple-50',
+    badgeText: 'text-purple-700 border-purple-200',
+    avatarBg: 'bg-purple-700',
+    description: 'Akses tanpa batas ke seluruh modul, konfigurasi sistem, dan manajemen simulasi.',
+    primaryFocus: 'Complete System Oversight, Unrestricted Permissions, Full Audit Log & Data Reset',
+    allowedActions: ['ALL_PERMISSIONS', 'RESET_SIMULATION_DATA'],
+  },
+};
