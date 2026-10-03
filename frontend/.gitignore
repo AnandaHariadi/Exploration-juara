@@ -33,3 +33,7 @@ next-env.d.ts
 /data/*.db*
 !/data/migrations/
 
+
+# playwright
+/test-results/
+/playwright-report/
