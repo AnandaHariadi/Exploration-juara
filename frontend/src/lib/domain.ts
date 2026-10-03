@@ -9,7 +9,9 @@ import type {
   CandidateMilestone,
   CandidateRabItem,
   ChangeRequest,
+  DocumentKind,
   ExtractionCandidate,
+  GeneratedDocument,
   Milestone,
   Project,
   ProjectDocument,
@@ -18,7 +20,7 @@ import type {
   ScopeItem,
   UserPersonaId,
 } from '@/types';
-import { USER_PERSONAS } from '@/types';
+import { EMPTY_TERMS, USER_PERSONAS } from '@/types';
 import { addDays, allocateMilestoneValues, emptyMetrics, formatDay, idr, isIsoDate } from './engine';
 import { badRequest, conflict, HttpError, int, MAX_RUPIAH, notFound, oneOf, str } from './api';
 
@@ -85,6 +87,7 @@ export function newProject(id: string, name: string, client: string, ctx: Ctx, i
     payments: [],
     events: [],
     changeRequests: [],
+    drafts: [],
     alerts: [],
     reconciliation: [],
     metrics: emptyMetrics(ctx.now),
@@ -99,13 +102,62 @@ export function updateProjectInfo(project: Project, body: Record<string, unknown
   if (client) project.client = client;
 }
 
-export function addDocument(project: Project, ctx: Ctx, doc: Omit<ProjectDocument, 'id' | 'uploadedAt' | 'uploadedBy'>, id = ctx.nextId('DOC')): ProjectDocument {
-  if (project.baselines.length > 0) throw conflict('Acuan proyek sudah disetujui. Perubahan dokumen dilakukan melalui permintaan perubahan.', 'BASELINE_LOCKED');
-  if (project.extraction?.status === 'PROCESSING') throw conflict('Analisis dokumen sedang berjalan. Tunggu hingga selesai.', 'EXTRACTION_IN_PROGRESS');
-  const record: ProjectDocument = { ...doc, id, uploadedAt: ctx.now, uploadedBy: ctx.actor.label };
+export const DOCUMENT_KIND_LABEL: Record<DocumentKind, string> = {
+  CONTRACT: 'Kontrak',
+  RAB: 'RAB',
+  INVOICE: 'Invoice',
+  ADDENDUM: 'Adendum',
+  CLIENT_APPROVAL: 'Bukti persetujuan klien',
+  SUPPORTING: 'Dokumen pendukung',
+};
+
+/**
+ * Register an uploaded document. Before the baseline: contract, RAB and supporting
+ * files. After the baseline: invoices, addenda, client approvals and supporting
+ * files (the active contract and RAB can only change through a change request).
+ */
+export function addDocument(project: Project, ctx: Ctx, doc: Omit<ProjectDocument, 'id' | 'uploadedAt' | 'uploadedBy' | 'status'> & { status?: ProjectDocument['status'] }, id = ctx.nextId('DOC')): ProjectDocument {
+  const hasBaseline = project.baselines.length > 0;
+  if (hasBaseline && (doc.kind === 'CONTRACT' || doc.kind === 'RAB')) throw conflict('Acuan proyek sudah disetujui. Unggah adendum, lalu ajukan permintaan perubahan.', 'BASELINE_LOCKED');
+  if (!hasBaseline && (doc.kind === 'INVOICE' || doc.kind === 'ADDENDUM' || doc.kind === 'CLIENT_APPROVAL')) throw conflict('Setujui acuan proyek terlebih dahulu sebelum mengunggah invoice, adendum, atau bukti persetujuan.', 'BASELINE_REQUIRED');
+  if (!hasBaseline && doc.kind === 'CONTRACT' && project.extraction?.status === 'PROCESSING') throw conflict('Analisis dokumen sedang berjalan. Tunggu hingga selesai.', 'EXTRACTION_IN_PROGRESS');
+  const record: ProjectDocument = { ...doc, status: doc.status ?? 'UPLOADED', statusAt: ctx.now, id, uploadedAt: ctx.now, uploadedBy: ctx.actor.label };
   project.documents.push(record);
-  pushEvent(project, ctx, 'DOCUMENT_UPLOADED', `${doc.kind === 'CONTRACT' ? 'Kontrak' : 'RAB'} diunggah: ${doc.fileName}`, doc.isSample ? 'Berkas contoh untuk demo.' : `${Math.ceil(doc.size / 1024)} KB`);
+  pushEvent(project, ctx, 'DOCUMENT_UPLOADED', `${DOCUMENT_KIND_LABEL[doc.kind]} diunggah: ${doc.fileName}`, doc.isSample ? 'Berkas contoh untuk demo · dianalisis otomatis oleh CLARA.' : `${Math.ceil(doc.size / 1024)} KB · dianalisis otomatis oleh CLARA.`);
   return record;
+}
+
+export function findDocument(project: Project, documentId: string) {
+  const doc = project.documents.find((d) => d.id === documentId);
+  if (!doc) throw notFound('Dokumen tidak ditemukan.');
+  return doc;
+}
+
+/** Human decision on an analyzed supporting document / invoice / addendum. */
+export function decideDocument(project: Project, documentId: string, body: Record<string, unknown>, ctx: Ctx) {
+  const doc = findDocument(project, documentId);
+  const decision = oneOf(body, 'decision', ['APPROVED', 'REJECTED'] as const);
+  if (doc.status === 'PROCESSING') throw conflict('Dokumen masih dianalisis.', 'DOCUMENT_PROCESSING');
+  if (doc.kind === 'CONTRACT' || doc.kind === 'RAB') throw conflict('Kontrak dan RAB disetujui melalui persetujuan acuan proyek.', 'INVALID_TRANSITION');
+  doc.status = decision;
+  doc.statusAt = ctx.now;
+  const note = str(body, 'note', { max: 300 });
+  pushEvent(project, ctx, 'DOCUMENT_UPLOADED', `${DOCUMENT_KIND_LABEL[doc.kind]} ${doc.fileName} ${decision === 'APPROVED' ? 'diterima' : 'ditolak'}`, note || (decision === 'REJECTED' ? 'Dokumen tidak dipakai sebagai dasar; temuan terkait ditutup.' : 'Dokumen diterima sebagai bukti.'));
+}
+
+/** Turn an analyzed invoice document into a recorded invoice — human action, normal entitlement checks apply. */
+export function recordInvoiceFromDocument(project: Project, documentId: string, ctx: Ctx) {
+  const doc = findDocument(project, documentId);
+  const inv = doc.analysis?.invoice;
+  if (doc.kind !== 'INVOICE' || !inv) throw conflict('Dokumen ini belum dianalisis sebagai invoice.', 'NOT_AN_INVOICE');
+  if (inv.recordedInvoiceId) throw conflict('Invoice dari dokumen ini sudah dicatat. Pencatatan ganda dicegah.', 'ALREADY_RECORDED');
+  if (!inv.matchedMilestoneId) throw conflict('Termin invoice tidak cocok dengan tahap pada acuan aktif. Catat tagihan manual dari tab Keuangan.', 'MILESTONE_NOT_MATCHED');
+  if (inv.total === null) throw conflict('Total invoice tidak terbaca. Catat tagihan manual dari tab Keuangan.', 'TOTAL_MISSING');
+  const invoice = createInvoice(project, { milestoneId: inv.matchedMilestoneId, amount: inv.total, issueDate: inv.issueDate ?? undefined, invoiceNumber: inv.invoiceNumber ?? undefined }, ctx);
+  inv.recordedInvoiceId = invoice.id;
+  doc.status = 'APPROVED';
+  doc.statusAt = ctx.now;
+  return invoice;
 }
 
 export const latestDocument = (project: Project, kind: ProjectDocument['kind']) => [...project.documents].reverse().find((d) => d.kind === kind);
@@ -269,6 +321,7 @@ export function confirmBaseline(project: Project, ctx: Ctx): BaselineVersion {
     milestones: structuredClone(milestones),
     scopeItems: structuredClone(scopeItems),
     rabItems,
+    terms: { ...EMPTY_TERMS, ...c.terms },
     source: 'EXTRACTION_CONFIRMED',
     sourceDetail,
     createdAt: ctx.now,
@@ -291,7 +344,14 @@ export function confirmBaseline(project: Project, ctx: Ctx): BaselineVersion {
       ...k.obligations.map((o, i) => ({ clauseNumber: `Kewajiban ${i + 1}`, title: 'Kewajiban', description: o })),
     ],
     sources: c.sources,
+    terms: { ...EMPTY_TERMS, ...c.terms },
   };
+  for (const doc of project.documents) {
+    if ((doc.kind === 'CONTRACT' || doc.kind === 'RAB') && doc.status !== 'FAILED') {
+      doc.status = 'APPROVED';
+      doc.statusAt = ctx.now;
+    }
+  }
   project.planBaseline = { totalPlannedCost: version.plannedCost, items: rabItems, contingencyBudget: 0, sourceFile: c.rab.sourceFile };
   c.status = 'CONFIRMED';
   pushEvent(
@@ -411,9 +471,11 @@ export function createInvoice(project: Project, body: Record<string, unknown>, c
   const issueDate = body.issueDate ? String(body.issueDate) : today(ctx);
   if (!isIsoDate(issueDate)) throw badRequest('Tanggal tagihan harus berformat YYYY-MM-DD.');
   const seq = project.invoices.length + 1;
+  const customNumber = str(body, 'invoiceNumber', { max: 80 });
+  if (customNumber && project.invoices.some((i) => i.invoiceNumber.toLowerCase() === customNumber.toLowerCase())) throw conflict(`Nomor invoice ${customNumber} sudah tercatat. Tagihan ganda dicegah.`, 'DUPLICATE_INVOICE_NUMBER');
   const invoice = {
     id: ctx.nextId('INV'),
-    invoiceNumber: `INV/${issueDate.slice(0, 4)}/${issueDate.slice(5, 7)}/${project.id}-${String(seq).padStart(3, '0')}`,
+    invoiceNumber: customNumber || `INV/${issueDate.slice(0, 4)}/${issueDate.slice(5, 7)}/${project.id}-${String(seq).padStart(3, '0')}`,
     projectId: project.id,
     milestoneId: milestone.id,
     milestoneTitle: milestone.title,
@@ -675,6 +737,7 @@ function applyApprovedChange(project: Project, cr: ChangeRequest, ctx: Ctx): Bas
     milestones: structuredClone(agreement.milestones),
     scopeItems: versionScope,
     rabItems: structuredClone(previous.rabItems),
+    terms: previous.terms ? { ...previous.terms } : undefined,
     source: 'CHANGE_REQUEST',
     sourceDetail: `${cr.crNumber} disetujui ${ctx.actor.name}`,
     changeRequestId: cr.id,
@@ -715,4 +778,51 @@ export function resolveAlert(project: Project, alertId: string, body: Record<str
   const note = str(body, 'note', { required: true, max: 500, label: 'Catatan penyelesaian' });
   alert.status = 'RESOLVED';
   alert.resolution = { at: ctx.now, by: ctx.actor.label, note, auto: false };
+}
+
+// ---------------------------------------------------------------- drafts (Remediation Copilot / Document Studio)
+
+export function findDraft(project: Project, draftId: string) {
+  const draft = project.drafts.find((d) => d.id === draftId);
+  if (!draft) throw notFound('Draf tidak ditemukan.');
+  return draft;
+}
+
+export function addDraft(project: Project, draft: GeneratedDocument) {
+  project.drafts.unshift(draft);
+  pushEvent(
+    project,
+    { now: draft.createdAt, actor: { id: 'ADMIN', name: draft.createdBy, label: draft.createdBy }, nextId: randomId },
+    'DOCUMENT_UPLOADED',
+    `Draf disiapkan CLARA: ${draft.title}`,
+    `${draft.source === 'AI' ? 'Dibuat AI' : 'Dibuat dari templat (AI tidak tersedia)'} · ${draft.status === 'READY_FOR_REVIEW' ? 'siap ditinjau manusia' : 'perlu perbaikan'}.`,
+  );
+}
+
+/** Human approval of a draft: it becomes ready to send. Nothing is sent automatically. */
+export function approveDraft(project: Project, draftId: string, ctx: Ctx) {
+  const draft = findDraft(project, draftId);
+  if (draft.status === 'APPROVED' || draft.status === 'EXPORTED') throw conflict('Draf ini sudah disetujui.', 'ALREADY_APPROVED');
+  if (draft.status === 'REJECTED') throw conflict('Draf ini sudah ditolak. Buat ulang atau revisi.', 'INVALID_TRANSITION');
+  if (draft.status === 'NEEDS_FIX') throw conflict('Validasi draf belum lolos. Perbaiki isi draf terlebih dahulu.', 'VALIDATION_FAILED');
+  draft.status = 'APPROVED';
+  draft.approvedBy = ctx.actor.label;
+  draft.approvedAt = ctx.now;
+  draft.history.push({ at: ctx.now, by: ctx.actor.label, action: 'Disetujui — siap dikirim' });
+}
+
+export function rejectDraft(project: Project, draftId: string, body: Record<string, unknown>, ctx: Ctx) {
+  const draft = findDraft(project, draftId);
+  if (draft.status === 'EXPORTED') throw conflict('Draf sudah diekspor.', 'INVALID_TRANSITION');
+  if (draft.status === 'REJECTED') throw conflict('Draf ini sudah ditolak.', 'INVALID_TRANSITION');
+  draft.status = 'REJECTED';
+  draft.history.push({ at: ctx.now, by: ctx.actor.label, action: 'Ditolak', note: str(body, 'note', { max: 300 }) || undefined });
+}
+
+export function markDraftExported(project: Project, draftId: string, ctx: Ctx) {
+  const draft = findDraft(project, draftId);
+  if (draft.status !== 'APPROVED' && draft.status !== 'EXPORTED') throw conflict('Hanya draf yang sudah disetujui manusia yang dapat diekspor untuk dikirim.', 'APPROVAL_REQUIRED');
+  draft.status = 'EXPORTED';
+  draft.exportedAt = ctx.now;
+  draft.history.push({ at: ctx.now, by: ctx.actor.label, action: 'Diekspor (PDF) untuk dikirim oleh pengguna — CLARA tidak mengirim dokumen ke pihak luar' });
 }
