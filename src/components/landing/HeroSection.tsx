@@ -90,14 +90,7 @@ export function HeroSection() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Editorial Header - Perfectly Center-Aligned */}
         <div className="text-center max-w-4xl mx-auto mb-16 relative z-10">
-          {/* Astra-Style Centered Corporate Kicker - Elevating Clara */}
-          <div className="inline-flex items-center justify-center gap-3 mb-6">
-            <span className="w-8 h-[2px] bg-red-600 inline-block" />
-            <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
-              CLARA — CONTRACT INTELLIGENCE FOR BUSINESS VALUE
-            </span>
-            <span className="w-8 h-[2px] bg-red-600 inline-block" />
-          </div>
+
 
           {/* Massive Commanding CLARA Wordmark with Sculpted Arch & Dynamic Red-Orange Gradient */}
           <div className="relative my-6 sm:my-10 flex flex-col items-center justify-center select-none group">
