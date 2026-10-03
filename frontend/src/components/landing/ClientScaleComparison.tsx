@@ -7,7 +7,7 @@ export function ClientScaleComparison() {
   return (
     <section id="kategori" className="py-20 md:py-28 bg-zinc-50/70 border-b border-zinc-200 relative overflow-hidden">
       {/* Left Flank: Architectural Curved Wing */}
-      <div className="absolute left-0 sm:left-2 lg:left-4 xl:left-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-65 sm:opacity-75 transition-opacity">
+      <div className="absolute left-0 sm:left-2 lg:left-4 xl:left-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-65 sm:opacity-75 transition-opacity animate-float-slow">
         <Image
           src="/images/shapes/shape_kategori_left.svg"
           alt="Clara Architectural Wing Left"
@@ -18,7 +18,7 @@ export function ClientScaleComparison() {
       </div>
 
       {/* Right Flank: Geometric Horizon Arch */}
-      <div className="absolute right-0 sm:right-2 lg:right-4 xl:right-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-65 sm:opacity-75 transition-opacity">
+      <div className="absolute right-0 sm:right-2 lg:right-4 xl:right-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-65 sm:opacity-75 transition-opacity animate-float-reverse">
         <Image
           src="/images/shapes/shape_kategori_right.svg"
           alt="Clara Horizon Arch Right"
@@ -48,7 +48,7 @@ export function ClientScaleComparison() {
         {/* 2-Track Enterprise Comparison Cards (Generous Size + Rich Visuals) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-stretch">
           {/* JALUR 01: Software House & IT Outsourcing */}
-          <div className="bg-white rounded-3xl overflow-hidden border border-zinc-200 hover:border-zinc-300 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between group reveal-3d reveal-delay-1">
+          <div className="bg-white rounded-3xl overflow-hidden border border-zinc-200 hover:border-red-600/40 shadow-sm card-executive-hover flex flex-col justify-between group reveal-3d reveal-delay-1">
             <div>
               {/* Photo Banner */}
               <div className="relative h-56 sm:h-64 w-full bg-zinc-100 overflow-hidden">
@@ -126,7 +126,7 @@ export function ClientScaleComparison() {
           </div>
 
           {/* JALUR 02: Consulting & Creative Agencies */}
-          <div className="bg-white rounded-3xl overflow-hidden border border-zinc-200 hover:border-zinc-300 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between group reveal-3d reveal-delay-2">
+          <div className="bg-white rounded-3xl overflow-hidden border border-zinc-200 hover:border-red-600/40 shadow-sm card-executive-hover flex flex-col justify-between group reveal-3d reveal-delay-2">
             <div>
               {/* Photo Banner */}
               <div className="relative h-56 sm:h-64 w-full bg-zinc-100 overflow-hidden">

@@ -170,8 +170,8 @@ export function HeroSection() {
           </h1>
 
           {/* Elevating Clara Company Copy - Corporate, Visionary & Prestigious */}
-          <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-2xl mx-auto">
-            Kontrak adalah apa yang disepakati. RAB adalah apa yang direncanakan. Progress dan actual cost adalah apa yang terjadi. Invoice adalah apa yang direalisasikan menjadi uang. CLARA mencocokkan semuanya secara deterministik untuk melindungi margin dan mengoptimalkan nilai bisnis proyek Anda.
+          <p className="text-sm sm:text-base md:text-lg text-zinc-600 leading-relaxed font-normal mb-8 max-w-2xl mx-auto">
+            Platform Contract Intelligence &amp; Value Assurance terpadu untuk menyelaraskan klausul kesepakatan, alokasi anggaran, progres eksekusi lapangan, hingga kepastian penagihan secara deterministik demi melindungi margin profitabilitas bisnis Anda.
           </p>
 
           {/* Action Buttons - Centered */}

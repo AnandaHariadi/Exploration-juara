@@ -6,7 +6,7 @@ export function AboutSection() {
   return (
     <section id="tentang" className="py-20 md:py-28 bg-white border-b border-zinc-200 relative overflow-hidden">
       {/* Left Flank: Diagonal Cascade Wave */}
-      <div className="absolute left-0 sm:left-2 lg:left-4 xl:left-8 top-16 sm:top-24 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-70 sm:opacity-80 transition-opacity">
+      <div className="absolute left-0 sm:left-2 lg:left-4 xl:left-8 top-16 sm:top-24 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-70 sm:opacity-80 transition-opacity animate-float-slow">
         <Image
           src="/images/shapes/shape_tentang_left.svg"
           alt="Clara Cascade Wave Left"
@@ -17,7 +17,7 @@ export function AboutSection() {
       </div>
 
       {/* Right Flank: Floating 3D Helix Loop */}
-      <div className="absolute right-0 sm:right-2 lg:right-4 xl:right-8 top-16 sm:top-24 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-70 sm:opacity-80 transition-opacity">
+      <div className="absolute right-0 sm:right-2 lg:right-4 xl:right-8 top-16 sm:top-24 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-70 sm:opacity-80 transition-opacity animate-float-reverse">
         <Image
           src="/images/shapes/shape_tentang_right.svg"
           alt="Clara 3D Helix Loop Right"
@@ -89,9 +89,9 @@ export function AboutSection() {
           {/* Right Column: 3 Core Value Pillars - Shifted Down, Strictly Monochrome */}
           <div className="lg:col-span-6 space-y-5 pt-2 sm:pt-6 lg:pt-10">
             {/* Card 1 */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 group reveal-right reveal-delay-1">
+            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-red-600/40 card-executive-hover group reveal-right reveal-delay-1">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 group-hover:bg-red-50 group-hover:text-red-600 transition-all">
                   <FileCheck className="w-5 h-5" />
                 </div>
                 <div>
@@ -106,9 +106,9 @@ export function AboutSection() {
             </div>
 
             {/* Card 2 */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 group reveal-right reveal-delay-2">
+            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-red-600/40 card-executive-hover group reveal-right reveal-delay-2">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 group-hover:bg-red-50 group-hover:text-red-600 transition-all">
                   <Layers className="w-5 h-5" />
                 </div>
                 <div>
@@ -123,9 +123,9 @@ export function AboutSection() {
             </div>
 
             {/* Card 3 */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 group reveal-right reveal-delay-3">
+            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-red-600/40 card-executive-hover group reveal-right reveal-delay-3">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 group-hover:bg-red-50 group-hover:text-red-600 transition-all">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>

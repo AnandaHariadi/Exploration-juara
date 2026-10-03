@@ -9,10 +9,14 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 pb-12 border-b border-zinc-800 text-xs text-zinc-400">
           {/* Col 1: Brand & Narration */}
           <div className="lg:col-span-4 space-y-4">
-            <div>
-              <span className="font-heading font-black text-2xl tracking-tighter text-white inline-block">
-                CLARA
-              </span>
+            <div className="flex items-center">
+              <Image
+                src="/images/clara_logo_full.png"
+                alt="CLARA Official Logo"
+                width={180}
+                height={52}
+                className="h-8 sm:h-9 w-auto object-contain brightness-110"
+              />
             </div>
             <p className="max-w-sm leading-relaxed text-zinc-400">
               Platform Contract Intelligence &amp; Project Monitoring dari <strong>CLARA</strong>. Menghubungkan apa yang disepakati (Kontrak), apa yang direncanakan (RAB), apa yang terjadi (Progress), dan apa yang direalisasikan (Invoice) untuk melindungi margin bisnis proyek Anda.

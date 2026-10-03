@@ -55,7 +55,7 @@ export function FaqSection() {
   return (
     <section id="faq" className="py-20 md:py-28 bg-white border-b border-zinc-200 relative overflow-hidden">
       {/* Left Flank: Shield Crest Dynamic Ribbon */}
-      <div className="absolute left-0 sm:left-2 lg:left-4 xl:left-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-60 sm:opacity-70 transition-opacity">
+      <div className="absolute left-0 sm:left-2 lg:left-4 xl:left-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-60 sm:opacity-70 transition-opacity animate-float-slow">
         <Image
           src="/images/shapes/shape_faq_left.svg"
           alt="Clara Shield Crest Left"
@@ -66,7 +66,7 @@ export function FaqSection() {
       </div>
 
       {/* Right Flank: Slender Serpentine Tapered Ribbon */}
-      <div className="absolute right-0 sm:right-2 lg:right-4 xl:right-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-60 sm:opacity-70 transition-opacity">
+      <div className="absolute right-0 sm:right-2 lg:right-4 xl:right-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-60 sm:opacity-70 transition-opacity animate-float-reverse">
         <Image
           src="/images/shapes/shape_faq_right.svg"
           alt="Clara Serpentine Ribbon Right"
@@ -94,7 +94,7 @@ export function FaqSection() {
             </p>
 
             {/* Direct Consultation Card */}
-            <div className="bg-zinc-50 border border-zinc-200/90 rounded-2xl p-6 sm:p-8 reveal-3d">
+            <div className="bg-zinc-50 border border-zinc-200/90 hover:border-red-600/40 rounded-2xl p-6 sm:p-8 card-executive-hover reveal-3d">
               <span className="text-xs font-bold font-mono text-zinc-400 uppercase tracking-wider block mb-2">
                 Simulasi Rekonsiliasi
               </span>
