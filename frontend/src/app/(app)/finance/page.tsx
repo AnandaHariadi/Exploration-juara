@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Receipt, DollarSign, AlertCircle, ArrowUpRight, CheckCircle2, Clock, FileSpreadsheet, Printer, Download, Eye, X, FileText } from 'lucide-react';
@@ -39,6 +40,11 @@ export default function FinancePage() {
   });
 
   const [showPreviewModal, setShowPreviewModal] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleExportCsv = () => {
     const rows: string[][] = [];
@@ -130,7 +136,7 @@ export default function FinancePage() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300 pb-16 relative">
+    <div className="space-y-8 pb-16 relative">
       {(actionError || actionNotice) && (
         <div className="fixed top-4 right-4 z-[70] max-w-md w-full shadow-lg rounded-xl overflow-hidden animate-in fade-in slide-in-from-top-2">
           {actionError && (
@@ -350,9 +356,9 @@ export default function FinancePage() {
         </div>
       </div>
 
-      {/* Pre-Download Financial Report Live Preview Modal */}
-      {showPreviewModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-900/15 backdrop-blur-md transition-all animate-in fade-in duration-200">
+      {/* Pre-Download Financial Report Live Preview Modal via Portal to cover full viewport */}
+      {mounted && showPreviewModal && createPortal(
+        <div className="fixed inset-0 z-[9999] w-screen h-screen flex items-center justify-center p-3 sm:p-6 bg-slate-900/10 backdrop-blur-[3px] transition-all animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] border border-zinc-200/90 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="px-6 py-5 border-b border-zinc-200 flex items-center justify-between bg-zinc-50/80 shrink-0">
@@ -515,7 +521,8 @@ export default function FinancePage() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
