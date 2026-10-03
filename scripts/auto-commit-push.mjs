@@ -36,11 +36,12 @@ function log(prefix, msg, color = colors.reset) {
 
 function runGit(command, options = {}) {
   try {
-    return execSync(`git ${command}`, {
+    const out = execSync(`git ${command}`, {
       encoding: 'utf8',
       stdio: options.silent ? 'pipe' : ['pipe', 'pipe', 'pipe'],
       ...options,
-    }).trim();
+    });
+    return options.noTrim ? out : out.trim();
   } catch (err) {
     if (options.ignoreError) return '';
     throw err;
@@ -328,15 +329,28 @@ function setupBranch(files) {
  * Parse git status --porcelain
  */
 function getChangedFiles() {
-  const rawStatus = runGit('status --porcelain=v1 -uall', { ignoreError: true });
+  const rawStatus = runGit('status --porcelain=v1 -uall', { ignoreError: true, noTrim: true });
   if (!rawStatus) return [];
 
-  const lines = rawStatus.split('\n').filter((l) => l.trim().length > 0);
+  const lines = rawStatus.split(/\r?\n/).filter((l) => l.trim().length > 0);
   const files = [];
 
   for (const line of lines) {
-    const status = line.substring(0, 2).trim();
-    let filePath = line.substring(3).trim();
+    const match = line.match(/^([A-Z?]{1,2}|\s[A-Z])\s+(.*)$/);
+    let status = '';
+    let filePath = '';
+    if (match) {
+      status = match[1].trim();
+      filePath = match[2].trim();
+    } else {
+      status = line.slice(0, 2).trim();
+      filePath = line.slice(2).trim();
+    }
+
+    // Handle renamed files "old -> new"
+    if (filePath.includes(' -> ')) {
+      filePath = filePath.split(' -> ')[1].trim();
+    }
 
     // Remove quotes if filename has spaces
     if (filePath.startsWith('"') && filePath.endsWith('"')) {
@@ -344,7 +358,7 @@ function getChangedFiles() {
     }
 
     // Skip git tracking of this script if it's currently running or temporary files
-    if (filePath === '.DS_Store' || filePath.endsWith('.DS_Store')) {
+    if (!filePath || filePath === '.DS_Store' || filePath.endsWith('.DS_Store')) {
       continue;
     }
 
