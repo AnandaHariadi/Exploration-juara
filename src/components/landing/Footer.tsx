@@ -10,7 +10,7 @@ export function Footer() {
           {/* Col 1: Brand & Narration */}
           <div className="lg:col-span-4 space-y-4">
             <div>
-              <span className="font-heading font-black text-2xl tracking-tighter bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 bg-clip-text text-transparent inline-block">
+              <span className="font-heading font-black text-2xl tracking-tighter text-white inline-block">
                 CLARA
               </span>
             </div>
@@ -31,7 +31,7 @@ export function Footer() {
           </div>
 
           {/* Col 3: Infrastruktur & Kepatuhan */}
-          <div className="space-y-2.5 lg:col-span-2">
+          <div className="space-y-2.5 lg:col-span-3">
             <span className="font-heading font-bold text-white text-xs uppercase tracking-wider block mb-3">
               Infrastruktur &amp; Kepatuhan
             </span>
@@ -40,9 +40,9 @@ export function Footer() {
             <p className="text-zinc-400">Audit Trail &amp; Baseline Versioning</p>
           </div>
 
-          {/* Col 4: Kotak Lokasi Real Visual Map UPNVJT */}
-          <div className="lg:col-span-4 space-y-3">
-            <span className="font-heading font-bold text-white text-xs uppercase tracking-wider block mb-2">
+          {/* Col 4: Lokasi Riset & Operasional (Sejajar dengan kolom lainnya) */}
+          <div className="space-y-2.5 lg:col-span-3">
+            <span className="font-heading font-bold text-white text-xs uppercase tracking-wider block mb-3">
               Lokasi Riset &amp; Operasional
             </span>
 
@@ -50,38 +50,30 @@ export function Footer() {
               href="https://maps.google.com/?q=-7.331941,112.787123"
               target="_blank"
               rel="noopener noreferrer"
-              className="block rounded-xl border border-zinc-800 bg-[#0a0e17] p-2.5 overflow-hidden shadow-2xl hover:border-zinc-700 transition-all duration-300 group"
+              className="block group"
             >
-              {/* Real Cartographic Map Image */}
-              <div className="relative w-full h-44 rounded-lg overflow-hidden border border-zinc-800 bg-zinc-900">
+              {/* Compact Map Preview */}
+              <div className="relative w-full h-24 rounded-lg overflow-hidden border border-zinc-800 group-hover:border-zinc-600 transition-colors mb-2.5 bg-zinc-900">
                 <Image
                   src="/images/map_upnvjt_real.png"
                   alt="Visual Peta Lokasi Kampus UPN Veteran Jawa Timur"
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  sizes="(max-width: 768px) 100vw, 380px"
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  sizes="280px"
                 />
               </div>
 
-              {/* Location Info & Titik Koordinat (No Icons) */}
-              <div className="mt-3 flex items-start justify-between gap-3 pt-1 border-t border-zinc-900">
-                <div className="space-y-1">
-                  <p className="font-bold text-zinc-100 text-xs leading-tight">
-                    Gedung Technopark UPNVJT
-                  </p>
-                  <p className="text-[11px] text-zinc-400 leading-snug">
-                    Jl. Raya Rungkut Madya No. 1, Surabaya
-                  </p>
-                  <p className="text-[10px] font-mono text-orange-400">
-                    Titik Koordinat: -7.331941, 112.787123
-                  </p>
-                  <p className="text-[9.5px] font-mono text-zinc-500">
-                    7°19&apos;55.0&quot;S 112°47&apos;13.6&quot;E
-                  </p>
-                </div>
-                <span className="inline-block text-[11px] font-bold text-orange-400 group-hover:text-orange-300 transition-colors shrink-0 bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800 group-hover:border-zinc-700">
-                  Buka Google Maps
-                </span>
+              {/* Location Details Sejajar */}
+              <div className="space-y-1">
+                <p className="font-bold text-zinc-200 text-xs leading-snug group-hover:text-white transition-colors">
+                  Gedung Technopark UPNVJT
+                </p>
+                <p className="text-[11px] text-zinc-400 leading-snug">
+                  Jl. Raya Rungkut Madya No. 1, Surabaya
+                </p>
+                <p className="text-[11px] font-mono text-orange-400 pt-0.5">
+                  Titik Koordinat: -7.331941, 112.787123
+                </p>
               </div>
             </a>
           </div>
