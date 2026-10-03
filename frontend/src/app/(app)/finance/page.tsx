@@ -10,7 +10,7 @@ import { useProjects } from '@/hooks/useClaraData';
 import { Project, InvoiceItem } from '@/types';
 import { formatCompactRupiah, formatRupiah, formatDate } from '@/lib/utils';
 import { BillingBadge } from '@/components/shared/Badge';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 
 export default function FinancePage() {
   const { projects, refreshProjects, loading, error } = useProjects();
@@ -51,42 +51,225 @@ export default function FinancePage() {
     const today = new Date().toLocaleDateString('id-ID', { dateStyle: 'full' });
     const isoDate = new Date().toISOString().slice(0, 10);
 
-    // Create a native Excel workbook using SheetJS (.xlsx)
     const wb = XLSX.utils.book_new();
 
-    // Sheet 1: Master Posisi Keuangan & Rekonsiliasi
-    const sheetData: (string | number)[][] = [
-      ['LAPORAN POSISI KEUANGAN & REKONSILIASI KONTRAK'],
-      ['CLARA CONTRACT INTELLIGENCE & VALUE ASSURANCE'],
-      [`Tanggal Laporan: ${today} | Periode: ${new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })} | Proyek: ${projects.length}`],
-      [],
-      ['NAMA AKUN / INDIKATOR', 'TARGET / BASELINE (IDR)', 'REALISASI SAAT INI (IDR)', 'SELISIH / MARGIN (IDR)'],
-      ['I. PENDAPATAN & ARUS KAS KONTRAK', '', '', ''],
+    // Palette & Styles
+    const borderThin = {
+      top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+    };
+
+    const borderDoubleBottom = {
+      top: { style: 'thin', color: { rgb: '0F172A' } },
+      bottom: { style: 'double', color: { rgb: '0F172A' } },
+      left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+    };
+
+    const headerThemeColors = ['DC2626', 'E11D48', 'EA580C', 'F97316']; // Red to Orange gradient headers
+
+    // Build Worksheet with Cell Objects
+    const ws: any = {};
+    let rowIdx = 0;
+
+    const addCell = (r: number, c: number, val: any, style: any, isCurrency = false) => {
+      const ref = XLSX.utils.encode_cell({ r, c });
+      if (typeof val === 'number') {
+        ws[ref] = {
+          t: 'n',
+          v: val,
+          z: isCurrency ? '"Rp "#,##0;("Rp "#,##0);"-"' : undefined,
+          s: style
+        };
+      } else {
+        ws[ref] = {
+          t: 's',
+          v: String(val ?? ''),
+          s: style
+        };
+      }
+    };
+
+    // Row 0: Title
+    addCell(rowIdx, 0, 'LAPORAN POSISI KEUANGAN & REKONSILIASI KONTRAK', {
+      font: { name: 'Calibri', sz: 14, bold: true, color: { rgb: 'DC2626' } },
+      alignment: { horizontal: 'left', vertical: 'center' }
+    });
+    rowIdx++;
+
+    // Row 1: Subtitle
+    addCell(rowIdx, 0, 'CLARA CONTRACT INTELLIGENCE & VALUE ASSURANCE PLATFORM', {
+      font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: 'EA580C' } },
+      alignment: { horizontal: 'left', vertical: 'center' }
+    });
+    rowIdx++;
+
+    // Row 2: Metadata
+    addCell(rowIdx, 0, `Tanggal Terbit: ${today}  |  Periode: ${new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}  |  Portofolio: ${projects.length} Proyek Aktif`, {
+      font: { name: 'Calibri', sz: 9, italic: true, color: { rgb: '64748B' } },
+      alignment: { horizontal: 'left', vertical: 'center' }
+    });
+    rowIdx += 2; // Blank row
+
+    // ==========================================
+    // SECTION 1: PENDAPATAN & ARUS KAS
+    // ==========================================
+    const sec1Cols = ['NAMA AKUN / INDIKATOR', 'TARGET / BASELINE (IDR)', 'REALISASI SAAT INI (IDR)', 'SELISIH / MARGIN (IDR)'];
+    sec1Cols.forEach((col, cIdx) => {
+      addCell(rowIdx, cIdx, col, {
+        fill: { fgColor: { rgb: headerThemeColors[cIdx] } },
+        font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+        alignment: { horizontal: cIdx === 0 ? 'left' : 'right', vertical: 'center' },
+        border: borderThin
+      });
+    });
+    rowIdx++;
+
+    // Section 1 Title Banner
+    for (let c = 0; c < 4; c++) {
+      addCell(rowIdx, c, c === 0 ? 'I. PENDAPATAN & ARUS KAS KONTRAK' : '', {
+        fill: { fgColor: { rgb: 'FFEDD5' } },
+        font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '7C2D12' } },
+        alignment: { horizontal: 'left', vertical: 'center' },
+        border: borderThin
+      });
+    }
+    rowIdx++;
+
+    const sec1Data = [
       ['Total Nilai Kontrak Kesepakatan (PKS)', totalContract, totalContract, 0],
       ['Pekerjaan Selesai Siap Ditagih', totalContract, totalBillable, totalContract - totalBillable],
       ['Tagihan Diterbitkan (Invoiced)', totalBillable, totalBilled, totalBillable - totalBilled],
-      ['Pendapatan Belum Ditagih (Unbilled)', 0, totalUnbilled, totalUnbilled],
-      ['Penerimaan Kas Lunas (Cash Inflow)', totalBilled, totalPaid, totalBilled - totalPaid],
-      ['TOTAL PENDAPATAN & KONTRAK', totalContract, totalBillable, totalPaid],
-      [],
-      ['II. RINCIAN BIAYA PELAKSANAAN & MARGIN PROYEK', '', '', ''],
-      ['No', 'Nama Proyek', 'Klien', 'Nilai Kontrak (IDR)', 'Rencana Biaya (IDR)', 'Biaya Aktual (IDR)', 'Margin Biaya (IDR)', 'Progres (%)', 'Status'],
-      ...projects.map((p, idx) => [
+      ['Pendapatan Belum Ditagih (Unbilled Revenue)', 0, totalUnbilled, totalUnbilled],
+      ['Penerimaan Kas Lunas (Cash Inflow)', totalBilled, totalPaid, totalBilled - totalPaid]
+    ];
+
+    sec1Data.forEach((row, rOffset) => {
+      const isAlt = rOffset % 2 === 1;
+      const rowFill = isAlt ? { fgColor: { rgb: 'F8FAFC' } } : undefined;
+      row.forEach((val, cIdx) => {
+        addCell(rowIdx, cIdx, val, {
+          fill: rowFill,
+          font: { name: 'Calibri', sz: 10, color: { rgb: '0F172A' }, bold: cIdx === 2 },
+          alignment: { horizontal: cIdx === 0 ? 'left' : 'right', vertical: 'center' },
+          border: borderThin
+        }, cIdx > 0);
+      });
+      rowIdx++;
+    });
+
+    // Subtotal Section 1
+    const sec1Totals = ['TOTAL PENDAPATAN & KONTRAK', totalContract, totalBillable, totalPaid];
+    sec1Totals.forEach((val, cIdx) => {
+      addCell(rowIdx, cIdx, val, {
+        fill: { fgColor: { rgb: 'F1F5F9' } },
+        font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '0F172A' } },
+        alignment: { horizontal: cIdx === 0 ? 'left' : 'right', vertical: 'center' },
+        border: borderDoubleBottom
+      }, cIdx > 0);
+    });
+    rowIdx += 2;
+
+    // ==========================================
+    // SECTION 2: BIAYA & MARGIN PELAKSANAAN PROYEK
+    // ==========================================
+    for (let c = 0; c < 9; c++) {
+      addCell(rowIdx, c, c === 0 ? 'II. RINCIAN BIAYA PELAKSANAAN & MARGIN PROYEK' : '', {
+        fill: { fgColor: { rgb: 'FFEDD5' } },
+        font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '7C2D12' } },
+        alignment: { horizontal: 'left', vertical: 'center' },
+        border: borderThin
+      });
+    }
+    rowIdx++;
+
+    const sec2Headers = ['No', 'Nama Proyek', 'Klien', 'Nilai Kontrak (IDR)', 'Rencana Biaya (IDR)', 'Biaya Aktual (IDR)', 'Margin Biaya (IDR)', 'Progres', 'Status'];
+    sec2Headers.forEach((col, cIdx) => {
+      addCell(rowIdx, cIdx, col, {
+        fill: { fgColor: { rgb: cIdx < 4 ? 'DC2626' : 'EA580C' } },
+        font: { name: 'Calibri', sz: 9.5, bold: true, color: { rgb: 'FFFFFF' } },
+        alignment: { horizontal: cIdx === 0 || cIdx >= 7 ? 'center' : cIdx >= 3 && cIdx <= 6 ? 'right' : 'left', vertical: 'center' },
+        border: borderThin
+      });
+    });
+    rowIdx++;
+
+    projects.forEach((p, idx) => {
+      const isAlt = idx % 2 === 1;
+      const rowFill = isAlt ? { fgColor: { rgb: 'F8FAFC' } } : undefined;
+      const planned = p.plannedCost || 0;
+      const actual = p.actualCost || 0;
+      const margin = planned - actual;
+      const rowValues: (string | number)[] = [
         idx + 1,
         p.name,
         p.client,
         p.contractValue || 0,
-        p.plannedCost || 0,
-        p.actualCost || 0,
-        (p.plannedCost || 0) - (p.actualCost || 0),
+        planned,
+        actual,
+        margin,
         `${p.progress}%`,
         p.status
-      ]),
-      ['TOTAL BIAYA PORTOFOLIO', '', '', totalContract, projects.reduce((s, p) => s + (p.plannedCost || 0), 0), projects.reduce((s, p) => s + (p.actualCost || 0), 0), projects.reduce((s, p) => s + ((p.plannedCost || 0) - (p.actualCost || 0)), 0), '', ''],
-      [],
-      ['III. BUKU PEMBANTU PIUTANG & INVOICE', '', '', ''],
-      ['No. Invoice', 'Nama Proyek', 'Milestone / Tahap', 'Nominal Tagihan (IDR)', 'Tanggal Terbit', 'Jatuh Tempo', 'Status Pembayaran'],
-      ...allInvoices.map((inv) => [
+      ];
+      rowValues.forEach((val, cIdx) => {
+        addCell(rowIdx, cIdx, val, {
+          fill: rowFill,
+          font: { name: 'Calibri', sz: 9.5, color: { rgb: '0F172A' } },
+          alignment: { horizontal: cIdx === 0 || cIdx >= 7 ? 'center' : cIdx >= 3 && cIdx <= 6 ? 'right' : 'left', vertical: 'center' },
+          border: borderThin
+        }, cIdx >= 3 && cIdx <= 6);
+      });
+      rowIdx++;
+    });
+
+    // Subtotal Section 2
+    const totalPlannedCost = projects.reduce((s, p) => s + (p.plannedCost || 0), 0);
+    const totalActualCost = projects.reduce((s, p) => s + (p.actualCost || 0), 0);
+    const sec2Totals: (string | number)[] = [
+      '', 'TOTAL BIAYA PORTOFOLIO', '', totalContract, totalPlannedCost, totalActualCost, totalPlannedCost - totalActualCost, '', ''
+    ];
+    sec2Totals.forEach((val, cIdx) => {
+      addCell(rowIdx, cIdx, val, {
+        fill: { fgColor: { rgb: 'F1F5F9' } },
+        font: { name: 'Calibri', sz: 9.5, bold: true, color: { rgb: '0F172A' } },
+        alignment: { horizontal: cIdx >= 3 && cIdx <= 6 ? 'right' : 'left', vertical: 'center' },
+        border: borderDoubleBottom
+      }, cIdx >= 3 && cIdx <= 6);
+    });
+    rowIdx += 2;
+
+    // ==========================================
+    // SECTION 3: BUKU PEMBANTU PIUTANG & INVOICE
+    // ==========================================
+    for (let c = 0; c < 7; c++) {
+      addCell(rowIdx, c, c === 0 ? 'III. BUKU PEMBANTU PIUTANG & INVOICE' : '', {
+        fill: { fgColor: { rgb: 'FFEDD5' } },
+        font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '7C2D12' } },
+        alignment: { horizontal: 'left', vertical: 'center' },
+        border: borderThin
+      });
+    }
+    rowIdx++;
+
+    const sec3Headers = ['No. Invoice', 'Nama Proyek', 'Tahap Pekerjaan', 'Nominal Tagihan (IDR)', 'Tanggal Terbit', 'Jatuh Tempo', 'Status'];
+    sec3Headers.forEach((col, cIdx) => {
+      addCell(rowIdx, cIdx, col, {
+        fill: { fgColor: { rgb: cIdx < 3 ? 'DC2626' : 'EA580C' } },
+        font: { name: 'Calibri', sz: 9.5, bold: true, color: { rgb: 'FFFFFF' } },
+        alignment: { horizontal: cIdx === 0 || cIdx >= 4 ? 'center' : cIdx === 3 ? 'right' : 'left', vertical: 'center' },
+        border: borderThin
+      });
+    });
+    rowIdx++;
+
+    allInvoices.forEach((inv, idx) => {
+      const isAlt = idx % 2 === 1;
+      const rowFill = isAlt ? { fgColor: { rgb: 'F8FAFC' } } : undefined;
+      const statusFill = inv.status === 'PAID' ? { fgColor: { rgb: 'DCFCE7' } } : { fgColor: { rgb: 'FFEDD5' } };
+      const statusFontColor = inv.status === 'PAID' ? { rgb: '15803D' } : { rgb: 'C2410C' };
+      const rowValues: (string | number)[] = [
         inv.invoiceNumber,
         inv.projectName,
         inv.milestoneTitle || '-',
@@ -94,26 +277,50 @@ export default function FinancePage() {
         inv.issueDate,
         inv.dueDate,
         inv.status === 'PAID' ? 'LUNAS' : 'TERCATAT'
-      ]),
-      ['TOTAL BUKU TAGIHAN (AR)', '', '', totalBilled, '', '', '']
-    ];
+      ];
+      rowValues.forEach((val, cIdx) => {
+        addCell(rowIdx, cIdx, val, {
+          fill: cIdx === 6 ? statusFill : rowFill,
+          font: { name: 'Calibri', sz: 9.5, color: cIdx === 6 ? statusFontColor : { rgb: '0F172A' }, bold: cIdx === 0 || cIdx === 6 },
+          alignment: { horizontal: cIdx === 0 || cIdx >= 4 ? 'center' : cIdx === 3 ? 'right' : 'left', vertical: 'center' },
+          border: borderThin
+        }, cIdx === 3);
+      });
+      rowIdx++;
+    });
 
-    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    // Subtotal Section 3
+    const sec3Totals: (string | number)[] = [
+      'TOTAL BUKU TAGIHAN (AR)', '', '', totalBilled, '', '', ''
+    ];
+    sec3Totals.forEach((val, cIdx) => {
+      addCell(rowIdx, cIdx, val, {
+        fill: { fgColor: { rgb: 'F1F5F9' } },
+        font: { name: 'Calibri', sz: 9.5, bold: true, color: { rgb: '0F172A' } },
+        alignment: { horizontal: cIdx === 3 ? 'right' : 'left', vertical: 'center' },
+        border: borderDoubleBottom
+      }, cIdx === 3);
+    });
+
+    // Set Sheet Range
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rowIdx, c: 8 } });
+
+    // Set Column Widths for comfortable readability
     ws['!cols'] = [
-      { wch: 42 },
-      { wch: 25 },
-      { wch: 25 },
-      { wch: 25 },
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 12 },
-      { wch: 14 }
+      { wch: 38 }, // A
+      { wch: 28 }, // B
+      { wch: 24 }, // C
+      { wch: 22 }, // D
+      { wch: 20 }, // E
+      { wch: 20 }, // F
+      { wch: 20 }, // G
+      { wch: 14 }, // H
+      { wch: 16 }  // I
     ];
 
-    XLSX.utils.book_append_sheet(wb, ws, 'Posisi Keuangan');
+    XLSX.utils.book_append_sheet(wb, ws, 'Posisi & Rekonsiliasi');
 
-    // Trigger direct download of genuine .xlsx file
+    // Trigger direct download of genuine, fully styled .xlsx file
     XLSX.writeFile(wb, `Rekap_Keuangan_CLARA_${isoDate}.xlsx`);
   };
 
@@ -379,7 +586,7 @@ export default function FinancePage() {
         <div className="fixed inset-0 z-[9999] w-screen h-screen flex items-center justify-center p-3 sm:p-6 bg-slate-900/10 backdrop-blur-[3px] transition-all animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] border border-zinc-200/90 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="px-6 py-5 border-b border-zinc-200 flex items-center justify-between bg-zinc-50/80 shrink-0">
+            <div className="px-6 py-5 border-b border-zinc-200 flex items-center justify-between bg-zinc-50/80 shrink-0 print:hidden">
               <div className="flex items-center gap-3">
                 <Image
                   src="/images/clara_logo_full.png"
@@ -574,7 +781,7 @@ export default function FinancePage() {
             </div>
 
             {/* Modal Actions Footer */}
-            <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50/90 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+            <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50/90 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 print:hidden">
               <span className="text-xs text-zinc-500">
                 Ukuran file optimal &amp; ringan: Excel (.xlsx) &plusmn; 12 KB | PDF Vektor &plusmn; 50 KB
               </span>
