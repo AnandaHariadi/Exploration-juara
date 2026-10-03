@@ -59,3 +59,45 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: #f87171;
 }
+
+/* Ruang kerja memakai tipografi yang sama dengan halaman depan. */
+.clara-app {
+  --clara-header-height: 7.125rem;
+}
+
+@media (min-width: 1024px) {
+  .clara-app {
+    --clara-header-height: 5.125rem;
+  }
+}
+
+.clara-app h1,
+.clara-app h2,
+.clara-app h3 {
+  font-family: 'Montserrat', 'Plus Jakarta Sans', sans-serif;
+}
+
+.clara-app .text-xs {
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+
+.clara-app input:not([type='radio']):not([type='checkbox']),
+.clara-app select,
+.clara-app textarea {
+  min-height: 2.625rem;
+}
+
+.clara-app :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clara-app *,
+  .clara-app *::before,
+  .clara-app *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

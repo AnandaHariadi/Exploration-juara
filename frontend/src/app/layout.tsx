@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'CLARA — Infrastruktur Finansial & Contract Intelligence Platform',
-  description: 'Turn contracts into living business intelligence. Ekstraksi instruksi PKS, tata kelola termin bertahap, dan rekonsiliasi nilai kontrak.',
+  title: 'CLARA — Pantau kontrak dan keuangan proyek',
+  description: 'Pantau pekerjaan, biaya, tagihan, dan perubahan kesepakatan proyek dalam satu tempat.',
 };
 
 export default function RootLayout({

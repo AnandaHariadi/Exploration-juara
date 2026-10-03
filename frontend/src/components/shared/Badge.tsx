@@ -4,18 +4,18 @@ import { ProjectStatus, AlertSeverity, ScopeStatus, BillingStatus } from '@/type
 export const StatusBadge: React.FC<{ status: ProjectStatus }> = ({ status }) => {
   const styles: Record<ProjectStatus, string> = {
     ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    AT_RISK: 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse',
+    AT_RISK: 'bg-red-50 text-red-700 border-red-200',
     BASELINE_PENDING: 'bg-amber-50 text-amber-700 border-amber-200',
     DRAFT: 'bg-slate-100 text-slate-700 border-slate-200',
-    COMPLETED: 'bg-blue-50 text-blue-700 border-blue-200',
+    COMPLETED: 'bg-zinc-100 text-zinc-700 border-zinc-200',
   };
 
   const labels: Record<ProjectStatus, string> = {
-    ACTIVE: 'Active Monitoring',
-    AT_RISK: 'Action Required',
-    BASELINE_PENDING: 'Pending Baseline',
-    DRAFT: 'Draft',
-    COMPLETED: 'Completed',
+    ACTIVE: 'Berjalan',
+    AT_RISK: 'Perlu perhatian',
+    BASELINE_PENDING: 'Menunggu persetujuan',
+    DRAFT: 'Draf',
+    COMPLETED: 'Selesai',
   };
 
   return (
@@ -33,9 +33,10 @@ export const SeverityBadge: React.FC<{ severity: AlertSeverity }> = ({ severity 
     LOW: 'bg-blue-50 text-blue-700 border-blue-200',
   };
 
+  const labels: Record<AlertSeverity, string> = { CRITICAL: 'Kritis', HIGH: 'Tinggi', MEDIUM: 'Sedang', LOW: 'Rendah' };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border uppercase tracking-wider ${styles[severity]}`}>
-      {severity}
+      {labels[severity]}
     </span>
   );
 };
@@ -48,9 +49,9 @@ export const ScopeBadge: React.FC<{ status: ScopeStatus }> = ({ status }) => {
   };
 
   const labels: Record<ScopeStatus, string> = {
-    MATCH: 'MATCH (In Scope)',
-    NEEDS_REVIEW: 'NEEDS REVIEW (Deviation)',
-    APPROVED_CHANGE: 'APPROVED CHANGE (CR)',
+    MATCH: 'Sesuai kesepakatan',
+    NEEDS_REVIEW: 'Perlu ditinjau',
+    APPROVED_CHANGE: 'Perubahan disetujui',
   };
 
   return (
@@ -67,9 +68,11 @@ export const BillingBadge: React.FC<{ status: BillingStatus }> = ({ status }) =>
     PAID: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   };
 
+  const labels: Record<BillingStatus, string> = { UNBILLED: 'Belum ditagih', INVOICED: 'Sudah ditagih', PAID: 'Lunas' };
+
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border ${styles[status]}`}>
-      {status}
+      {labels[status]}
     </span>
   );
 };
