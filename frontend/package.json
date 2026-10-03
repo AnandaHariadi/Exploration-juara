@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:task2": "node scripts/test-task2.mjs"
+    "test:api": "node scripts/e2e-demo-flow.mjs",
+    "test:ui": "playwright test",
+    "samples": "node scripts/generate-sample-contract.mjs"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",
