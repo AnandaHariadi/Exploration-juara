@@ -13,7 +13,7 @@ import { buildSeed } from './seed';
 import { clearUploads, saveDocumentFile } from './files';
 
 /** Bump when the stored project shape changes; older databases are re-seeded. */
-const DATA_VERSION = '3';
+const DATA_VERSION = '4';
 
 const dataDir = path.join(process.cwd(), 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
