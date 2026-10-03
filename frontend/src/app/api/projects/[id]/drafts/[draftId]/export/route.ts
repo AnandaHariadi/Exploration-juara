@@ -18,7 +18,7 @@ export const POST = route('POST /api/projects/[id]/drafts/[draftId]/export', asy
   const draft = findDraft(claraDb.requireProject(projectId), assertId(draftId, 'ID draf'));
   if (draft.status !== 'APPROVED' && draft.status !== 'EXPORTED') throw conflict('Hanya draf yang sudah disetujui manusia yang dapat diekspor untuk dikirim.', 'APPROVAL_REQUIRED');
   const safeName = draft.title.replace(/[^A-Za-z0-9 _-]/g, '').replace(/\s+/g, '-').slice(0, 60) || 'draf';
-  let body: Uint8Array;
+  let body: Uint8Array<ArrayBuffer>;
   let type = 'application/pdf';
   let name = `${safeName}.pdf`;
   try {
