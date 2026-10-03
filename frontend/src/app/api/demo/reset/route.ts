@@ -1,27 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { claraDb } from '@/lib/db';
-
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-export async function POST(req: NextRequest) {
-  try {
-    let withSeed = true;
-    try {
-      const body = await req.json();
-      if (body && body.withSeed === false) withSeed = false;
-    } catch {
-      // Body is optional; default reset restores the sample project
-    }
+import { claraDb } from '@/lib/db';
+import { ok, route } from '@/lib/api';
 
-    claraDb.resetDemoData(withSeed);
-
-    return NextResponse.json({
-      success: true,
-      message: withSeed
-        ? 'Data demo berhasil direset ke proyek contoh terverifikasi.'
-        : 'Data demo berhasil dikosongkan untuk pengujian baru.',
-    });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
-}
+/** Restore the deterministic demo dataset. Idempotent: every call yields the same state. */
+export const POST = route('POST /api/demo/reset', async () => {
+  claraDb.resetDemoData();
+  return ok(claraDb.portfolioSummary(), 200, 'Data demo dikembalikan ke kondisi awal.');
+});
