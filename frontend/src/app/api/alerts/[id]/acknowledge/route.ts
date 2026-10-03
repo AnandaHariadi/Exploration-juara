@@ -1,33 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { claraDb } from '@/lib/db';
-
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-export async function POST(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    const projects = claraDb.getProjects();
+import { NextRequest } from 'next/server';
+import { claraDb } from '@/lib/db';
+import { assertId, ok, route } from '@/lib/api';
+import { acknowledgeAlert } from '@/lib/domain';
 
-    let found = false;
-    for (const p of projects) {
-      const alert = p.alerts?.find((a) => a.id === id);
-      if (alert) {
-        alert.status = 'ACKNOWLEDGED';
-        claraDb.saveProject(p);
-        found = true;
-        break;
-      }
-    }
-
-    if (!found) {
-      return NextResponse.json({ success: false, error: 'Alert not found.' }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true, message: 'Alert acknowledged.' });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
-}
+export const POST = route('POST /api/alerts/[id]/acknowledge', async (_req: NextRequest, ctx: { params: Promise<{ id: string }> }) => {
+  const alertId = assertId((await ctx.params).id, 'ID peringatan');
+  const owner = claraDb.findAlertProject(alertId);
+  const { project } = claraDb.mutate(owner.id, (p) => acknowledgeAlert(p, alertId));
+  return ok(project.alerts.find((a) => a.id === alertId));
+});
