@@ -1,11 +1,13 @@
 'use client';
 
 import React from 'react';
-import { X, ShieldAlert, FileText, CheckCircle2, ArrowRight } from 'lucide-react';
-import { Alert } from '@/types';
+import Link from 'next/link';
+import { ArrowRight, Calculator, CheckCircle2, ExternalLink, FileText, Flag, GitPullRequest, Receipt, ShieldAlert, Wallet, X } from 'lucide-react';
+import type { Alert, EvidenceItem } from '@/types';
 import { SeverityBadge } from '@/components/shared/Badge';
-import { formatRupiah } from '@/lib/utils';
-import { dataClient } from '@/services/dataClient';
+import { InsightBadge, btn, inputClass } from '@/components/shared/ui';
+import { formatDate, formatRupiah } from '@/lib/utils';
+import { dataClient, documentUrl } from '@/services/dataClient';
 
 interface EvidenceDrawerProps {
   alert: Alert | null;
@@ -13,13 +15,49 @@ interface EvidenceDrawerProps {
   onActionComplete?: () => void;
 }
 
+const kindIcon: Record<EvidenceItem['kind'], React.ElementType> = {
+  CONTRACT: FileText,
+  BASELINE: Flag,
+  EVENT: CheckCircle2,
+  INVOICE: Receipt,
+  COST: Wallet,
+  MILESTONE: Flag,
+  CHANGE_REQUEST: GitPullRequest,
+  CALCULATION: Calculator,
+};
+
+const kindLabel: Record<EvidenceItem['kind'], string> = {
+  CONTRACT: 'Kontrak',
+  BASELINE: 'Acuan proyek',
+  EVENT: 'Kegiatan proyek',
+  INVOICE: 'Tagihan',
+  COST: 'Biaya',
+  MILESTONE: 'Tahap',
+  CHANGE_REQUEST: 'Perubahan',
+  CALCULATION: 'Perhitungan',
+};
+
+export function impactText(alert: Alert) {
+  if (alert.impactKind === 'UNPRICED' || alert.impactKind === 'SCHEDULE' || alert.impactKind === 'NONE') return alert.impactLabel;
+  return formatRupiah(alert.rupiahImpact);
+}
+
 export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, onActionComplete }) => {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [resolving, setResolving] = React.useState(false);
+  const [note, setNote] = React.useState('');
   const closeButton = React.useRef<HTMLButtonElement>(null);
   const dialog = React.useRef<HTMLDivElement>(null);
   const closeRef = React.useRef(onClose);
   closeRef.current = onClose;
+
+  React.useEffect(() => {
+    setError(null);
+    setResolving(false);
+    setNote('');
+    setBusy(false);
+  }, [alert?.id]);
 
   React.useEffect(() => {
     if (!alert) return;
@@ -28,142 +66,155 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') closeRef.current();
       if (event.key !== 'Tab' || !dialog.current) return;
-      const controls = [...dialog.current.querySelectorAll<HTMLElement>('button:not([disabled]), a[href]')];
+      const controls = [...dialog.current.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], textarea')];
       if (!controls.length) return;
-      if (event.shiftKey && document.activeElement === controls[0]) { event.preventDefault(); controls[controls.length - 1].focus(); }
-      else if (!event.shiftKey && document.activeElement === controls[controls.length - 1]) { event.preventDefault(); controls[0].focus(); }
+      if (event.shiftKey && document.activeElement === controls[0]) {
+        event.preventDefault();
+        controls[controls.length - 1].focus();
+      } else if (!event.shiftKey && document.activeElement === controls[controls.length - 1]) {
+        event.preventDefault();
+        controls[0].focus();
+      }
     };
     document.addEventListener('keydown', onKeyDown);
-    return () => { document.removeEventListener('keydown', onKeyDown); previousFocus?.focus(); };
-  }, [alert?.id]);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      previousFocus?.focus();
+    };
+  }, [alert?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!alert) return null;
 
-  const handleAcknowledge = async () => {
+  const act = async (action: () => Promise<unknown>) => {
     setBusy(true);
     setError(null);
     try {
-      await dataClient.acknowledgeAlert(alert.id);
-      if (onActionComplete) onActionComplete();
+      await action();
+      onActionComplete?.();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal memperbarui status alert.');
+      setError(err instanceof Error ? err.message : 'Gagal memperbarui peringatan.');
       setBusy(false);
     }
   };
 
+  const statusLabel = alert.status === 'NEW' ? 'Baru' : alert.status === 'ACKNOWLEDGED' ? 'Sudah dibaca · belum selesai' : 'Selesai';
+
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden flex justify-end bg-zinc-950/50" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="evidence-title" className="w-full max-w-xl bg-white h-full shadow-2xl flex flex-col justify-between overflow-y-auto border-l border-zinc-200">
-        {/* Drawer Header */}
-        <div>
-          <div className="p-6 border-b border-slate-200 bg-slate-50 flex items-start justify-between">
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-xl bg-rose-100 text-rose-600 mt-1">
-                <ShieldAlert className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <SeverityBadge severity={alert.severity} />
-                  <span className="text-xs font-semibold text-slate-500">{alert.type.replace('_', ' ')}</span>
-                </div>
-                <h3 id="evidence-title" className="text-lg font-bold text-slate-900 leading-snug">{alert.title}</h3>
-                <p className="text-sm text-slate-500 mt-1">Proyek: <span className="font-semibold text-slate-700">{alert.projectName}</span></p>
-              </div>
-            </div>
-            <button
-              ref={closeButton}
-              aria-label="Tutup rincian peringatan"
-              onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Impact Banner */}
-          <div className="p-6 bg-gradient-to-r from-rose-50 to-orange-50 border-b border-rose-100 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex justify-end bg-zinc-950/50" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="evidence-title" className="flex h-full w-full max-w-xl flex-col overflow-y-auto border-l border-zinc-200 bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-3 border-b border-zinc-200 bg-zinc-50 p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <div className="mt-1 rounded-xl bg-red-100 p-2.5 text-red-600"><ShieldAlert className="h-5 w-5" /></div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-rose-700">Nilai terkait peringatan</p>
-              <p className="text-2xl font-black text-rose-900 mt-0.5">{formatRupiah(alert.rupiahImpact)}</p>
+              <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                <InsightBadge status={alert.classification} />
+                <SeverityBadge severity={alert.severity} />
+                <span className="text-xs text-zinc-500">{statusLabel}</span>
+              </div>
+              <h3 id="evidence-title" className="text-lg font-bold leading-snug text-zinc-950">{alert.title}</h3>
+              <p className="mt-1 text-sm text-zinc-500">{alert.projectName} · acuan {alert.baselineVersion}</p>
             </div>
           </div>
-
-          {/* Description & Cause */}
-          <div className="p-6 space-y-6">
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Penjelasan Masalah</h4>
-              <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200">
-                {alert.description}
-              </p>
-            </div>
-
-            {/* Evidence & Ground Truth */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Catatan sumber demo</h4>
-                <span className="text-xs font-medium text-blue-600 flex items-center gap-1">
-                  <FileText className="w-3.5 h-3.5" />
-                  {alert.evidence.sourceDocument}
-                </span>
-              </div>
-
-              <div className="bg-slate-900 text-slate-100 p-4 rounded-xl border border-slate-800 shadow-inner space-y-3">
-                <div className="flex items-center justify-between text-xs text-slate-400 border-b border-slate-800 pb-2">
-                  <span>Kutipan: <strong className="text-slate-200">{alert.evidence.pageOrSection}</strong></span>
-                  <span className="text-xs bg-slate-800 px-2 py-0.5 rounded text-orange-300">Belum diverifikasi</span>
-                </div>
-                <blockquote className="text-sm leading-relaxed text-zinc-100 bg-slate-950/60 p-3 rounded-lg border-l-2 border-orange-500">
-                  &ldquo;{alert.evidence.snippet}&rdquo;
-                </blockquote>
-                <p className="text-[11px] text-slate-400">
-                  Teks ini berasal dari data demo. Cocokkan dengan berkas kontrak asli sebelum mengambil keputusan.
-                </p>
-              </div>
-            </div>
-
-            {/* Recommended Action */}
-            <div className="border border-orange-200 bg-orange-50 p-4 rounded-xl">
-              <h5 className="text-sm font-bold text-orange-950 mb-1">Langkah berikutnya</h5>
-              <p className="text-sm text-orange-900 leading-relaxed">
-                {alert.type === 'BILLING_VARIANCE' && 'Periksa tahap pekerjaan dan tagihannya pada halaman keuangan.'}
-                {alert.type === 'BUDGET_VARIANCE' && 'Periksa biaya aktual dan rencana biaya proyek.'}
-                {alert.type === 'SCOPE_VARIANCE' && 'Periksa ruang lingkup proyek dan ajukan perubahan bila diperlukan.'}
-                {alert.type === 'REVISION_LIMIT' && 'Periksa catatan revisi dan batas yang disepakati.'}
-                {alert.type === 'DEADLINE_RISK' && 'Periksa jadwal dan progres pekerjaan proyek.'}
-              </p>
-            </div>
-          </div>
+          <button ref={closeButton} type="button" aria-label="Tutup rincian peringatan" onClick={onClose} className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800">
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
-        {/* Drawer Actions */}
-        <div className="p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-          >
-            Tutup
-          </button>
+        <div className="space-y-6 p-5 sm:p-6">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-red-100 bg-red-50/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-red-700">Nilai terkait</p>
+              <p className="mt-1 text-2xl font-black text-red-900">{impactText(alert)}</p>
+              <p className="mt-1 text-xs text-red-800">{alert.impactLabel}</p>
+            </div>
+            <div className="rounded-xl border border-zinc-200 p-4 text-sm text-zinc-700">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Dicatat</p>
+              <p className="mt-1">{formatDate(alert.createdAt)}</p>
+              {alert.updatedAt !== alert.createdAt && <p className="mt-1 text-xs text-zinc-500">Diperbarui {formatDate(alert.updatedAt)}</p>}
+            </div>
+          </div>
 
-          <div className="flex items-center gap-2">
-            {error && <span className="text-xs text-rose-600 font-medium mr-2">{error}</span>}
-            <button
-              type="button"
-              disabled={busy}
-              onClick={handleAcknowledge}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm transition-all"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{busy ? 'Menyimpan…' : 'Tandai sudah dibaca'}</span>
-            </button>
-            <a
-              href={`/projects/${alert.projectId}`}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-xs font-semibold text-white hover:bg-blue-700 shadow-sm transition-all"
-            >
-              <span>Buka proyek</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </a>
+          <div>
+            <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">Apa yang terjadi</h4>
+            <p className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-relaxed text-zinc-800">{alert.description}</p>
+          </div>
+
+          <div>
+            <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">Mengapa CLARA menyatakan ini · bukti</h4>
+            <ol className="space-y-3">
+              {alert.evidence.map((item, index) => {
+                const Icon = kindIcon[item.kind];
+                return (
+                  <li key={`${item.kind}-${index}`} className="rounded-xl border border-zinc-200 p-4">
+                    <div className="flex items-start gap-3">
+                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">{kindLabel[item.kind]}</p>
+                        <p className="text-sm font-semibold text-zinc-900">{item.title}</p>
+                        <p className={`mt-1 text-sm leading-relaxed text-zinc-700 ${item.kind === 'CONTRACT' && item.documentId ? 'border-l-2 border-orange-400 pl-3 italic' : ''}`}>{item.detail}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                          {item.source && <span>{item.source}</span>}
+                          {item.kind === 'CONTRACT' && (
+                            <span className={item.verified ? 'font-semibold text-emerald-700' : 'font-semibold text-amber-700'}>
+                              {item.verified ? 'Kutipan cocok dengan dokumen' : 'Tanpa kutipan terverifikasi'}
+                            </span>
+                          )}
+                          {item.documentId && (
+                            <a href={documentUrl(alert.projectId, item.documentId, item.page)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-red-700 hover:underline">
+                              Buka dokumen{item.page ? ` hal. ${item.page}` : ''}<ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+
+          <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+            <h5 className="mb-1 text-sm font-bold text-orange-950">Yang perlu ditinjau</h5>
+            <p className="text-sm leading-relaxed text-orange-900">{alert.recommendedAction}</p>
+            <p className="mt-2 text-xs text-orange-800">CLARA tidak mengambil keputusan atau mengirim tagihan otomatis. Keputusan tetap di tangan Anda.</p>
+          </div>
+
+          {alert.resolution && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+              <p className="font-semibold">{alert.resolution.auto ? 'Selesai otomatis' : 'Diselesaikan'} · {formatDate(alert.resolution.at)}</p>
+              <p className="mt-1">{alert.resolution.note}</p>
+              <p className="mt-1 text-xs">Oleh {alert.resolution.by}</p>
+            </div>
+          )}
+
+          {resolving && alert.status !== 'RESOLVED' && (
+            <div>
+              <label htmlFor="resolve-note" className="block text-sm font-semibold text-zinc-800">Catatan penyelesaian</label>
+              <textarea id="resolve-note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Contoh: Disepakati sebagai pengecualian dengan klien pada rapat 12 Okt." className={inputClass} />
+            </div>
+          )}
+        </div>
+
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 bg-zinc-50 p-5">
+          <button type="button" onClick={onClose} className={btn.ghost}>Tutup</button>
+          <div className="flex flex-wrap items-center gap-2">
+            {error && <span role="alert" className="w-full text-xs font-medium text-red-700 sm:w-auto">{error}</span>}
+            {alert.status === 'NEW' && !resolving && (
+              <button type="button" disabled={busy} onClick={() => void act(() => dataClient.acknowledgeAlert(alert.id))} className={btn.secondary}>
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />{busy ? 'Menyimpan…' : 'Tandai sudah dibaca'}
+              </button>
+            )}
+            {alert.status !== 'RESOLVED' && (resolving ? (
+              <button type="button" disabled={busy || !note.trim()} onClick={() => void act(() => dataClient.resolveAlert(alert.id, note.trim()))} className={btn.success}>
+                {busy ? 'Menyimpan…' : 'Simpan & selesaikan'}
+              </button>
+            ) : (
+              <button type="button" onClick={() => setResolving(true)} className={btn.secondary}>Selesaikan…</button>
+            ))}
+            <Link href={`/projects/${alert.projectId}?tab=${alert.actionTab ?? 'alerts'}`} onClick={onClose} className={btn.primary}>
+              Tindak lanjut <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </div>
