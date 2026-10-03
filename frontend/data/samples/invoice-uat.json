@@ -1,0 +1,24 @@
+{
+  "fileName": "Invoice-ASL-UAT.pdf",
+  "title": "INVOICE",
+  "pages": [
+    [
+      "INVOICE",
+      "Nomor: INV/KDN/2026/031",
+      "Tanggal: 15 Oktober 2026",
+      "",
+      "Dari: PT Karya Digital Nusantara",
+      "Kepada: PT Astra Sahabat Logistik",
+      "Rujukan kontrak: PKS/ASL/2026/089",
+      "",
+      "Termin: UAT diterima (25% dari nilai kontrak)",
+      "",
+      "1. Termin UAT diterima - 1 termin x Rp30.000.000 = Rp30.000.000",
+      "",
+      "Total tagihan: Rp30.000.000",
+      "Pembayaran paling lambat 14 hari sejak invoice diterima.",
+      "",
+      "DOKUMEN CONTOH UNTUK DEMO CLARA - BUKAN INVOICE SUNGGUHAN"
+    ]
+  ]
+}
