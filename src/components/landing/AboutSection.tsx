@@ -89,9 +89,9 @@ export function AboutSection() {
           {/* Right Column: 3 Core Value Pillars - Shifted Down, Strictly Monochrome */}
           <div className="lg:col-span-6 space-y-5 pt-2 sm:pt-6 lg:pt-10">
             {/* Card 1 */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 transition-colors">
+            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 group">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
                   <FileCheck className="w-5 h-5" />
                 </div>
                 <div>
@@ -106,9 +106,9 @@ export function AboutSection() {
             </div>
 
             {/* Card 2 */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 transition-colors">
+            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 group">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
                   <Layers className="w-5 h-5" />
                 </div>
                 <div>
@@ -123,9 +123,9 @@ export function AboutSection() {
             </div>
 
             {/* Card 3 */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 transition-colors">
+            <div className="p-6 sm:p-7 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 group">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-10 h-10 rounded-lg bg-zinc-200/80 text-zinc-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>

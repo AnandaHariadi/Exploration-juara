@@ -41,6 +41,7 @@ const officeSlides: OfficeSlide[] = [
 
 export function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -49,8 +50,31 @@ export function HeroSection() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrollY(window.scrollY);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % officeSlides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + officeSlides.length) % officeSlides.length);
+
+  // Dynamic 3D perspective scroll calculations
+  const scrollProgress = Math.min(1, Math.max(0, scrollY / 420));
+  const dynamicPitch = (7 * (1 - scrollProgress)).toFixed(2); // 7deg down to 0deg
+  const dynamicScale = (0.97 + 0.03 * scrollProgress).toFixed(3); // 0.97 up to 1.00
+  const dynamicElevation = (-12 * (1 - scrollProgress)).toFixed(1);
+  const leftRibbonY = scrollY * 0.12;
+  const rightRibbonY = -scrollY * 0.08;
   return (
     <section id="beranda" className="relative bg-white pt-12 pb-16 md:pt-20 md:pb-24 border-b border-zinc-200 overflow-hidden">
       {/* Background Subtle Corporate Texture */}
@@ -63,8 +87,11 @@ export function HeroSection() {
           className="object-cover object-center"
         />
       </div>
-      {/* Clara Executive Ribbon (Left Flank - Anchored Outward to Prevent Any Text Overlap) */}
-      <div className="absolute top-0 -left-28 sm:-left-36 md:-left-44 lg:-left-40 xl:-left-28 2xl:-left-12 w-64 sm:w-80 md:w-96 lg:w-[420px] xl:w-[480px] h-auto pointer-events-none select-none z-0 opacity-80 sm:opacity-85 lg:opacity-90 transition-all">
+      {/* Clara Executive Ribbon (Left Flank) with 3D Parallax */}
+      <div
+        className="absolute top-0 -left-28 sm:-left-36 md:-left-44 lg:-left-40 xl:-left-28 2xl:-left-12 w-64 sm:w-80 md:w-96 lg:w-[420px] xl:w-[480px] h-auto pointer-events-none select-none z-0 opacity-80 sm:opacity-85 lg:opacity-90 transition-transform duration-100 ease-out will-change-transform"
+        style={{ transform: `translateY(${leftRibbonY}px)` }}
+      >
         <Image
           src="/images/shapes/hero_ribbon_monument_left.svg"
           alt="Clara Ribbon Left"
@@ -75,8 +102,11 @@ export function HeroSection() {
         />
       </div>
 
-      {/* Clara Executive Ribbon (Right Flank - Anchored Outward to Prevent Any Text Overlap) */}
-      <div className="absolute top-0 -right-28 sm:-right-36 md:-right-44 lg:-right-40 xl:-right-28 2xl:-right-12 w-64 sm:w-80 md:w-96 lg:w-[420px] xl:w-[480px] h-auto pointer-events-none select-none z-0 opacity-80 sm:opacity-85 lg:opacity-90 transition-all">
+      {/* Clara Executive Ribbon (Right Flank) with 3D Parallax */}
+      <div
+        className="absolute top-0 -right-28 sm:-right-36 md:-right-44 lg:-right-40 xl:-right-28 2xl:-right-12 w-64 sm:w-80 md:w-96 lg:w-[420px] xl:w-[480px] h-auto pointer-events-none select-none z-0 opacity-80 sm:opacity-85 lg:opacity-90 transition-transform duration-100 ease-out will-change-transform"
+        style={{ transform: `translateY(${rightRibbonY}px)` }}
+      >
         <Image
           src="/images/shapes/hero_ribbon_monument_right.svg"
           alt="Clara Ribbon Right"
@@ -170,7 +200,12 @@ export function HeroSection() {
           <div className="absolute -bottom-8 sm:-bottom-12 left-24 sm:left-32 right-24 sm:right-32 h-16 sm:h-20 bg-gradient-to-r from-red-600/25 via-red-500/15 to-red-600/25 blur-3xl rounded-full -z-10 pointer-events-none" />
 
           {/* 3D Beveled Hardware Chassis with Perspective Pitch */}
-          <div className="relative rounded-[26px] sm:rounded-[36px] p-2 sm:p-3 md:p-3.5 bg-gradient-to-b from-zinc-200 via-zinc-100 to-zinc-300 shadow-[0_30px_70px_-15px_rgba(0,0,0,0.35),0_12px_28px_-6px_rgba(0,0,0,0.18),0_1px_2px_rgba(255,255,255,0.95)_inset,0_0_0_1px_rgba(255,255,255,0.7)_inset] ring-1 ring-zinc-900/10 transition-all duration-700 ease-out [transform:perspective(1600px)_rotateX(3.5deg)] hover:[transform:perspective(1600px)_rotateX(0.5deg)_translateY(-8px)_scale(1.008)]">
+          <div
+            className="relative rounded-[26px] sm:rounded-[36px] p-2 sm:p-3 md:p-3.5 bg-gradient-to-b from-zinc-200 via-zinc-100 to-zinc-300 shadow-[0_30px_70px_-15px_rgba(0,0,0,0.35),0_12px_28px_-6px_rgba(0,0,0,0.18),0_1px_2px_rgba(255,255,255,0.95)_inset,0_0_0_1px_rgba(255,255,255,0.7)_inset] ring-1 ring-zinc-900/10 will-change-transform transition-transform duration-100 ease-out group-hover:scale-[1.008]"
+            style={{
+              transform: `perspective(1400px) rotateX(${dynamicPitch}deg) scale(${dynamicScale}) translateY(${dynamicElevation}px)`,
+            }}
+          >
             {/* Top Metallic Chamfer Highlight */}
             <div className="absolute top-0 left-12 right-12 h-[2px] bg-gradient-to-r from-transparent via-white to-transparent opacity-90 rounded-full pointer-events-none" />
 
