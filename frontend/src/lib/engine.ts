@@ -860,6 +860,21 @@ function buildChecks(project: Project, m: ProjectMetrics, drafts: AlertDraft[]):
           : 'Perkiraan selesai masih dalam tenggat.',
     alertId: byType('DEADLINE_RISK')[0]?.id,
   });
+
+  const docTypes: AlertType[] = ['FINANCIAL_ANOMALY', 'DOCUMENT_INCONSISTENCY', 'POTENTIAL_IRREGULARITY'];
+  const docIssues = drafts.filter((d) => docTypes.includes(d.type));
+  const analyzed = project.documents.filter((d) => d.analysis && d.kind !== 'RAB').length;
+  checks.push({
+    key: 'documents',
+    type: 'DOCUMENT_INCONSISTENCY',
+    label: 'Konsistensi dokumen',
+    status: docIssues.some((d) => d.classification === 'VERIFIED_DEVIATION') ? 'VERIFIED_DEVIATION' : docIssues[0]?.classification ?? 'MATCH',
+    expected: `Sesuai acuan ${version}`,
+    actual: `${analyzed} dokumen dianalisis`,
+    difference: docIssues.length ? `${docIssues.length} temuan` : '0',
+    explanation: docIssues.length ? 'Ada invoice/adendum yang tidak cocok dengan acuan atau catatan proyek.' : 'Invoice dan dokumen pendukung cocok dengan acuan aktif.',
+    alertId: docIssues[0]?.id,
+  });
   return checks;
 }
 
