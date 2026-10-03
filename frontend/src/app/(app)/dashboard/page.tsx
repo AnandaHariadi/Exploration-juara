@@ -35,6 +35,26 @@ export default function DashboardPage() {
   );
   const needsSetup = projects.filter((p) => !p.metrics.hasBaseline);
 
+  // Persona work queue: CLARA surfaces what each role must act on.
+  type Task = { key: string; title: string; detail: string; href: string };
+  const tasks: Task[] = [];
+  const crs = projects.flatMap((p) => p.changeRequests.map((c) => ({ p, c })));
+  const finAlerts = openAlerts.filter((a) => ['FINANCIAL_ANOMALY', 'BILLING_VARIANCE', 'BUDGET_VARIANCE', 'POTENTIAL_IRREGULARITY'].includes(a.type));
+  if (personaId === 'BUDI' || personaId === 'ADMIN') {
+    for (const { p, c } of crs.filter(({ c }) => ['DRAFT', 'REJECTED', 'CLIENT_REJECTED'].includes(c.status))) tasks.push({ key: `cr-${c.id}`, title: `${c.status === 'DRAFT' ? 'Lengkapi & ajukan' : 'Revisi & ajukan ulang'} ${c.crNumber}`, detail: `${p.name} · ${c.title}${c.origin === 'AI_DRAFT' ? ' · disiapkan CLARA' : ''}`, href: `/projects/${p.id}?tab=change-requests` });
+    for (const { p, c } of crs.filter(({ c }) => c.status === 'INTERNAL_APPROVED')) tasks.push({ key: `cl-${c.id}`, title: `Catat bukti persetujuan klien ${c.crNumber}`, detail: `${p.name} · sudah disetujui internal`, href: `/projects/${p.id}?tab=change-requests` });
+    for (const p of projects) for (const d of p.documents.filter((d) => d.status === 'NEEDS_REVIEW' || d.status === 'FAILED')) if (p.metrics.hasBaseline) tasks.push({ key: `doc-${d.id}`, title: `${d.status === 'FAILED' ? 'Analisis gagal' : 'Tinjau hasil analisis'}: ${d.fileName}`, detail: p.name, href: `/projects/${p.id}?tab=documents` });
+    for (const a of openAlerts.filter((a) => ['REVISION_LIMIT', 'SCOPE_VARIANCE', 'DEADLINE_RISK'].includes(a.type))) tasks.push({ key: `al-${a.id}`, title: a.title, detail: `${a.projectName} · CLARA dapat menyiapkan permintaan perubahan`, href: `/projects/${a.projectId}?tab=alerts` });
+  }
+  if (personaId === 'SITI' || personaId === 'ADMIN') {
+    for (const { p, c } of crs.filter(({ c }) => c.status === 'PENDING')) tasks.push({ key: `fin-${c.id}`, title: `Tinjau dampak keuangan ${c.crNumber}`, detail: `${p.name} · +${formatRupiah(c.additionalValue)}`, href: `/projects/${p.id}?tab=change-requests` });
+    for (const a of finAlerts) tasks.push({ key: `fa-${a.id}`, title: a.title, detail: `${a.projectName} · ${impactText(a)}`, href: `/projects/${a.projectId}?tab=alerts` });
+  }
+  if (personaId === 'HENDRA' || personaId === 'ADMIN') {
+    for (const { p, c } of crs.filter(({ c }) => c.status === 'FINANCE_REVIEWED')) tasks.push({ key: `dec-${c.id}`, title: `Putuskan ${c.crNumber}: ${c.title}`, detail: `${p.name} · +${formatRupiah(c.additionalValue)} · +${c.additionalRevisions} revisi · +${c.deadlineExtensionDays} hari · sudah ditinjau keuangan`, href: `/projects/${p.id}?tab=change-requests` });
+  }
+  const decisions = crs.filter(({ c }) => c.internalDecision).sort((a, b) => (b.c.internalDecision!.at).localeCompare(a.c.internalDecision!.at)).slice(0, 5);
+
   const s = summary;
   const metrics = s && (
     <section aria-label="Angka portofolio" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -151,6 +171,21 @@ export default function DashboardPage() {
               <Link href={`/projects/${needsSetup[0].id}`} className={btn.primary}>Siapkan acuan <ArrowRight className="h-4 w-4" /></Link>
             </div>
           )}
+          <Panel title="Perlu tindakan Anda" description={`Disusun CLARA untuk ${personaId === 'BUDI' ? 'pengelola proyek' : personaId === 'SITI' ? 'keuangan' : personaId === 'HENDRA' ? 'pimpinan' : 'admin'} — Anda tidak perlu mencari masalahnya sendiri.`}>
+            {tasks.length === 0 ? <p className="rounded-xl bg-zinc-50 p-4 text-sm text-zinc-600">Tidak ada tindakan yang menunggu Anda.</p> : (
+              <ul className="space-y-2">
+                {tasks.slice(0, 8).map((t) => (
+                  <li key={t.key}><Link href={t.href} className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 p-3 hover:border-red-300"><span><strong className="block text-sm text-zinc-900">{t.title}</strong><span className="text-xs text-zinc-500">{t.detail}</span></span><ArrowRight className="h-4 w-4 shrink-0 text-zinc-400" /></Link></li>
+                ))}
+              </ul>
+            )}
+            {personaId === 'HENDRA' && decisions.length > 0 && (
+              <div className="mt-4 border-t border-zinc-100 pt-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Riwayat keputusan</p>
+                <ul className="mt-1.5 space-y-1 text-sm">{decisions.map(({ p, c }) => <li key={c.id}>{c.crNumber} · {c.internalDecision!.approved ? 'disetujui' : 'ditolak'} · {p.name}{c.status === 'APPROVED' ? ` · resmi ${c.resultingBaselineVersion}` : c.status === 'INTERNAL_APPROVED' ? ' · menunggu klien' : ''}</li>)}</ul>
+              </div>
+            )}
+          </Panel>
           {metrics}
           {personaId === 'SITI' ? (
             <div className="grid gap-5 xl:grid-cols-2">{billingPanel}{alertsPanel}</div>
