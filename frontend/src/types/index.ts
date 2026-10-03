@@ -1,18 +1,28 @@
-export type ProjectStatus = 
-  | 'DRAFT' 
-  | 'BASELINE_PENDING' 
-  | 'ACTIVE' 
-  | 'AT_RISK' 
+// CLARA domain types. Server (Next.js API + SQLite) is the single source of
+// truth; every derived number (metrics, alerts, statuses) is produced by the
+// deterministic engine in src/lib/engine.ts.
+
+export type ProjectStatus =
+  | 'DRAFT'
+  | 'BASELINE_PENDING'
+  | 'ACTIVE'
+  | 'AT_RISK'
   | 'COMPLETED';
 
 export type AlertSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
-export type AlertType = 
-  | 'BUDGET_VARIANCE' 
-  | 'SCOPE_VARIANCE' 
-  | 'BILLING_VARIANCE' 
-  | 'REVISION_LIMIT' 
+export type AlertType =
+  | 'BUDGET_VARIANCE'
+  | 'SCOPE_VARIANCE'
+  | 'BILLING_VARIANCE'
+  | 'REVISION_LIMIT'
   | 'DEADLINE_RISK';
+
+/** Insight status from PRD §14. MATCH is used for reconciliation checks only. */
+export type InsightStatus = 'MATCH' | 'POSSIBLE_DEVIATION' | 'VERIFIED_DEVIATION' | 'NEEDS_REVIEW';
+
+/** What a rupiah figure on an alert means. None of these is an actual loss. */
+export type ImpactKind = 'UNBILLED' | 'OVER_BUDGET' | 'BUDGET_REMAINING' | 'UNPRICED' | 'SCHEDULE' | 'NONE';
 
 export type ScopeStatus = 'MATCH' | 'NEEDS_REVIEW' | 'APPROVED_CHANGE';
 
@@ -22,14 +32,25 @@ export type BillingStatus = 'UNBILLED' | 'INVOICED' | 'PAID';
 
 export type ChangeRequestStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
-export interface Evidence {
-  type: 'CONTRACT_CLAUSE' | 'FINANCIAL_MISMATCH' | 'EVENT_LOG' | 'DELIVERY';
-  title: string;
+export interface SourceRef {
+  documentId?: string;
+  page?: number | null;
   snippet: string;
-  sourceDocument: string;
-  pageOrSection: string;
-  timestamp?: string;
-  confidenceScore?: number;
+  /** true only when the snippet was found verbatim in the document text. */
+  verified?: boolean;
+}
+
+export interface EvidenceItem {
+  kind: 'CONTRACT' | 'BASELINE' | 'EVENT' | 'INVOICE' | 'COST' | 'MILESTONE' | 'CHANGE_REQUEST' | 'CALCULATION';
+  title: string;
+  detail: string;
+  /** Human-readable source label, e.g. "Kontrak.pdf · hal. 2" or "Kegiatan 12 Okt 2026". */
+  source?: string;
+  documentId?: string;
+  page?: number | null;
+  refId?: string;
+  /** false when the item comes from AI output that has not been matched to the document text. */
+  verified: boolean;
 }
 
 export interface ScopeItem {
@@ -38,6 +59,8 @@ export interface ScopeItem {
   description: string;
   category: 'CORE_FEATURE' | 'INTEGRATION' | 'INFRASTRUCTURE' | 'MAINTENANCE';
   status: ScopeStatus;
+  origin?: 'BASELINE' | 'EVENT' | 'CHANGE_REQUEST';
+  eventId?: string;
   contractClauseRef?: string;
   deviationNotes?: string;
   assignedTo?: string;
@@ -46,13 +69,23 @@ export interface ScopeItem {
 export interface Milestone {
   id: string;
   title: string;
+  /** Share of the contract value this milestone entitles, as stated by the baseline. */
   percentage: number;
+  /** Billable entitlement in rupiah, fixed when the baseline version was confirmed. */
   value: number;
+  /** Contract value the percentage was applied to. */
+  basisContractValue?: number;
+  /** Contractual billing trigger, e.g. "UAT diterima". */
+  trigger?: string;
   targetDate: string;
   completionDate?: string;
+  completedEventId?: string;
   status: MilestoneStatus;
   billingStatus: BillingStatus;
   invoiceId?: string;
+  billedAmount?: number;
+  paidAmount?: number;
+  source?: SourceRef;
   evidenceSnippet?: string;
 }
 
@@ -72,6 +105,8 @@ export interface AgreementBaseline {
     description: string;
     clauseNumber: string;
   }[];
+  /** Source references for headline fields (contractValue, deadline, revisionLimit...). */
+  sources?: Record<string, SourceRef>;
 }
 
 export interface RABItem {
@@ -86,6 +121,29 @@ export interface PlanBaseline {
   totalPlannedCost: number;
   items: RABItem[];
   contingencyBudget: number;
+  sourceFile?: string;
+}
+
+export interface BaselineVersion {
+  id: string;
+  version: number;
+  label: string; // "V1", "V2"
+  status: 'ACTIVE' | 'ARCHIVED';
+  contractValue: number;
+  plannedCost: number;
+  startDate: string;
+  deadline: string;
+  revisionLimit: number;
+  paymentTerms: string;
+  milestones: Milestone[];
+  scopeItems: ScopeItem[];
+  rabItems: RABItem[];
+  source: 'EXTRACTION_CONFIRMED' | 'CHANGE_REQUEST';
+  sourceDetail: string;
+  changeRequestId?: string;
+  changes?: { field: string; label: string; from: string; to: string }[];
+  createdAt: string;
+  createdBy: string;
 }
 
 export interface ActualCostItem {
@@ -110,18 +168,52 @@ export interface InvoiceItem {
   issueDate: string;
   dueDate: string;
   paymentDate?: string;
-  pdfUrl?: string;
+  createdBy?: string;
 }
+
+export interface PaymentItem {
+  id: string;
+  projectId: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  amount: number;
+  date: string;
+  recordedBy: string;
+}
+
+export type ProjectEventType =
+  | 'PROGRESS_UPDATED'
+  | 'MILESTONE_COMPLETED'
+  | 'SCOPE_ADDED'
+  | 'SCOPE_REVIEWED'
+  | 'REVISION_LOGGED'
+  | 'INVOICE_SENT'
+  | 'PAYMENT_RECEIVED'
+  | 'COST_RECORDED'
+  | 'BASELINE_CONFIRMED'
+  | 'CHANGE_REQUEST_SUBMITTED'
+  | 'CHANGE_REQUEST_APPROVED'
+  | 'CHANGE_REQUEST_REJECTED'
+  | 'DOCUMENT_UPLOADED'
+  | 'EXTRACTION_COMPLETED';
 
 export interface ProjectEvent {
   id: string;
   projectId: string;
-  type: 'MILESTONE_COMPLETED' | 'SCOPE_ADDED' | 'REVISION_LOGGED' | 'INVOICE_SENT' | 'PAYMENT_RECEIVED' | 'CHANGE_REQUEST_APPROVED';
+  type: ProjectEventType;
   title: string;
   description: string;
   date: string;
   author: string;
-  metadata?: Record<string, any>;
+  createdAt?: string;
+  metadata?: {
+    progress?: number;
+    projectedFinishDate?: string;
+    revisionCount?: number;
+    milestoneId?: string;
+    scopeItemId?: string;
+    [key: string]: unknown;
+  };
 }
 
 export interface ChangeRequest {
@@ -133,10 +225,16 @@ export interface ChangeRequest {
   reason: string;
   additionalScope: string[];
   additionalValue: number;
+  additionalRevisions: number;
   deadlineExtensionDays: number;
   status: ChangeRequestStatus;
+  baseVersion: string;
   createdAt: string;
+  createdBy: string;
   approvedAt?: string;
+  rejectedAt?: string;
+  decidedBy?: string;
+  decisionNote?: string;
   resultingBaselineVersion?: string;
 }
 
@@ -146,12 +244,128 @@ export interface Alert {
   projectName: string;
   type: AlertType;
   severity: AlertSeverity;
+  classification: InsightStatus;
   title: string;
   description: string;
   rupiahImpact: number;
+  impactKind: ImpactKind;
+  impactLabel: string;
   status: 'NEW' | 'ACKNOWLEDGED' | 'RESOLVED';
-  evidence: Evidence;
+  evidence: EvidenceItem[];
+  recommendedAction: string;
+  actionTab?: 'finance' | 'monitoring' | 'change-requests' | 'baseline';
+  baselineVersion: string;
+  fingerprint: string;
   createdAt: string;
+  updatedAt: string;
+  resolution?: { at: string; by: string; note: string; auto: boolean };
+}
+
+export interface ReconciliationCheck {
+  key: string;
+  type: AlertType;
+  label: string;
+  status: InsightStatus;
+  expected: string;
+  actual: string;
+  difference: string;
+  explanation: string;
+  alertId?: string;
+}
+
+export interface ProjectMetrics {
+  hasBaseline: boolean;
+  baselineVersion: string | null;
+  contractValue: number;
+  plannedCost: number;
+  actualCost: number;
+  budgetVariance: number;
+  /** actual / planned × 100, null when planned cost is 0 or unknown. */
+  budgetUtilization: number | null;
+  progress: number;
+  billableValue: number;
+  billedValue: number;
+  paidValue: number;
+  unbilledValue: number;
+  outstandingReceivable: number;
+  plannedProfit: number | null;
+  actualProfit: number | null;
+  actualProfitNote: string;
+  includedRevisions: number;
+  actualRevisions: number;
+  revisionVariance: number;
+  deadline: string | null;
+  projectedFinish: string | null;
+  deadlineVarianceDays: number | null;
+  openAlerts: number;
+  newAlerts: number;
+  alertsByType: Record<AlertType, number>;
+  computedAt: string;
+}
+
+export interface ProjectDocument {
+  id: string;
+  kind: 'CONTRACT' | 'RAB';
+  fileName: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: string;
+  uploadedBy: string;
+  isSample: boolean;
+}
+
+export interface CandidateMilestone {
+  id: string;
+  title: string;
+  percentage: number | null;
+  trigger: string;
+  targetDate: string | null;
+  source?: SourceRef;
+}
+
+export interface CandidateRabItem {
+  id: string;
+  category: string;
+  description: string;
+  plannedAmount: number;
+}
+
+export interface CandidateRisk {
+  title: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  detail: string;
+  source?: SourceRef;
+}
+
+/** Proposed baseline produced from documents. Never active until confirmed by a human. */
+export interface ExtractionCandidate {
+  status: 'PROCESSING' | 'READY' | 'FAILED' | 'CONFIRMED';
+  source: 'AI' | 'SAMPLE' | 'MANUAL';
+  startedAt: string;
+  completedAt?: string;
+  error?: { code: string; message: string };
+  confidence: number | null;
+  contract: {
+    contractNumber: string;
+    title: string;
+    clientName: string;
+    contractValue: number | null;
+    startDate: string | null;
+    deadline: string | null;
+    revisionLimit: number | null;
+    paymentTerms: string;
+    scope: string[];
+    obligations: string[];
+    penalties: string[];
+  };
+  milestones: CandidateMilestone[];
+  rab: { items: CandidateRabItem[]; total: number | null; sourceFile?: string; warnings: string[] };
+  /** Field-level sources, keyed by field name (contractValue, deadline, revisionLimit, startDate...). */
+  sources: Record<string, SourceRef>;
+  risks: CandidateRisk[];
+  warnings: string[];
+  editedFields: string[];
+  extractionMeta?: { sourceFile: string; pages: number | null; processedAt: string; engine: string; documentId?: string };
 }
 
 export interface Project {
@@ -159,6 +373,9 @@ export interface Project {
   name: string;
   client: string;
   status: ProjectStatus;
+  isDemo?: boolean;
+  createdAt?: string;
+  // Summary fields mirrored from metrics for list views.
   contractValue: number;
   plannedCost: number;
   actualCost: number;
@@ -172,40 +389,54 @@ export interface Project {
   activeRevisionCount: number;
   agreementBaseline: AgreementBaseline;
   planBaseline: PlanBaseline;
+  baselines: BaselineVersion[];
+  documents: ProjectDocument[];
+  extraction: ExtractionCandidate | null;
   actualCosts: ActualCostItem[];
   invoices: InvoiceItem[];
+  payments: PaymentItem[];
   events: ProjectEvent[];
   changeRequests: ChangeRequest[];
   alerts: Alert[];
+  reconciliation: ReconciliationCheck[];
+  metrics: ProjectMetrics;
 }
 
-export interface ExtractionResult {
-  contract: {
-    contractNumber: string;
-    title: string;
-    clientName: string;
-    contractValue: number;
-    startDate: string;
-    deadline: string;
-    paymentTerms: string;
-    revisionLimit: number;
-    milestones: {
-      title: string;
-      percentage: number;
-      value: number;
-      targetDate: string;
-    }[];
-    scopes: string[];
-  };
-  rab: {
-    totalPlannedCost: number;
-    items: {
-      category: string;
-      description: string;
-      plannedAmount: number;
-    }[];
-  };
-  confidenceScore: number;
+export interface PortfolioSummary {
+  projectCount: number;
+  activeProjectCount: number;
+  contractValue: number;
+  plannedCost: number;
+  actualCost: number;
+  budgetUtilization: number | null;
+  billableValue: number;
+  billedValue: number;
+  paidValue: number;
+  unbilledValue: number;
+  averageProgress: number | null;
+  openAlerts: number;
+  newAlerts: number;
+  projects: { id: string; name: string; client: string; status: ProjectStatus; progress: number; contractValue: number; unbilledValue: number; openAlerts: number; baselineVersion: string }[];
+  computedAt: string;
+}
+
+export interface AiHealth {
+  available: boolean;
+  url: string;
+  service?: string;
+  version?: string;
+  ai?: { gemini: boolean; neo4j: string; redis: string };
+  message?: string;
+  checkedAt: string;
+}
+
+export interface LegalAnswer {
+  answer: string;
+  citations: { id: string; title: string; source: string }[];
+  confidence: number;
+  confidenceLevel: 'green' | 'yellow' | 'red';
+  confidenceLabel: string;
+  contextUsed: { legalSources: number; projectContext: boolean };
 }
 
 export type UserPersonaId = 'BUDI' | 'SITI' | 'HENDRA' | 'ADMIN';
