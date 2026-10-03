@@ -45,7 +45,7 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
   };
 
   const row = (kind: 'CONTRACT' | 'RAB', doc: typeof contract) => (
-    <div className="rounded-xl border border-zinc-200 p-4">
+    <div className="min-w-0 rounded-xl border border-zinc-200 p-4">
       <div className="flex items-start gap-3">
         {kind === 'CONTRACT' ? <FileText className="mt-0.5 h-5 w-5 text-red-600" /> : <FileSpreadsheet className="mt-0.5 h-5 w-5 text-emerald-600" />}
         <div className="min-w-0 flex-1">
@@ -90,7 +90,7 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
         </a>
       }
     >
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {row('CONTRACT', contract)}
         {row('RAB', rab)}
       </div>
