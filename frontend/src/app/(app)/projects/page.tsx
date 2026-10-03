@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Plus, Search, FolderGit2, AlertTriangle, ArrowRight } from 'lucide-react';
 import { useProjects } from '@/hooks/useClaraData';
-import { formatCompactRupiah, formatDate } from '@/lib/utils';
+import { formatCompactRupiah, formatDate, isOpenAlert } from '@/lib/utils';
 import { StatusBadge } from '@/components/shared/Badge';
 
 export default function ProjectsPage() {
@@ -100,7 +100,7 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProjects.map((project) => {
-          const activeAlerts = (project.alerts || []).filter((a) => a.status !== 'RESOLVED');
+          const activeAlerts = (project.alerts || []).filter(isOpenAlert);
           const hasRisk = project.status === 'AT_RISK' || activeAlerts.length > 0;
 
           return (
