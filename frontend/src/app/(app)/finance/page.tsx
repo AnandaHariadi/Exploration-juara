@@ -6,17 +6,18 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Receipt, DollarSign, AlertCircle, ArrowUpRight, CheckCircle2, Clock, FileSpreadsheet, Printer, Download, Eye, X, FileText } from 'lucide-react';
 import { dataClient } from '@/services/dataClient';
-import { useDashboardSummary, useProjects } from '@/hooks/useClaraData';
-import { formatCompactRupiah, formatDate, formatRupiah } from '@/lib/utils';
-import { btn, EmptyState, Metric, NoticeBar, Panel, useNotice } from '@/components/shared/ui';
-import { invoiceStatus } from '@/components/project/FinanceTab';
+import { useProjects } from '@/hooks/useClaraData';
+import { Project, InvoiceItem } from '@/types';
+import { formatCompactRupiah, formatRupiah, formatDate } from '@/lib/utils';
+import { BillingBadge } from '@/components/shared/Badge';
+import * as XLSX from 'xlsx';
 
 export default function FinancePage() {
-  const { projects, loading, error, refreshProjects } = useProjects();
-  const { summary } = useDashboardSummary();
-  const { notice, run, clear } = useNotice();
-  const [busy, setBusy] = React.useState<string | null>(null);
-  const active = projects.filter((p) => p.metrics.hasBaseline);
+  const { projects, refreshProjects, loading, error } = useProjects();
+  const [busyMilestoneId, setBusyMilestoneId] = React.useState<string | null>(null);
+  const [busyPaymentId, setBusyPaymentId] = React.useState<string | null>(null);
+  const [actionError, setActionError] = React.useState<string | null>(null);
+  const [actionNotice, setActionNotice] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (actionNotice) {
@@ -50,115 +51,70 @@ export default function FinancePage() {
     const today = new Date().toLocaleDateString('id-ID', { dateStyle: 'full' });
     const isoDate = new Date().toISOString().slice(0, 10);
 
-    const excelHtml = `
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<!--[if gte mso 9]>
-<xml>
- <x:ExcelWorkbook>
-  <x:ExcelWorksheets>
-   <x:ExcelWorksheet>
-    <x:Name>Rekapitulasi Keuangan CLARA</x:Name>
-    <x:WorksheetOptions>
-     <x:DisplayGridlines/>
-    </x:WorksheetOptions>
-   </x:ExcelWorksheet>
-  </x:ExcelWorksheets>
- </x:ExcelWorkbook>
-</xml>
-<![endif]-->
-<style>
-  body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10pt; }
-  table { border-collapse: collapse; }
-  .title-main { font-size: 14pt; font-weight: bold; color: #dc2626; padding: 10px 0; }
-  .meta-info { font-size: 9pt; color: #475569; padding-bottom: 12px; }
-  .section-header { background-color: #1e293b; color: #ffffff; font-weight: bold; font-size: 11pt; padding: 8px 12px; border: 1px solid #0f172a; }
-  .th-sub { background-color: #f1f5f9; color: #1e293b; font-weight: bold; font-size: 9.5pt; border: 1px solid #cbd5e1; padding: 6px 10px; }
-  .th-brand { background-color: #dc2626; color: #ffffff; font-weight: bold; font-size: 9.5pt; border: 1px solid #b91c1c; padding: 6px 10px; }
-  td { border: 1px solid #e2e8f0; padding: 6px 10px; }
-  .text-right { text-align: right; }
-  .text-center { text-align: center; }
-  .font-bold { font-weight: bold; }
-  .bg-alt { background-color: #f8fafc; }
-  .status-paid { background-color: #dcfce7; color: #15803d; font-weight: bold; text-align: center; }
-  .status-unpaid { background-color: #ffedd5; color: #c2410c; font-weight: bold; text-align: center; }
-</style>
-</head>
-<body>
-<table>
-  <tr><td colspan="8" class="title-main">REKAPITULASI LAPORAN KEUANGAN PORTOFOLIO - CLARA CONTRACT INTELLIGENCE</td></tr>
-  <tr><td colspan="8" class="meta-info">Tanggal Laporan: ${today} &nbsp;|&nbsp; Entitas: CLARA Value Assurance &amp; Contract Intelligence Platform</td></tr>
-  <tr></tr>
+    // Create a native Excel workbook using SheetJS (.xlsx)
+    const wb = XLSX.utils.book_new();
 
-  <tr><th colspan="4" class="section-header">RINGKASAN METRIK KEUANGAN PORTOFOLIO</th></tr>
-  <tr class="bg-alt"><td class="font-bold" colspan="2">Total Nilai Kontrak Seluruh Proyek</td><td class="text-right font-bold" colspan="2">Rp ${totalContract.toLocaleString('id-ID')}</td></tr>
-  <tr><td class="font-bold" colspan="2">Total Nilai Pekerjaan Siap Ditagih</td><td class="text-right font-bold" colspan="2">Rp ${totalBillable.toLocaleString('id-ID')}</td></tr>
-  <tr class="bg-alt"><td class="font-bold" colspan="2">Total Tagihan Tercatat (Invoiced)</td><td class="text-right font-bold" colspan="2">Rp ${totalBilled.toLocaleString('id-ID')}</td></tr>
-  <tr><td class="font-bold" colspan="2">Total Belum Ditagih (Unbilled)</td><td class="text-right font-bold" colspan="2">Rp ${totalUnbilled.toLocaleString('id-ID')}</td></tr>
-  <tr class="bg-alt"><td class="font-bold" colspan="2">Total Realisasi Pembayaran Diterima</td><td class="text-right font-bold" colspan="2">Rp ${totalPaid.toLocaleString('id-ID')}</td></tr>
-  <tr></tr>
+    // Sheet 1: Master Posisi Keuangan & Rekonsiliasi
+    const sheetData: (string | number)[][] = [
+      ['LAPORAN POSISI KEUANGAN & REKONSILIASI KONTRAK'],
+      ['CLARA CONTRACT INTELLIGENCE & VALUE ASSURANCE'],
+      [`Tanggal Laporan: ${today} | Periode: ${new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })} | Proyek: ${projects.length}`],
+      [],
+      ['NAMA AKUN / INDIKATOR', 'TARGET / BASELINE (IDR)', 'REALISASI SAAT INI (IDR)', 'SELISIH / MARGIN (IDR)'],
+      ['I. PENDAPATAN & ARUS KAS KONTRAK', '', '', ''],
+      ['Total Nilai Kontrak Kesepakatan (PKS)', totalContract, totalContract, 0],
+      ['Pekerjaan Selesai Siap Ditagih', totalContract, totalBillable, totalContract - totalBillable],
+      ['Tagihan Diterbitkan (Invoiced)', totalBillable, totalBilled, totalBillable - totalBilled],
+      ['Pendapatan Belum Ditagih (Unbilled)', 0, totalUnbilled, totalUnbilled],
+      ['Penerimaan Kas Lunas (Cash Inflow)', totalBilled, totalPaid, totalBilled - totalPaid],
+      ['TOTAL PENDAPATAN & KONTRAK', totalContract, totalBillable, totalPaid],
+      [],
+      ['II. RINCIAN BIAYA PELAKSANAAN & MARGIN PROYEK', '', '', ''],
+      ['No', 'Nama Proyek', 'Klien', 'Nilai Kontrak (IDR)', 'Rencana Biaya (IDR)', 'Biaya Aktual (IDR)', 'Margin Biaya (IDR)', 'Progres (%)', 'Status'],
+      ...projects.map((p, idx) => [
+        idx + 1,
+        p.name,
+        p.client,
+        p.contractValue || 0,
+        p.plannedCost || 0,
+        p.actualCost || 0,
+        (p.plannedCost || 0) - (p.actualCost || 0),
+        `${p.progress}%`,
+        p.status
+      ]),
+      ['TOTAL BIAYA PORTOFOLIO', '', '', totalContract, projects.reduce((s, p) => s + (p.plannedCost || 0), 0), projects.reduce((s, p) => s + (p.actualCost || 0), 0), projects.reduce((s, p) => s + ((p.plannedCost || 0) - (p.actualCost || 0)), 0), '', ''],
+      [],
+      ['III. BUKU PEMBANTU PIUTANG & INVOICE', '', '', ''],
+      ['No. Invoice', 'Nama Proyek', 'Milestone / Tahap', 'Nominal Tagihan (IDR)', 'Tanggal Terbit', 'Jatuh Tempo', 'Status Pembayaran'],
+      ...allInvoices.map((inv) => [
+        inv.invoiceNumber,
+        inv.projectName,
+        inv.milestoneTitle || '-',
+        inv.amount || 0,
+        inv.issueDate,
+        inv.dueDate,
+        inv.status === 'PAID' ? 'LUNAS' : 'TERCATAT'
+      ]),
+      ['TOTAL BUKU TAGIHAN (AR)', '', '', totalBilled, '', '', '']
+    ];
 
-  <tr><th colspan="8" class="section-header">RINCIAN KEUANGAN PER PROYEK</th></tr>
-  <tr>
-    <th class="th-brand text-center">No</th>
-    <th class="th-brand">Nama Proyek</th>
-    <th class="th-brand">Klien</th>
-    <th class="th-brand text-right">Nilai Kontrak</th>
-    <th class="th-brand text-right">Rencana Biaya</th>
-    <th class="th-brand text-right">Biaya Aktual</th>
-    <th class="th-brand text-center">Progres</th>
-    <th class="th-brand text-center">Status</th>
-  </tr>
-  ${projects.map((p, idx) => `
-  <tr class="${idx % 2 === 1 ? 'bg-alt' : ''}">
-    <td class="text-center">${idx + 1}</td>
-    <td class="font-bold">${p.name}</td>
-    <td>${p.client}</td>
-    <td class="text-right font-bold">Rp ${p.contractValue.toLocaleString('id-ID')}</td>
-    <td class="text-right">Rp ${p.plannedCost.toLocaleString('id-ID')}</td>
-    <td class="text-right">Rp ${p.actualCost.toLocaleString('id-ID')}</td>
-    <td class="text-center font-bold">${p.progress}%</td>
-    <td class="text-center">${p.status}</td>
-  </tr>
-  `).join('')}
-  <tr></tr>
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    ws['!cols'] = [
+      { wch: 42 },
+      { wch: 25 },
+      { wch: 25 },
+      { wch: 25 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 12 },
+      { wch: 14 }
+    ];
 
-  <tr><th colspan="7" class="section-header">DAFTAR TAGIHAN &amp; PENERIMAAN (INVOICES)</th></tr>
-  <tr>
-    <th class="th-brand text-center">No. Invoice</th>
-    <th class="th-brand">Nama Proyek</th>
-    <th class="th-brand">Milestone / Tahap</th>
-    <th class="th-brand text-right">Nominal Tagihan</th>
-    <th class="th-brand text-center">Tanggal Terbit</th>
-    <th class="th-brand text-center">Jatuh Tempo</th>
-    <th class="th-brand text-center">Status Pembayaran</th>
-  </tr>
-  ${allInvoices.map((inv, idx) => `
-  <tr class="${idx % 2 === 1 ? 'bg-alt' : ''}">
-    <td class="font-bold text-center">${inv.invoiceNumber}</td>
-    <td class="font-bold">${inv.projectName}</td>
-    <td>${inv.milestoneTitle || '-'}</td>
-    <td class="text-right font-bold">Rp ${inv.amount.toLocaleString('id-ID')}</td>
-    <td class="text-center">${inv.issueDate}</td>
-    <td class="text-center">${inv.dueDate}</td>
-    <td class="${inv.status === 'PAID' ? 'status-paid' : 'status-unpaid'}">${inv.status === 'PAID' ? 'LUNAS' : 'TERCATAT'}</td>
-  </tr>
-  `).join('')}
-</table>
-</body>
-</html>
-    `;
+    XLSX.utils.book_append_sheet(wb, ws, 'Posisi Keuangan');
 
-    const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Rekap_Keuangan_CLARA_${isoDate}.xls`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Trigger direct download of genuine .xlsx file
+    XLSX.writeFile(wb, `Rekap_Keuangan_CLARA_${isoDate}.xlsx`);
   };
 
   const handlePrintPdf = () => {
@@ -180,8 +136,22 @@ export default function FinancePage() {
     }
   };
 
-  const ready = active.flatMap((p) => p.agreementBaseline.milestones.filter((m) => m.status === 'COMPLETED' && (m.billedAmount ?? 0) < m.value).map((m) => ({ p, m, remaining: m.value - (m.billedAmount ?? 0) })));
-  const invoices = active.flatMap((p) => p.invoices.map((inv) => ({ p, inv, paid: p.payments.filter((x) => x.invoiceId === inv.id).reduce((s, x) => s + x.amount, 0) })));
+  const handleRecordPayment = async (projectId: string, invoiceId: string) => {
+    if (confirm('Catat tagihan ini sebagai lunas dalam data demo?')) {
+      setBusyPaymentId(invoiceId);
+      setActionError(null);
+      setActionNotice(null);
+      try {
+        await dataClient.recordPayment(projectId, invoiceId);
+        await refreshProjects();
+        setActionNotice('Pembayaran berhasil dicatat lunas.');
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'Gagal mencatat pembayaran.');
+      } finally {
+        setBusyPaymentId(null);
+      }
+    }
+  };
 
   return (
     <div className="space-y-8 pb-16 relative">
@@ -242,27 +212,8 @@ export default function FinancePage() {
         </button>
       </div>
 
-      <Panel title="Tahap siap ditagih" description="Tahap selesai yang belum ditagih penuh. CLARA hanya mencatat tagihan; pengiriman ke klien tetap keputusan Anda.">
-        {ready.length === 0 ? (
-          <EmptyState title="Tidak ada tahap yang menunggu tagihan" />
-        ) : (
-          <ul className="space-y-2">
-            {ready.map(({ p, m, remaining }) => (
-              <li key={`${p.id}-${m.id}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/40 p-4 text-sm">
-                <div>
-                  <Link href={`/projects/${p.id}?tab=finance`} className="text-xs font-semibold text-zinc-500 hover:text-red-700">{p.name}</Link>
-                  <p className="font-semibold text-zinc-900">{m.title}</p>
-                  <p className="text-xs text-zinc-500">Selesai {m.completionDate ? formatDate(m.completionDate) : '-'} · syarat: {m.trigger}</p>
-                </div>
-                <span className="font-bold text-amber-900">{formatRupiah(remaining)}</span>
-                <button type="button" disabled={busy !== null} onClick={() => { if (window.confirm(`Catat tagihan ${formatRupiah(remaining)} untuk ${m.title}?`)) void act(m.id, () => dataClient.createInvoice(p.id, m.id), `Tagihan ${m.title} dicatat.`); }} className={btn.primary}>
-                  {busy === m.id ? 'Menyimpan…' : 'Buat tagihan'}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
+      {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">Gagal memuat data keuangan: {error}</p>}
+      {loading && <p className="rounded-xl bg-white p-4 text-sm text-zinc-500">Memuat data keuangan…</p>}
 
       {/* Financial KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -304,25 +255,117 @@ export default function FinancePage() {
             <h3 className="text-base font-bold text-slate-900">Tahap siap ditagih</h3>
             <p className="text-sm text-slate-500">Tahap pekerjaan selesai yang belum memiliki tagihan.</p>
           </div>
-        )}
-      </Panel>
+          <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
+            Belum ditagih: {formatRupiah(totalUnbilled)}
+          </span>
+        </div>
 
-      <Panel title="Biaya aktual vs RAB" description="Selisih biaya = aktual − rencana. Positif berarti di atas rencana.">
-        {active.length === 0 ? (
-          <EmptyState title="Belum ada proyek dengan acuan aktif" />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead><tr className="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-500"><th className="py-2 pr-3">Proyek</th><th className="py-2 pr-3">RAB</th><th className="py-2 pr-3">Aktual</th><th className="py-2 pr-3">Pemakaian</th><th className="py-2 pr-3">Progres</th><th className="py-2">Selisih</th></tr></thead>
-              <tbody className="divide-y divide-zinc-100">
-                {active.map((p) => (
-                  <tr key={p.id}>
-                    <td className="py-2.5 pr-3"><Link href={`/projects/${p.id}?tab=finance`} className="font-semibold hover:text-red-700">{p.name}</Link></td>
-                    <td className="py-2.5 pr-3">{formatRupiah(p.metrics.plannedCost)}</td>
-                    <td className="py-2.5 pr-3">{formatRupiah(p.metrics.actualCost)}</td>
-                    <td className="py-2.5 pr-3">{p.metrics.budgetUtilization === null ? 'Tidak tersedia' : `${p.metrics.budgetUtilization.toLocaleString('id-ID')}%`}</td>
-                    <td className="py-2.5 pr-3">{p.metrics.progress}%</td>
-                    <td className={`py-2.5 font-semibold ${p.metrics.budgetVariance > 0 ? 'text-red-700' : 'text-zinc-900'}`}>{p.metrics.budgetVariance >= 0 ? '+' : ''}{formatRupiah(p.metrics.budgetVariance)}</td>
+        <div className="space-y-3">
+          {projects.map((proj) => {
+            const unbilledMilestones = (proj.agreementBaseline?.milestones || []).filter(
+              (m) => m.status === 'COMPLETED' && m.billingStatus === 'UNBILLED'
+            );
+
+            if (unbilledMilestones.length === 0) return null;
+
+            return (
+              <div key={proj.id} className="p-4 rounded-xl border border-amber-200 bg-amber-50/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900">{proj.name}</h4>
+                    <p className="text-xs text-slate-500">{proj.client}</p>
+                  </div>
+                  <Link href={`/projects/${proj.id}`} className="text-xs font-semibold text-red-600 hover:underline">
+                    Buka proyek
+                  </Link>
+                </div>
+
+                <div className="space-y-2">
+                  {unbilledMilestones.map((m) => (
+                    <div key={m.id} className="bg-white p-3 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                      <div>
+                        <strong className="text-slate-800">{m.title}</strong>
+                        <p className="text-slate-400 text-xs">Selesai pada: {m.completionDate ? formatDate(m.completionDate) : 'Baru saja'}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-slate-900">{formatRupiah(m.value)}</span>
+                        <button
+                          disabled={busyMilestoneId === m.id}
+                          onClick={() => handleInvoiceMilestone(proj.id, m.id)}
+                          className="px-3 py-1.5 bg-red-600 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg text-xs shadow-sm transition-all"
+                        >
+                          {busyMilestoneId === m.id ? 'Menyimpan…' : 'Buat tagihan'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {totalUnbilled === 0 && (
+            <div className="p-6 text-center text-xs text-slate-500 bg-slate-50 rounded-xl">
+              <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-1" />
+              Belum ada tahap selesai yang menunggu tagihan.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Invoices History Table */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <h3 className="text-base font-bold text-slate-900">Riwayat tagihan</h3>
+        <div className="overflow-x-auto">
+          <table className="min-w-[760px] w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-400 uppercase text-xs tracking-wider">
+                <th className="py-3 px-3">No. tagihan</th>
+                <th className="py-3 px-3">Proyek</th>
+                <th className="py-3 px-3">Tahap pekerjaan</th>
+                <th className="py-3 px-3">Nominal (Rp)</th>
+                <th className="py-3 px-3">Tanggal Terbit</th>
+                <th className="py-3 px-3">Jatuh Tempo</th>
+                <th className="py-3 px-3">Status</th>
+                <th className="py-3 px-3">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {allInvoices.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-xs text-slate-400">
+                    Belum ada tagihan tercatat.
+                  </td>
+                </tr>
+              ) : (
+                allInvoices.map((inv) => (
+                  <tr key={inv.id} className="hover:bg-slate-50/80">
+                    <td className="py-3 px-3 font-mono font-bold text-red-600">{inv.invoiceNumber}</td>
+                    <td className="py-3 px-3 font-semibold text-slate-800">{inv.projectName}</td>
+                    <td className="py-3 px-3 text-slate-600">{inv.milestoneTitle || '-'}</td>
+                    <td className="py-3 px-3 font-bold text-slate-900">{formatRupiah(inv.amount)}</td>
+                    <td className="py-3 px-3 text-slate-500">{formatDate(inv.issueDate)}</td>
+                    <td className="py-3 px-3 text-slate-500">{formatDate(inv.dueDate)}</td>
+                    <td className="py-3 px-3">
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                        inv.status === 'PAID' ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-orange-800'
+                      }`}>
+                        {inv.status === 'PAID' ? 'Lunas' : inv.status === 'OVERDUE' || (inv.status === 'SENT' && inv.dueDate < new Date().toISOString().slice(0, 10)) ? 'Lewat jatuh tempo' : inv.status === 'DRAFT' ? 'Draf' : 'Tercatat'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3">
+                      {inv.status !== 'PAID' ? (
+                        <button
+                          disabled={busyPaymentId === inv.id}
+                          onClick={() => handleRecordPayment(inv.projectId, inv.id)}
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-md text-xs shadow-xs transition-colors whitespace-nowrap"
+                        >
+                          {busyPaymentId === inv.id ? 'Mencatat...' : 'Catat Lunas'}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-emerald-600 font-semibold">Tuntas</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
@@ -363,111 +406,177 @@ export default function FinancePage() {
 
             {/* Modal Body / Printable Document Area */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 text-zinc-900 text-sm" id="printable-financial-report">
-              {/* Report Meta Card */}
-              <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
-                <div>
-                  <span className="text-zinc-400 block uppercase font-mono tracking-wider">Entitas Perusahaan</span>
-                  <strong className="text-zinc-900 text-sm font-semibold">CLARA Contract Intelligence &amp; Value Assurance</strong>
+              {/* Official Corporate Letterhead (Kop Surat Resmi) */}
+              <div className="border-b-2 border-zinc-900 pb-4">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
+                  {/* Brand & Corporate Entity */}
+                  <div className="flex items-center gap-3">
+                    <Image
+                      src="/images/clara_logo_full.png"
+                      alt="CLARA"
+                      width={130}
+                      height={30}
+                      className="h-7 w-auto object-contain"
+                    />
+                    <div className="border-l-2 border-zinc-300 pl-3 hidden sm:block">
+                      <p className="text-[11px] font-bold text-zinc-800 uppercase tracking-wider leading-none">Contract Intelligence</p>
+                      <p className="text-[10px] text-zinc-500 font-medium mt-1 leading-none">&amp; Value Assurance Platform</p>
+                    </div>
+                  </div>
+
+                  {/* Metadata & Classification */}
+                  <div className="text-center sm:text-right">
+                    <span className="inline-block px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 text-[10px] font-bold uppercase tracking-wider">
+                      Dokumen Resmi Perusahaan
+                    </span>
+                    <p className="text-[11px] text-zinc-600 font-medium mt-1">
+                      Periode: <span className="font-bold text-zinc-900">{new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</span>
+                    </p>
+                    <p className="text-[10px] text-zinc-400">Portofolio {projects.length} Proyek Aktif</p>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-zinc-400 block uppercase font-mono tracking-wider">Tanggal Laporan</span>
-                  <span className="text-zinc-800 font-medium">{new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}</span>
-                </div>
-                <div>
-                  <span className="text-zinc-400 block uppercase font-mono tracking-wider">Cakupan Data</span>
-                  <span className="text-zinc-800 font-medium">{projects.length} Proyek Portofolio</span>
+
+                {/* Document Title Header */}
+                <div className="mt-3 pt-3 border-t border-zinc-200 text-center">
+                  <h2 className="font-heading font-black text-lg sm:text-xl text-zinc-950 uppercase tracking-tight">
+                    LAPORAN POSISI KEUANGAN &amp; REKONSILIASI KONTRAK
+                  </h2>
+                  <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mt-0.5">
+                    Konsolidasi Hak Tagih, Realisasi Biaya, dan Pengelolaan Piutang Proyek
+                  </p>
                 </div>
               </div>
 
-              {/* 4 KPIs Summary Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3.5 bg-white rounded-xl border border-zinc-200">
-                  <span className="text-[11px] font-bold uppercase text-zinc-400 block">Total Kontrak</span>
-                  <p className="text-base font-bold text-zinc-950 mt-1">{formatCompactRupiah(totalContract)}</p>
-                </div>
-                <div className="p-3.5 bg-red-50/40 rounded-xl border border-red-200">
-                  <span className="text-[11px] font-bold uppercase text-red-700 block">Siap Ditagih</span>
-                  <p className="text-base font-bold text-red-950 mt-1">{formatCompactRupiah(totalBillable)}</p>
-                </div>
-                <div className="p-3.5 bg-amber-50/50 rounded-xl border border-amber-200">
-                  <span className="text-[11px] font-bold uppercase text-amber-800 block">Belum Ditagih</span>
-                  <p className="text-base font-bold text-amber-950 mt-1">{formatCompactRupiah(totalUnbilled)}</p>
-                </div>
-                <div className="p-3.5 bg-emerald-50/40 rounded-xl border border-emerald-200">
-                  <span className="text-[11px] font-bold uppercase text-emerald-700 block">Sudah Dibayar</span>
-                  <p className="text-base font-bold text-emerald-950 mt-1">{formatCompactRupiah(totalPaid)}</p>
-                </div>
-              </div>
+              {/* Master Accounting Table (Matching Official Financial Statement Reference) */}
+              <div className="border-2 border-zinc-900 rounded-xl overflow-hidden shadow-xs">
+                <table className="w-full text-left text-xs border-collapse">
+                  {/* Table Header with Red to Orange Gradient */}
+                  <thead>
+                    <tr className="bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 text-white font-heading font-bold text-xs uppercase tracking-wider">
+                      <th className="py-3 px-3.5 border-r border-red-500/50 w-2/5">NAMA AKUN / INDIKATOR</th>
+                      <th className="py-3 px-3.5 border-r border-red-500/50 text-right w-1/5">TARGET / BASELINE</th>
+                      <th className="py-3 px-3.5 border-r border-red-500/50 text-right w-1/5">REALISASI SAAT INI</th>
+                      <th className="py-3 px-3.5 text-right w-1/5">SELISIH / MARGIN</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-200">
+                    {/* SECTION 1: POSISI PENDAPATAN & ARUS KAS (AKTIVA STYLE) */}
+                    <tr className="bg-orange-100/90 text-orange-950 font-bold uppercase text-[11px] tracking-wide border-t-2 border-zinc-900">
+                      <td colSpan={4} className="py-2 px-3.5">I. PENDAPATAN &amp; ARUS KAS KONTRAK</td>
+                    </tr>
+                    <tr className="bg-orange-50/40 font-semibold text-zinc-800 text-[11px]">
+                      <td colSpan={4} className="py-1 px-3.5">Realisasi Hak Tagih &amp; Nilai Portofolio</td>
+                    </tr>
+                    <tr className="hover:bg-zinc-50/80">
+                      <td className="py-2.5 px-3.5 pl-6 font-medium text-zinc-900">Total Nilai Kontrak Kesepakatan (PKS)</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-semibold text-zinc-900">{formatRupiah(totalContract)}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-semibold text-zinc-800">{formatRupiah(totalContract)}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums text-zinc-400 font-normal">Rp 0</td>
+                    </tr>
+                    <tr className="hover:bg-zinc-50/80">
+                      <td className="py-2.5 px-3.5 pl-6 font-medium text-zinc-900">Pekerjaan Selesai Siap Ditagih</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums text-zinc-600">{formatRupiah(totalContract)}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-bold text-red-600">{formatRupiah(totalBillable)}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-medium text-red-700">{formatRupiah(totalContract - totalBillable)}</td>
+                    </tr>
+                    <tr className="hover:bg-zinc-50/80">
+                      <td className="py-2.5 px-3.5 pl-6 font-medium text-zinc-900">Tagihan Diterbitkan (Invoiced)</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums text-zinc-600">{formatRupiah(totalBillable)}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-bold text-zinc-900">{formatRupiah(totalBilled)}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums text-zinc-600">{formatRupiah(totalBillable - totalBilled)}</td>
+                    </tr>
+                    <tr className="hover:bg-zinc-50/80">
+                      <td className="py-2.5 px-3.5 pl-6 font-medium text-zinc-900">Pendapatan Belum Ditagih (Unbilled Revenue)</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums text-zinc-400 font-normal">Rp 0</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-semibold text-amber-800">{formatRupiah(totalUnbilled)}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-semibold text-amber-800">{formatRupiah(totalUnbilled)}</td>
+                    </tr>
+                    <tr className="hover:bg-zinc-50/80">
+                      <td className="py-2.5 px-3.5 pl-6 font-medium text-zinc-900">Penerimaan Kas Lunas (Cash Inflow)</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums text-zinc-600">{formatRupiah(totalBilled)}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-bold text-emerald-700">{formatRupiah(totalPaid)}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-medium text-emerald-800">{formatRupiah(totalBilled - totalPaid)}</td>
+                    </tr>
+                    {/* Subtotal Section 1 with Accounting Double Bottom Line */}
+                    <tr className="bg-zinc-100/90 font-bold border-t-2 border-zinc-800 border-b-4 border-double border-zinc-900 text-zinc-950">
+                      <td className="py-2.5 px-3.5 uppercase font-heading text-xs tracking-tight">TOTAL PENDAPATAN &amp; KONTRAK</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-bold">{formatRupiah(totalContract)}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-bold text-red-600">{formatRupiah(totalBillable)}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-bold text-emerald-700">{formatRupiah(totalPaid)}</td>
+                    </tr>
 
-              {/* Table Projects */}
-              <div>
-                <h3 className="font-heading font-bold text-sm text-zinc-900 mb-2">Rincian Finansial per Proyek</h3>
-                <div className="border border-zinc-200 rounded-xl overflow-hidden">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-zinc-100/80 text-zinc-600 font-semibold border-b border-zinc-200">
-                      <tr>
-                        <th className="py-2.5 px-3">Nama Proyek</th>
-                        <th className="py-2.5 px-3">Klien</th>
-                        <th className="py-2.5 px-3">Nilai Kontrak</th>
-                        <th className="py-2.5 px-3">Biaya Aktual</th>
-                        <th className="py-2.5 px-3 text-center">Progres</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100">
-                      {projects.map((p) => (
-                        <tr key={p.id} className="hover:bg-zinc-50/60">
-                          <td className="py-2 px-3 font-semibold text-zinc-900">{p.name}</td>
-                          <td className="py-2 px-3 text-zinc-600">{p.client}</td>
-                          <td className="py-2 px-3 font-bold text-zinc-950">{formatRupiah(p.contractValue)}</td>
-                          <td className="py-2 px-3 text-zinc-700">{formatRupiah(p.actualCost)}</td>
-                          <td className="py-2 px-3 text-center font-semibold text-red-600">{p.progress}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Table Invoices */}
-              <div>
-                <h3 className="font-heading font-bold text-sm text-zinc-900 mb-2">Daftar Tagihan &amp; Penerimaan</h3>
-                <div className="border border-zinc-200 rounded-xl overflow-hidden">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-zinc-100/80 text-zinc-600 font-semibold border-b border-zinc-200">
-                      <tr>
-                        <th className="py-2.5 px-3">No. Invoice</th>
-                        <th className="py-2.5 px-3">Proyek</th>
-                        <th className="py-2.5 px-3">Milestone</th>
-                        <th className="py-2.5 px-3">Nominal</th>
-                        <th className="py-2.5 px-3">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100">
-                      {allInvoices.map((inv) => (
-                        <tr key={inv.id} className="hover:bg-zinc-50/60">
-                          <td className="py-2 px-3 font-mono font-bold text-red-600">{inv.invoiceNumber}</td>
-                          <td className="py-2 px-3 text-zinc-800">{inv.projectName}</td>
-                          <td className="py-2 px-3 text-zinc-600">{inv.milestoneTitle || '-'}</td>
-                          <td className="py-2 px-3 font-bold text-zinc-950">{formatRupiah(inv.amount)}</td>
-                          <td className="py-2 px-3">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              inv.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-orange-100 text-orange-800'
-                            }`}>
-                              {inv.status === 'PAID' ? 'Lunas' : 'Tercatat'}
-                            </span>
+                    {/* SECTION 2: BIAYA & MARGIN PELAKSANAAN PROYEK */}
+                    <tr className="bg-orange-100/90 text-orange-950 font-bold uppercase text-[11px] tracking-wide border-t-2 border-zinc-900">
+                      <td colSpan={4} className="py-2 px-3.5">II. RINCIAN BIAYA PELAKSANAAN &amp; MARGIN PROYEK</td>
+                    </tr>
+                    {projects.map((p, idx) => {
+                      const planned = p.plannedCost || 0;
+                      const actual = p.actualCost || 0;
+                      const marginDiff = planned - actual;
+                      return (
+                        <tr key={p.id} className="hover:bg-zinc-50/80">
+                          <td className="py-2.5 px-3.5 pl-6">
+                            <span className="font-semibold text-zinc-900">{idx + 1}. {p.name}</span>
+                            <span className="block text-[11px] text-zinc-500 font-normal">Klien: {p.client} &bull; Progres: {p.progress}%</span>
+                          </td>
+                          <td className="py-2.5 px-3.5 text-right tabular-nums text-zinc-700">{formatRupiah(planned)}</td>
+                          <td className="py-2.5 px-3.5 text-right tabular-nums font-semibold text-zinc-900">{formatRupiah(actual)}</td>
+                          <td className={`py-2.5 px-3.5 text-right tabular-nums font-semibold ${marginDiff >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                            {marginDiff >= 0 ? `+${formatRupiah(marginDiff)}` : formatRupiah(marginDiff)}
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      );
+                    })}
+                    {/* Subtotal Section 2 with Double Bottom Line */}
+                    <tr className="bg-zinc-100/90 font-bold border-t-2 border-zinc-800 border-b-4 border-double border-zinc-900 text-zinc-950">
+                      <td className="py-2.5 px-3.5 uppercase font-heading text-xs tracking-tight">TOTAL RENCANA &amp; REALISASI BIAYA</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-bold">{formatRupiah(projects.reduce((s, p) => s + (p.plannedCost || 0), 0))}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-bold text-zinc-950">{formatRupiah(projects.reduce((s, p) => s + (p.actualCost || 0), 0))}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-bold text-emerald-700">
+                        {formatRupiah(projects.reduce((s, p) => s + ((p.plannedCost || 0) - (p.actualCost || 0)), 0))}
+                      </td>
+                    </tr>
+
+                    {/* SECTION 3: BUKU PIUTANG & DAFTAR TAGIHAN */}
+                    <tr className="bg-orange-100/90 text-orange-950 font-bold uppercase text-[11px] tracking-wide border-t-2 border-zinc-900">
+                      <td colSpan={4} className="py-2 px-3.5">III. BUKU PEMBANTU PIUTANG &amp; INVOICE</td>
+                    </tr>
+                    {allInvoices.map((inv) => (
+                      <tr key={inv.id} className="hover:bg-zinc-50/80">
+                        <td className="py-2.5 px-3.5 pl-6">
+                          <span className="font-semibold text-red-600 mr-2">{inv.invoiceNumber}</span>
+                          <span className="text-zinc-900 font-medium">{inv.projectName}</span>
+                          <span className="block text-[11px] text-zinc-500 font-normal">Tahap: {inv.milestoneTitle || '-'} &bull; JT: {inv.dueDate}</span>
+                        </td>
+                        <td className="py-2.5 px-3.5 text-right tabular-nums text-zinc-600">{formatRupiah(inv.amount)}</td>
+                        <td className="py-2.5 px-3.5 text-right tabular-nums font-semibold text-zinc-900">
+                          {inv.status === 'PAID' ? formatRupiah(inv.amount) : <span className="text-zinc-400 font-normal">Rp 0</span>}
+                        </td>
+                        <td className="py-2.5 px-3.5 text-right">
+                          <span className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold ${
+                            inv.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-orange-100 text-orange-800'
+                          }`}>
+                            {inv.status === 'PAID' ? 'LUNAS' : 'TERCATAT'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {/* Final Grand Total Row */}
+                    <tr className="bg-orange-50 font-bold border-t-2 border-zinc-900 border-b-4 border-double border-zinc-950 text-zinc-950">
+                      <td className="py-2.5 px-3.5 uppercase font-heading text-xs tracking-tight text-red-700">TOTAL BUKU TAGIHAN (ACCOUNTS RECEIVABLE)</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-bold">{formatRupiah(totalBilled)}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-bold text-emerald-700">{formatRupiah(totalPaid)}</td>
+                      <td className="py-2.5 px-3.5 text-right tabular-nums font-bold text-amber-700">{formatRupiah(totalBilled - totalPaid)}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
             {/* Modal Actions Footer */}
             <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50/90 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
               <span className="text-xs text-zinc-500">
-                Ukuran file optimal &amp; ringan: Excel &plusmn; 8 KB | PDF Vektor &plusmn; 50 KB
+                Ukuran file optimal &amp; ringan: Excel (.xlsx) &plusmn; 12 KB | PDF Vektor &plusmn; 50 KB
               </span>
               <div className="flex items-center gap-2.5 w-full sm:w-auto">
                 <button
@@ -476,7 +585,7 @@ export default function FinancePage() {
                   className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all whitespace-nowrap"
                 >
                   <FileSpreadsheet className="w-4 h-4" />
-                  <span>Unduh Excel</span>
+                  <span>Unduh Excel (.xlsx)</span>
                 </button>
                 <button
                   type="button"
