@@ -6,7 +6,7 @@ import { ArrowRight, FilePlus2, FolderKanban } from 'lucide-react';
 import type { Alert, UserPersonaId } from '@/types';
 import { dataClient } from '@/services/dataClient';
 import { useActivePersona, useDashboardSummary, useProjects } from '@/hooks/useClaraData';
-import { formatCompactRupiah, formatRupiah } from '@/lib/utils';
+import { formatCompactRupiah, formatRupiah, isOpenAlert } from '@/lib/utils';
 import { StatusBadge } from '@/components/shared/Badge';
 import { EvidenceDrawer, impactText } from '@/components/alerts/EvidenceDrawer';
 import { btn, InsightBadge, Metric, NoticeBar, Panel, useNotice } from '@/components/shared/ui';
@@ -27,7 +27,7 @@ export default function DashboardPage() {
   const [busy, setBusy] = React.useState<string | null>(null);
   const role = roleIntro[personaId];
 
-  const openAlerts = projects.flatMap((p) => p.alerts.filter((a) => a.status !== 'RESOLVED'));
+  const openAlerts = projects.flatMap((p) => p.alerts.filter(isOpenAlert));
   const readyToBill = projects.flatMap((p) =>
     p.agreementBaseline.milestones
       .filter((m) => m.status === 'COMPLETED' && (m.billedAmount ?? 0) < m.value)
