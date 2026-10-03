@@ -4,6 +4,7 @@
 
 import spec from '../../data/samples/kontrak-demo.json';
 import type { ExtractionCandidate, SourceRef } from '@/types';
+import { EMPTY_TERMS } from '@/types';
 import { parseRabCsv } from './rab';
 import { readSample, SAMPLE_RAB_FILE, SAMPLE_CONTRACT_FILE } from './files';
 
@@ -41,7 +42,12 @@ export function sampleCandidate(contractDocId: string, now: string): ExtractionC
       { id: 'MLS-3', title: 'Akhir masa garansi', percentage: 25, trigger: 'Masa garansi 30 hari berakhir', targetDate: null, source: ref(2, '4.3') },
     ],
     rab: { items: rab.items, total: rab.total, sourceFile: SAMPLE_RAB_FILE, warnings: rab.warnings },
+    terms: { hourlyRate: 500_000, revisionUnitPrice: 2_000_000, revisionExtensionDays: 5, penaltyPerDayPercent: 0.1, penaltyCapPercent: 5, paymentDueDays: 14 },
     sources: {
+      hourlyRate: ref(3, 'Pekerjaan tambahan di luar'),
+      revisionUnitPrice: ref(2, 'Setiap putaran revisi tambahan'),
+      revisionExtensionDays: ref(2, 'Setiap adendum revisi'),
+      penalty: ref(3, 'Keterlambatan penyelesaian'),
       contractNumber: ref(1, 'Nomor:'),
       contractValue: ref(1, 'Nilai kontrak keseluruhan'),
       startDate: ref(2, 'Pekerjaan dimulai'),
@@ -75,6 +81,7 @@ export function manualCandidate(clientName: string, title: string, now: string, 
     milestones: [],
     rab: rabTotal,
     sources: {},
+    terms: { ...EMPTY_TERMS },
     risks: [],
     warnings: ['Isian manual: tidak ada dokumen yang dianalisis. Semua nilai berasal dari input pengguna.'],
     editedFields: [],
