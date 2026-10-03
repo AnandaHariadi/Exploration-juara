@@ -30,7 +30,8 @@ export interface Ctx {
 
 export function actorFor(id: UserPersonaId) {
   const persona = USER_PERSONAS[id] ?? USER_PERSONAS.BUDI;
-  return { id: persona.id, name: persona.name, label: `${persona.name} (${persona.roleTitle.split(' ')[0]})` };
+  const role = { BUDI: 'Pengelola proyek', SITI: 'Keuangan', HENDRA: 'Pimpinan', ADMIN: 'Admin' }[persona.id];
+  return { id: persona.id, name: persona.name, label: `${persona.name} (${role})` };
 }
 
 export const randomId = (prefix: string) => `${prefix}-${randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase()}`;
