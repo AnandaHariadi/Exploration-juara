@@ -9,10 +9,13 @@ import { ChangeRequestCard } from '@/components/project/ChangeRequestsTab';
 
 const FILTERS: { key: 'ALL' | ChangeRequest['status']; label: string }[] = [
   { key: 'ALL', label: 'Semua' },
-  { key: 'PENDING', label: 'Menunggu' },
   { key: 'DRAFT', label: 'Draf' },
-  { key: 'APPROVED', label: 'Disetujui' },
+  { key: 'PENDING', label: 'Menunggu keuangan' },
+  { key: 'FINANCE_REVIEWED', label: 'Menunggu pimpinan' },
+  { key: 'INTERNAL_APPROVED', label: 'Menunggu klien' },
+  { key: 'APPROVED', label: 'Resmi' },
   { key: 'REJECTED', label: 'Ditolak' },
+  { key: 'CLIENT_REJECTED', label: 'Ditolak klien' },
 ];
 
 export default function ChangeRequestsPage() {
@@ -29,7 +32,7 @@ export default function ChangeRequestsPage() {
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-red-700">Versi acuan</p>
         <h1 className="mt-2 font-heading text-2xl font-bold text-zinc-950 sm:text-3xl">Permintaan perubahan</h1>
-        <p className="mt-2 text-sm text-zinc-600">Hanya permintaan yang disetujui membuat versi acuan baru (V2, V3…). Versi lama tetap tersimpan.</p>
+        <p className="mt-2 text-sm text-zinc-600">PIC mengajukan → keuangan meninjau dampak → pimpinan memutuskan → bukti persetujuan klien → acuan versi baru (V2, V3…). Versi lama tetap tersimpan.</p>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -52,7 +55,7 @@ export default function ChangeRequestsPage() {
       {loading && projects.length === 0 ? <p className="rounded-xl bg-white p-4 text-sm text-zinc-500">Memuat permintaan perubahan…</p> : shown.length === 0 ? (
         <EmptyState title={all.length === 0 ? 'Belum ada permintaan perubahan' : 'Tidak ada permintaan untuk filter ini'}>Ajukan perubahan dari tab Perubahan di halaman proyek.</EmptyState>
       ) : (
-        <div className="space-y-4">{shown.map(({ cr, p }) => <ChangeRequestCard key={cr.id} cr={cr} projectId={p.id} projectName={p.name} run={run} />)}</div>
+        <div className="space-y-4">{shown.map(({ cr, p }) => <ChangeRequestCard key={cr.id} cr={cr} project={p} run={run} showProject />)}</div>
       )}
     </div>
   );
