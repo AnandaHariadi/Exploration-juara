@@ -2,7 +2,7 @@
 // The browser never sees the AI service URL or key: it calls Next.js API
 // routes, which call this module.
 
-import type { AiHealth, CandidateMilestone, CandidateRisk, ExtractionCandidate, LegalAnswer, SourceRef } from '@/types';
+import type { AiHealth, CandidateMilestone, CandidateRisk, ContractTerms, DocumentAnalysis, DraftType, ExtractionCandidate, InvoiceAnalysis, LegalAnswer, SourceRef } from '@/types';
 import { HttpError } from './api';
 import { isIsoDate } from './engine';
 
@@ -77,7 +77,7 @@ export async function aiHealth(): Promise<AiHealth> {
   }
 }
 
-// ---------------------------------------------------------------- extraction
+// ---------------------------------------------------------------- document analysis
 
 interface RawEvidence {
   page: number | null;
@@ -85,25 +85,39 @@ interface RawEvidence {
   verified: boolean;
 }
 
-interface RawExtraction {
+type AiKind = 'CONTRACT' | 'ADDENDUM' | 'INVOICE' | 'OTHER';
+
+interface RawAnalysis {
+  kind: AiKind;
   documentType: string;
   confidence: number | null;
-  contract: Record<string, unknown>;
+  summary: string;
+  contract: Record<string, unknown> | null;
+  terms: Record<string, unknown> | null;
   milestones: { name: unknown; billingPercentage: unknown; trigger: unknown; targetDate: unknown; evidence: RawEvidence | null }[];
+  invoice: (Record<string, unknown> & { lineItems?: Record<string, unknown>[] }) | null;
+  approval: Record<string, unknown> | null;
   fieldEvidence: Record<string, RawEvidence>;
-  risks: { title: unknown; severity: unknown; detail: unknown; evidence: RawEvidence | null }[];
+  risks: { title: unknown; severity: unknown; detail: unknown; evidence: RawEvidence | null; origin?: unknown }[];
   warnings: unknown[];
   extractionMeta: { sourceFile?: string; pages?: number | null; processedAt?: string; engine?: string };
 }
 
-/** Normalized AI output: the one contract between the AI layer and business data. */
-export interface NormalizedExtraction {
-  documentType: 'CONTRACT' | 'NOT_CONTRACT';
+/**
+ * Normalized AI output: the single contract between the AI layer and business
+ * data. Every field is re-validated here; the frontend never sees raw AI shapes.
+ */
+export interface NormalizedAnalysis {
+  documentType: string;
   confidence: number | null;
+  summary: string;
   contract: ExtractionCandidate['contract'];
+  terms: ContractTerms;
   milestones: CandidateMilestone[];
+  invoice: InvoiceAnalysis | null;
+  approval: DocumentAnalysis['approval'] | null;
   sources: Record<string, SourceRef>;
-  risks: CandidateRisk[];
+  risks: (CandidateRisk & { origin: 'AI' | 'GUARDRAIL' })[];
   warnings: string[];
   extractionMeta: NonNullable<ExtractionCandidate['extractionMeta']>;
 }
@@ -122,28 +136,36 @@ function evidence(raw: RawEvidence | null | undefined, documentId: string): Sour
 }
 
 /** Re-validate AI output at the business boundary. Impossible values become null + warning; nothing is coerced into a number. */
-export function normalizeExtraction(raw: RawExtraction, documentId: string): NormalizedExtraction {
-  if (!raw || typeof raw !== 'object' || !raw.contract || typeof raw.contract !== 'object') {
+export function normalizeAnalysis(raw: RawAnalysis, documentId: string): NormalizedAnalysis {
+  if (!raw || typeof raw !== 'object' || typeof raw.documentType !== 'string') {
     throw new HttpError(502, 'AI_INVALID_OUTPUT', 'Analisis gagal — format hasil AI tidak valid.');
   }
   const warnings = list(raw.warnings);
-  const c = raw.contract;
-  const money = (v: unknown, label: string) => {
+  const money = (v: unknown, label: string, allowZero = false) => {
     if (v === null || v === undefined) return null;
-    if (typeof v !== 'number' || !Number.isSafeInteger(v) || v <= 0 || v > 1_000_000_000_000) {
+    if (typeof v !== 'number' || !Number.isSafeInteger(v) || v < (allowZero ? 0 : 1) || v > 1_000_000_000_000) {
       warnings.push(`${label} dari AI tidak masuk akal dan dikosongkan; isi manual.`);
       return null;
     }
     return v;
   };
-  const count = (v: unknown, label: string) => {
+  const count = (v: unknown, label: string, max = 1000) => {
     if (v === null || v === undefined) return null;
-    if (typeof v !== 'number' || !Number.isInteger(v) || v < 0 || v > 1000) {
+    if (typeof v !== 'number' || !Number.isInteger(v) || v < 0 || v > max) {
       warnings.push(`${label} dari AI tidak valid dan dikosongkan.`);
       return null;
     }
     return v;
   };
+  const percent = (v: unknown, label: string) => {
+    if (v === null || v === undefined) return null;
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > 100) {
+      warnings.push(`${label} dari AI tidak valid dan dikosongkan.`);
+      return null;
+    }
+    return v;
+  };
+  const quantity = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1_000_000 ? v : null);
   const date = (v: unknown, label: string) => {
     if (v === null || v === undefined || v === '') return null;
     if (!isIsoDate(v)) {
@@ -158,6 +180,7 @@ export function normalizeExtraction(raw: RawExtraction, documentId: string): Nor
     const source = evidence(ref, documentId);
     if (source) sources[key] = source;
   }
+  if (sources.revisionUnitPrice && !sources.revisionExtensionDays) sources.revisionExtensionDays = sources.revisionUnitPrice;
 
   const milestones: CandidateMilestone[] = (Array.isArray(raw.milestones) ? raw.milestones : []).slice(0, 20).map((m, i) => {
     const pct = typeof m.billingPercentage === 'number' && m.billingPercentage > 0 && m.billingPercentage <= 100 ? m.billingPercentage : null;
@@ -172,11 +195,15 @@ export function normalizeExtraction(raw: RawExtraction, documentId: string): Nor
     };
   });
 
+  const c = raw.contract ?? {};
+  const t = raw.terms ?? {};
+  const inv = raw.invoice;
   const severity = (v: unknown): CandidateRisk['severity'] => (v === 'HIGH' || v === 'LOW' ? v : 'MEDIUM');
   const meta = raw.extractionMeta ?? {};
   return {
-    documentType: raw.documentType === 'NOT_CONTRACT' ? 'NOT_CONTRACT' : 'CONTRACT',
+    documentType: text(raw.documentType, 40) || 'OTHER',
     confidence: typeof raw.confidence === 'number' && raw.confidence >= 0 && raw.confidence <= 1 ? Math.round(raw.confidence * 100) / 100 : null,
+    summary: text(raw.summary, 600),
     contract: {
       contractNumber: text(c.contractNumber, 120),
       title: text(c.title, 200),
@@ -190,17 +217,51 @@ export function normalizeExtraction(raw: RawExtraction, documentId: string): Nor
       obligations: list(c.obligations),
       penalties: list(c.penalties),
     },
+    terms: {
+      hourlyRate: money(t.hourlyRate, 'Tarif per jam'),
+      revisionUnitPrice: money(t.revisionUnitPrice, 'Biaya revisi tambahan'),
+      revisionExtensionDays: count(t.revisionExtensionDays, 'Tambahan hari revisi', 365),
+      penaltyPerDayPercent: percent(t.penaltyPerDayPercent, 'Denda per hari'),
+      penaltyCapPercent: percent(t.penaltyCapPercent, 'Batas denda'),
+      paymentDueDays: count(t.paymentDueDays, 'Tempo pembayaran', 365),
+    },
     milestones,
+    invoice: inv
+      ? {
+          invoiceNumber: text(inv.invoiceNumber, 80) || null,
+          issueDate: date(inv.issueDate, 'Tanggal invoice'),
+          total: money(inv.total, 'Total invoice', true),
+          milestoneReference: text(inv.milestoneReference, 200) || null,
+          revisionsCharged: count(inv.revisionsCharged, 'Revisi ditagih'),
+          lineItems: (Array.isArray(inv.lineItems) ? inv.lineItems : []).slice(0, 50).map((l, i) => ({
+            description: text(l.description, 200) || `Baris ${i + 1}`,
+            quantity: quantity(l.quantity),
+            unit: text(l.unit, 40) || null,
+            unitPrice: money(l.unitPrice, `Harga satuan baris ${i + 1}`, true),
+            amount: money(l.amount, `Jumlah baris ${i + 1}`, true),
+            source: evidence(l.evidence as RawEvidence | null, documentId),
+          })),
+        }
+      : null,
+    approval: raw.approval
+      ? {
+          approved: typeof raw.approval.approved === 'boolean' ? raw.approval.approved : null,
+          approver: text(raw.approval.approver, 160) || null,
+          date: date(raw.approval.date, 'Tanggal persetujuan'),
+          reference: text(raw.approval.reference, 200) || null,
+        }
+      : null,
     sources,
-    risks: (Array.isArray(raw.risks) ? raw.risks : []).slice(0, 10).map((r) => ({
+    risks: (Array.isArray(raw.risks) ? raw.risks : []).slice(0, 15).map((r) => ({
       title: text(r.title, 160) || 'Klausul perlu diperhatikan',
       severity: severity(r.severity),
       detail: text(r.detail, 600),
       source: evidence(r.evidence, documentId),
+      origin: r.origin === 'GUARDRAIL' ? ('GUARDRAIL' as const) : ('AI' as const),
     })),
     warnings: [...new Set(warnings)],
     extractionMeta: {
-      sourceFile: text(meta.sourceFile, 200) || 'kontrak',
+      sourceFile: text(meta.sourceFile, 200) || 'dokumen',
       pages: Number.isInteger(meta.pages) ? (meta.pages as number) : null,
       processedAt: typeof meta.processedAt === 'string' ? meta.processedAt : new Date().toISOString(),
       engine: text(meta.engine, 80) || 'CLARA AI',
@@ -209,13 +270,51 @@ export function normalizeExtraction(raw: RawExtraction, documentId: string): Nor
   };
 }
 
-export async function aiExtractContract(file: Buffer, fileName: string, mimeType: string, documentId: string): Promise<NormalizedExtraction> {
+export async function aiAnalyzeDocument(file: Buffer, fileName: string, mimeType: string, documentId: string, kind: AiKind): Promise<NormalizedAnalysis> {
   const form = new FormData();
   form.append('file', new Blob([new Uint8Array(file)], { type: mimeType }), fileName);
   form.append('fileName', fileName);
-  console.log(`[AI] forwarding document=${documentId} to AI service`);
-  const raw = await callAi<RawExtraction>('/api/v1/integration/extract', { method: 'POST', body: form }, EXTRACT_TIMEOUT_MS);
-  return normalizeExtraction(raw, documentId);
+  form.append('kind', kind);
+  console.log(`[AI] forwarding document=${documentId} kind=${kind} to AI service`);
+  const raw = await callAi<RawAnalysis>('/api/v1/integration/extract', { method: 'POST', body: form }, EXTRACT_TIMEOUT_MS);
+  return normalizeAnalysis(raw, documentId);
+}
+
+// ---------------------------------------------------------------- Document Studio / Remediation Copilot
+
+const json = (body: unknown): RequestInit => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+export async function aiDraft(input: { type: DraftType; title?: string; projectContext?: string; facts: string[]; instructions?: string; originalClause?: string }) {
+  const data = await callAi<{ content: string; engine: string }>('/api/v1/integration/draft', json(input), 90_000);
+  if (!text(data?.content, 60_000)) throw new HttpError(502, 'AI_INVALID_OUTPUT', 'Layanan AI mengembalikan draf kosong.');
+  return { content: data.content.slice(0, 60_000), engine: text(data.engine, 80) || 'CLARA AI' };
+}
+
+export async function aiRevise(content: string, instruction: string, facts: string[]) {
+  const data = await callAi<{ content: string; engine: string }>('/api/v1/integration/revise', json({ content, instruction, facts }), 90_000);
+  if (!text(data?.content, 60_000)) throw new HttpError(502, 'AI_INVALID_OUTPUT', 'Layanan AI mengembalikan revisi kosong.');
+  return { content: data.content.slice(0, 60_000), engine: text(data.engine, 80) || 'CLARA AI' };
+}
+
+export async function aiReviewDraft(content: string, facts: string[]) {
+  const data = await callAi<{ issues: { severity: string; message: string; origin: string }[] }>('/api/v1/integration/review-draft', json({ content, facts }), 60_000);
+  return (Array.isArray(data?.issues) ? data.issues : []).slice(0, 20).map((i) => ({
+    severity: i.severity === 'BLOCKER' || i.severity === 'WARNING' ? i.severity : 'INFO',
+    message: text(i.message, 400),
+    origin: i.origin === 'GUARDRAIL' ? ('GUARDRAIL' as const) : ('AI' as const),
+  }));
+}
+
+export async function aiExplain(input: { title: string; description: string; evidence: string[]; facts: string[]; projectContext?: string }) {
+  const data = await callAi<{ explanation: string; engine: string }>('/api/v1/integration/explain', json(input), 60_000);
+  if (!text(data?.explanation, 4000)) throw new HttpError(502, 'AI_INVALID_OUTPUT', 'Layanan AI mengembalikan penjelasan kosong.');
+  return { text: data.explanation.slice(0, 4000), engine: text(data.engine, 80) || 'CLARA AI' };
+}
+
+/** Markdown → PDF via the legacy CLARA renderer on the AI service (no AI key needed). */
+export async function aiRenderPdf(content: string): Promise<Buffer> {
+  const data = await callAi<{ pdfBase64: string }>('/api/v1/integration/render-pdf', json({ content }), 30_000);
+  return Buffer.from(data.pdfBase64, 'base64');
 }
 
 export async function aiAsk(question: string, projectContext: string | undefined, history: { role: 'user' | 'assistant'; content: string }[]): Promise<LegalAnswer> {
