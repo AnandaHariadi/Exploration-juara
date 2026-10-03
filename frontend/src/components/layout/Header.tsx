@@ -29,6 +29,7 @@ export function Header({ mobileSidebarOpen, onToggleSidebar }: HeaderProps) {
   const routeProjectId = pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? '';
   const currentProjectId = routeProjectId === 'new' ? '' : routeProjectId;
   const currentRole = USER_PERSONAS[personaId] ?? USER_PERSONAS.BUDI;
+  const aiStatus = health === null ? 'Memeriksa koneksi AI' : health.available ? 'Layanan AI terhubung' : 'Layanan AI tidak tersedia';
 
   React.useEffect(() => {
     if (!roleOpen) return;
@@ -51,7 +52,7 @@ export function Header({ mobileSidebarOpen, onToggleSidebar }: HeaderProps) {
       <div className="col-start-1 row-start-1 flex items-center gap-3 lg:hidden">
         <Link
           href="/dashboard"
-          className="flex w-fit items-center group transition-transform duration-300 hover:scale-105"
+          className="flex w-fit items-center"
           aria-label="CLARA, buka ringkasan"
         >
           <Image
@@ -59,25 +60,25 @@ export function Header({ mobileSidebarOpen, onToggleSidebar }: HeaderProps) {
             alt="CLARA"
             width={140}
             height={32}
-            className="h-7 sm:h-8 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+            className="h-7 sm:h-8 w-auto object-contain"
             priority
           />
         </Link>
       </div>
 
       <div className="col-span-2 row-start-2 flex min-w-0 items-center justify-end gap-2 lg:col-span-1 lg:col-start-2 lg:row-start-1 lg:gap-3">
-        <Link href="/legal-ai" title={health?.message ?? 'Memeriksa layanan AI'} className={`hidden h-10 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold md:inline-flex ${health === null ? 'border-zinc-200 text-zinc-500' : health.available ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}><Bot size={15} />{health === null ? 'AI…' : health.available ? 'AI siap' : 'AI tidak tersedia'}</Link>
+        <Link href="/ai-center" title={`${aiStatus}. Buka Pusat AI.`} aria-label={`${aiStatus}. Buka Pusat AI.`} className={`hidden h-10 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold md:inline-flex ${health === null ? 'border-zinc-200 text-zinc-500' : health.available ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}><Bot size={16} /><span className="hidden xl:inline">{health === null ? 'Memeriksa AI' : health.available ? 'AI terhubung' : 'AI bermasalah'}</span></Link>
         <Link href="/projects/new" aria-label="Proyek baru" className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-red-600 px-2.5 text-sm font-semibold text-white hover:bg-red-700 sm:px-4"><Plus size={17} strokeWidth={2.5} /><span className="hidden sm:inline">Proyek baru</span></Link>
         <div className="relative min-w-0 flex-1 lg:max-w-72 lg:flex-none lg:w-60 xl:w-72">
-          <label htmlFor="pilih-proyek" className="sr-only">Buka proyek</label>
-          <select id="pilih-proyek" value={currentProjectId} onChange={(event) => event.target.value && router.push(`/projects/${event.target.value}`)} className="h-10 w-full appearance-none truncate rounded-lg border border-zinc-200 bg-white pl-3 pr-8 text-sm font-medium text-zinc-800 focus:outline-none focus:ring-2 focus:ring-red-500/30">
-            <option value="">{projectsLoading ? 'Memuat proyek…' : projectsError ? 'Gagal memuat proyek' : projects.length ? 'Pilih proyek…' : 'Belum ada proyek'}</option>
+          <label htmlFor="pilih-proyek" className="sr-only">Buka proyek lain</label>
+          <select id="pilih-proyek" value={projects.some((project) => project.id === currentProjectId) ? currentProjectId : ''} onChange={(event) => event.target.value && router.push(`/projects/${event.target.value}`)} className="h-10 w-full appearance-none truncate rounded-lg border border-zinc-200 bg-white pl-3 pr-8 text-sm font-medium text-zinc-800 focus:outline-none focus:ring-2 focus:ring-red-500/30">
+            <option value="">{projectsLoading ? 'Memuat proyek…' : projectsError ? 'Gagal memuat proyek' : projects.length ? 'Buka proyek…' : 'Belum ada proyek'}</option>
             {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
           </select>
           <ChevronDown size={15} strokeWidth={2.5} aria-hidden="true" className="pointer-events-none absolute right-2.5 top-3 text-zinc-500" />
         </div>
         <div className="relative shrink-0" ref={roleMenuRef}>
-          <button type="button" aria-haspopup="menu" aria-expanded={roleOpen} onClick={() => setRoleOpen((current) => !current)} className="flex h-10 items-center gap-2 rounded-lg border border-zinc-200 px-1.5 hover:bg-zinc-50 sm:px-2.5">
+          <button type="button" aria-label={`Pengguna demo: ${currentRole.name}, ${roleNames[personaId]}. Ganti pengguna.`} aria-haspopup="menu" aria-expanded={roleOpen} onClick={() => setRoleOpen((current) => !current)} className="flex h-10 items-center gap-2 rounded-lg border border-zinc-200 px-1.5 hover:bg-zinc-50 sm:px-2.5">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-700 text-xs font-bold border border-red-200">{currentRole.initials}</span>
             <span className="hidden text-left xl:block"><span className="block text-xs font-semibold text-zinc-900">{currentRole.name}</span><span className="block text-xs text-zinc-500">{roleNames[personaId]}</span></span>
             <ChevronDown size={14} strokeWidth={2.5} aria-hidden="true" className="hidden text-zinc-500 sm:block" />
