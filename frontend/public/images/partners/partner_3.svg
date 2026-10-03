@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 80" fill="none">
+  <rect width="260" height="80" rx="8" fill="transparent"/>
+  <!-- Emblem / Icon -->
+  <g transform="translate(18, 18)">
+    <rect x="0" y="0" width="44" height="44" rx="8" fill="#F4F4F5" stroke="#E4E4E7" stroke-width="1.5"/>
+    <path d="M14 16H30V28H14V16Z" stroke="#059669" stroke-width="1.5"/>
+    <path d="M17 22H27M17 25H23" stroke="#059669" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M22 28V32M18 32H26" stroke="#059669" stroke-width="1.2" stroke-linecap="round"/>
+  </g>
+  <!-- Institutional Typography -->
+  <text x="74" y="38" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#18181B" letter-spacing="0.05em">MEDIA PARTNER 03</text>
+  <text x="74" y="52" font-family="system-ui, -apple-system, sans-serif" font-size="10.5" font-weight="500" fill="#71717A" letter-spacing="0.02em">Portal Finansial Nasional</text>
+</svg>
