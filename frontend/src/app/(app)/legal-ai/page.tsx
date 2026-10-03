@@ -1,177 +1,52 @@
 'use client';
 
 import React from 'react';
-import { FileSearch, Search, FileText, Send, Scale, BookOpen, ShieldCheck } from 'lucide-react';
-import { storageService } from '@/services/storage';
-
+import { Search } from 'lucide-react';
+import { useProjects } from '@/hooks/useClaraData';
 import { Project } from '@/types';
+import { formatRupiah } from '@/lib/utils';
+
+function findAnswer(project: Project, question: string) {
+  const query = question.toLowerCase();
+  const agreement = project.agreementBaseline;
+  if (/revisi/.test(query)) return `Batas revisi yang tersimpan: ${agreement.revisionLimit} kali. Periksa kontrak asli sebelum memakai angka ini sebagai dasar keputusan.`;
+  if (/bayar|termin|tagih/.test(query)) return `Ketentuan pembayaran yang tersimpan: ${agreement.paymentTerms}. Jadwal tiap tahap dapat dilihat di detail proyek.`;
+  if (/nilai|kontrak|biaya/.test(query)) return `Nilai kontrak yang tersimpan: ${formatRupiah(project.contractValue)}. Rencana biaya: ${formatRupiah(project.plannedCost)}.`;
+  if (/tenggat|selesai|tanggal/.test(query)) return `Tenggat proyek yang tersimpan: ${agreement.deadline}.`;
+  if (/lingkup|pekerjaan/.test(query)) return `Ruang lingkup yang tersimpan: ${agreement.scopeItems.map((item) => item.title).join('; ') || 'belum ada'}.`;
+  return 'Informasi tersebut belum tersedia dalam data kesepakatan proyek. Periksa dokumen asli atau lengkapi data proyek.';
+}
 
 export default function LegalAiPage() {
+  const { projects, loading, error } = useProjects();
+  const [projectId, setProjectId] = React.useState('');
   const [query, setQuery] = React.useState('');
-  const [projects, setProjects] = React.useState<Project[]>([]);
-  const [selectedContract, setSelectedContract] = React.useState('');
-  const [chatLog, setChatLog] = React.useState<
-    { role: 'user' | 'assistant'; text: string; citation?: string; clause?: string }[]
-  >([
-    {
-      role: 'assistant',
-      text: 'Selamat datang di modul Legal & Contract Clause Audit CLARA. Anda dapat menanyakan ketentuan formal dari dokumen PKS yang telah diunggah: jatah revisi desain, syarat jatuh tempo termin, atau klausul denda keterlambatan.',
-    },
-  ]);
+  const [answer, setAnswer] = React.useState<{ question: string; text: string } | null>(null);
+  React.useEffect(() => { setProjectId((current) => projects.some((project) => project.id === current) ? current : projects[0]?.id ?? ''); }, [projects]);
+  const project = projects.find((item) => item.id === projectId);
 
-  React.useEffect(() => {
-    const list = storageService.getProjects();
-    setProjects(list);
-    if (list.length > 0) {
-      setSelectedContract(list[0].id);
-    }
-  }, []);
-
-  const handleAsk = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-
-    const userText = query;
+  function ask(event: React.FormEvent) {
+    event.preventDefault();
+    if (!query.trim() || !project) return;
+    setAnswer({ question: query.trim(), text: findAnswer(project, query.trim()) });
     setQuery('');
-    setChatLog((prev) => [...prev, { role: 'user', text: userText }]);
+  }
 
-    const activeProject = projects.find((p) => p.id === selectedContract);
-    const contractNum = activeProject?.agreementBaseline?.contractNumber || (selectedContract ? `PKS/${selectedContract}` : 'PKS Belum Terdaftar');
-    const revLimit = activeProject?.agreementBaseline?.revisionLimit ?? 3;
-    const paymentTerms = activeProject?.agreementBaseline?.paymentTerms || '30% DP, 40% UAT Staging, 30% Final Go-Live';
-
-    setTimeout(() => {
-      let reply = 'Berdasarkan audit komputasional pada naskah kontrak tersebut, tidak ditemukan ketentuan spesifik mengenai hal yang ditanyakan.';
-      let citation = contractNum;
-      let clause = 'Ketentuan Umum';
-
-      const lower = userText.toLowerCase();
-      if (lower.includes('revisi') || lower.includes('batas')) {
-        reply = `Berdasarkan klausul kontrak resmi pada ${contractNum}, Klien berhak mengajukan maksimal ${revLimit} putaran revisi desain dan alur kerja. Revisi tambahan wajib diajukan melalui mekanisme Change Request resmi dengan tarif man-day terpisah.`;
-        clause = `Pasal 5: Batas Revisi (Maksimal ${revLimit} Putaran)`;
-      } else if (lower.includes('termin') || lower.includes('bayar') || lower.includes('dp')) {
-        reply = `Ketentuan pembayaran termin diatur secara formal: ${paymentTerms}. Pembayaran diverifikasi berdasarkan milestone Berita Acara Serah Terima (BAST).`;
-        clause = 'Pasal 8: Skema Termin Pembayaran';
-      } else if (lower.includes('denda') || lower.includes('penalti') || lower.includes('telat')) {
-        reply = `Klausul kontrak ${contractNum} mengatur bahwa keterlambatan pembayaran oleh pihak pertama dikenakan denda sebesar 1‰ (satu permil) per hari kalender dengan batas maksimal akumulasi 5% dari nilai invoice tertunggak.`;
-        clause = 'Pasal 9 Ayat 2: Denda Keterlambatan Finansial';
-      } else {
-        reply = `Audit kontrak CLARA: Ruang lingkup terkait "${userText}" terikat pada dokumen kesepakatan ${activeProject ? activeProject.name : 'kontrak'}. Segala penambahan di luar lampiran tersebut mewajibkan persetujuan adendum tertulis agar tidak memicu deviasi scope.`;
-        clause = 'Klausul Scope of Work & Adendum';
-      }
-
-      setChatLog((prev) => [...prev, { role: 'assistant', text: reply, citation, clause }]);
-    }, 600);
-  };
-
-  return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300 pb-16">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
-              Contract Clause Retrieval
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Klausul Kontrak & Legal Audit</h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Penelusuran instan isi pasal kontrak PKS, batasan tanggung jawab, dan audit hak komersial.
-          </p>
-        </div>
-
-        <div>
-          <select
-            value={selectedContract}
-            onChange={(e) => setSelectedContract(e.target.value)}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 shadow-2xs focus:outline-none"
-          >
-            {projects.length === 0 ? (
-              <option value="">-- Belum ada kontrak terdaftar --</option>
-            ) : (
-              projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.agreementBaseline?.contractNumber || p.id} - {p.name}
-                </option>
-              ))
-            )}
-          </select>
-        </div>
-      </div>
-
-      {/* Suggested Quick Inquiries */}
-      <div className="flex items-center gap-2 overflow-x-auto text-xs pb-1">
-        <span className="font-bold text-slate-400 text-[11px] uppercase tracking-wider whitespace-nowrap">Pertanyaan Standar:</span>
-        {[
-          'Berapa batas revisi gratis di kontrak ini?',
-          'Kapan termin pembayaran ke-2 jatuh tempo?',
-          'Bagaimana aturan denda keterlambatan invoice?',
-        ].map((q) => (
-          <button
-            key={q}
-            onClick={() => setQuery(q)}
-            className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:border-slate-400 hover:text-slate-900 transition-colors whitespace-nowrap text-xs font-medium shadow-2xs"
-          >
-            {q}
-          </button>
-        ))}
-      </div>
-
-      {/* Chat / Query Display Box */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs flex flex-col h-[520px]">
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {chatLog.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              {msg.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0 shadow-2xs border border-slate-800">
-                  <Scale className="w-4 h-4 text-blue-400" />
-                </div>
-              )}
-
-              <div
-                className={`max-w-xl p-4 rounded-2xl text-xs leading-relaxed space-y-2 ${
-                  msg.role === 'user'
-                    ? 'bg-slate-900 text-white font-medium rounded-tr-none'
-                    : 'bg-slate-50 text-slate-800 border border-slate-200 rounded-tl-none'
-                }`}
-              >
-                <p>{msg.text}</p>
-
-                {msg.clause && (
-                  <div className="pt-2 border-t border-slate-200/80 text-[11px] text-slate-600 space-y-1">
-                    <span className="font-bold text-slate-900 block">Kutipan Pasal Sah:</span>
-                    <p className="font-mono bg-white p-2 rounded-lg border border-slate-200 text-slate-800 text-[11px]">
-                      {msg.clause}
-                    </p>
-                    <span className="text-[10px] text-slate-400 block font-mono">Sumber Dokumen: {msg.citation}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Query Input Bar */}
-        <form onSubmit={handleAsk} className="p-3 border-t border-slate-200 bg-slate-50/50 flex items-center gap-2 rounded-b-2xl">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Tanyakan hal seputar klausul kontrak, batasan revisi, atau penalti..."
-            className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-2xs"
-          />
-          <button
-            type="submit"
-            className="p-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-xs transition-colors cursor-pointer"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </form>
-      </div>
+  return <div className="mx-auto max-w-4xl space-y-6 pb-12">
+    <div><p className="text-xs font-semibold uppercase tracking-widest text-red-700">Data kesepakatan · Mode demo</p><h1 className="mt-2 font-heading text-2xl font-bold text-zinc-950 sm:text-3xl">Cari informasi proyek</h1><p className="mt-2 text-sm leading-relaxed text-zinc-600">Cari nilai, jadwal, dan ketentuan yang tersimpan pada proyek demo.</p></div>
+    <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm leading-relaxed text-orange-950">Pencarian ini membaca data kesepakatan proyek, bukan isi berkas kontrak. Hasilnya bukan kutipan pasal atau pemeriksaan hukum.</div>
+    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-7">
+      <label htmlFor="contract-project" className="block text-sm font-semibold text-zinc-800">Pilih proyek</label>
+      <select id="contract-project" value={projectId} onChange={(event) => { setProjectId(event.target.value); setAnswer(null); }} className="mt-2 min-h-11 w-full rounded-xl border border-zinc-300 bg-white px-3 text-sm text-zinc-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20">
+        {projects.length === 0 && <option value="">Belum ada proyek</option>}
+        {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+      </select>
+      {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+      {loading ? <p className="mt-5 text-sm text-zinc-500">Memuat proyek…</p> : !project ? <p className="mt-5 text-sm text-zinc-600">Buat proyek terlebih dahulu untuk melihat informasi kesepakatan.</p> : <>
+        <form onSubmit={ask} className="mt-6"><label htmlFor="question" className="block text-sm font-semibold text-zinc-800">Apa yang ingin dicari?</label><div className="mt-2 flex gap-2"><input id="question" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Contoh: Berapa batas revisi?" className="min-h-11 min-w-0 flex-1 rounded-xl border border-zinc-300 px-3 text-sm text-zinc-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20" /><button type="submit" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700"><Search size={17} />Cari</button></div></form>
+        <p className="mt-3 text-xs text-zinc-500">Tersedia: batas revisi, pembayaran, nilai kontrak, biaya, tenggat, dan ruang lingkup.</p>
+        {answer && <div role="status" className="mt-6 rounded-xl border border-zinc-200 bg-zinc-50 p-5"><p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{answer.question}</p><p className="mt-2 text-sm leading-relaxed text-zinc-900">{answer.text}</p><p className="mt-3 text-xs text-zinc-500">Sumber: data kesepakatan proyek {project.name}.</p></div>}
+      </>}
     </div>
-  );
+  </div>;
 }

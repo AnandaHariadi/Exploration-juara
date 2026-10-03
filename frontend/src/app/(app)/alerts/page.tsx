@@ -1,153 +1,32 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, ShieldAlert, ArrowUpRight, CheckCircle2, Filter } from 'lucide-react';
-import { storageService } from '@/services/storage';
-import { Alert, AlertSeverity, AlertType } from '@/types';
+import Link from 'next/link';
+import { useAlerts } from '@/hooks/useClaraData';
+import { Alert, AlertSeverity } from '@/types';
 import { formatRupiah } from '@/lib/utils';
 import { SeverityBadge } from '@/components/shared/Badge';
 import { EvidenceDrawer } from '@/components/alerts/EvidenceDrawer';
 
+const typeLabels: Record<Alert['type'], string> = {
+  BILLING_VARIANCE: 'Tagihan', BUDGET_VARIANCE: 'Biaya', SCOPE_VARIANCE: 'Ruang lingkup', REVISION_LIMIT: 'Batas revisi', DEADLINE_RISK: 'Tenggat',
+};
+const statusLabels: Record<Alert['status'], string> = { NEW: 'Baru', ACKNOWLEDGED: 'Sudah dibaca · belum selesai', RESOLVED: 'Selesai' };
+
 export default function AlertsPage() {
-  const [alerts, setAlerts] = React.useState<Alert[]>([]);
-  const [selectedAlert, setSelectedAlert] = React.useState<Alert | null>(null);
-  const [severityFilter, setSeverityFilter] = React.useState<string>('ALL');
-  const [typeFilter, setTypeFilter] = React.useState<string>('ALL');
+  const { alerts, refreshAlerts, loading, error } = useAlerts();
+  const [selected, setSelected] = React.useState<Alert | null>(null);
+  const [severity, setSeverity] = React.useState<'ALL' | AlertSeverity>('ALL');
+  const [status, setStatus] = React.useState<'ALL' | Alert['status']>('ALL');
+  const filtered = alerts.filter((item) => (severity === 'ALL' || item.severity === severity) && (status === 'ALL' || item.status === status));
+  const openCount = alerts.filter((item) => item.status !== 'RESOLVED').length;
 
-  const loadData = React.useCallback(() => {
-    setAlerts(storageService.getAllAlerts());
-  }, []);
-
-  React.useEffect(() => {
-    loadData();
-    const handleUpdate = () => loadData();
-    window.addEventListener('clara_data_updated', handleUpdate);
-    return () => window.removeEventListener('clara_data_updated', handleUpdate);
-  }, [loadData]);
-
-  const filteredAlerts = alerts.filter((a) => {
-    const matchesSev = severityFilter === 'ALL' || a.severity === severityFilter;
-    const matchesType = typeFilter === 'ALL' || a.type === typeFilter;
-    return matchesSev && matchesType;
-  });
-
-  const totalImpact = filteredAlerts.reduce((sum, a) => sum + (a.status === 'NEW' ? a.rupiahImpact : 0), 0);
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-300 pb-16">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Alerts & Evidence Intelligence</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Setiap peringatan CLARA didasari perbandingan objektif antara klausul kontrak, RAB, dan progres keuangan.
-          </p>
-        </div>
-        <div className="bg-rose-50 border border-rose-200 px-4 py-2 rounded-xl text-right self-start sm:self-auto">
-          <span className="text-[10px] font-bold uppercase text-rose-700">Total Potensi Kerugian</span>
-          <p className="text-lg font-black text-rose-900">{formatRupiah(totalImpact)}</p>
-        </div>
-      </div>
-
-      {/* Filters Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-wrap items-center gap-3 shadow-sm text-xs">
-        <div className="flex items-center gap-1.5 text-slate-500 font-semibold mr-2">
-          <Filter className="w-3.5 h-3.5" />
-          <span>Filter:</span>
-        </div>
-
-        <select
-          value={severityFilter}
-          onChange={(e) => setSeverityFilter(e.target.value)}
-          className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 font-medium text-slate-700 focus:outline-none"
-        >
-          <option value="ALL">Semua Severity</option>
-          <option value="CRITICAL">Critical</option>
-          <option value="HIGH">High</option>
-          <option value="MEDIUM">Medium</option>
-        </select>
-
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 font-medium text-slate-700 focus:outline-none"
-        >
-          <option value="ALL">Semua Kategori</option>
-          <option value="BILLING_VARIANCE">Billing Variance (Tagihan)</option>
-          <option value="BUDGET_VARIANCE">Budget Variance (Biaya)</option>
-          <option value="SCOPE_VARIANCE">Scope Variance (Ruang Lingkup)</option>
-          <option value="REVISION_LIMIT">Revision Limit (Batas Revisi)</option>
-        </select>
-      </div>
-
-      {/* Alerts List */}
-      <div className="space-y-4">
-        {filteredAlerts.map((alert) => (
-          <div
-            key={alert.id}
-            className={`bg-white p-6 rounded-2xl border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:shadow-md transition-all ${
-              alert.status === 'NEW' ? 'border-rose-200' : 'border-slate-200 opacity-80'
-            }`}
-          >
-            <div className="space-y-2 flex-1">
-              <div className="flex items-center gap-2">
-                <SeverityBadge severity={alert.severity} />
-                <span className="text-xs font-semibold text-slate-600 font-mono">
-                  {alert.projectName}
-                </span>
-                <span className="text-slate-300">•</span>
-                <span className="text-[11px] font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
-                  {alert.type}
-                </span>
-                {alert.status === 'ACKNOWLEDGED' && (
-                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    Telah Dipahami
-                  </span>
-                )}
-              </div>
-
-              <h3 className="text-base font-bold text-slate-900 leading-snug">{alert.title}</h3>
-              <p className="text-xs text-slate-600 leading-relaxed max-w-3xl">{alert.description}</p>
-
-              <div className="pt-2 flex items-center gap-2 text-xs text-slate-400">
-                <span>Sumber Bukti:</span>
-                <span className="font-semibold text-slate-600 font-mono">{alert.evidence.sourceDocument}</span>
-                <span>({alert.evidence.pageOrSection})</span>
-              </div>
-            </div>
-
-            <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center gap-3 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100 shrink-0">
-              <div className="text-left md:text-right">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Dampak Finansial</span>
-                <span className="text-lg font-black text-rose-600">{formatRupiah(alert.rupiahImpact)}</span>
-              </div>
-
-              <button
-                onClick={() => setSelectedAlert(alert)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
-              >
-                <span>Lihat Bukti Dokumen</span>
-                <ArrowUpRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        ))}
-
-        {filteredAlerts.length === 0 && (
-          <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
-            <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-            <h3 className="text-sm font-bold text-slate-800">Tidak Ada Alert</h3>
-            <p className="text-xs text-slate-500 mt-1">Seluruh baseline, scope, dan penagihan berstatus valid.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Evidence Drawer Modal */}
-      <EvidenceDrawer
-        alert={selectedAlert}
-        onClose={() => setSelectedAlert(null)}
-        onActionComplete={loadData}
-      />
-    </div>
-  );
+  return <div className="space-y-6 pb-12">
+    <div><p className="text-xs font-semibold uppercase tracking-widest text-red-700">Pemantauan proyek</p><h1 className="mt-2 font-heading text-2xl font-bold text-zinc-950 sm:text-3xl">Peringatan</h1><p className="mt-2 text-sm text-zinc-600">Periksa masalah, catatan sumber, dan proyek yang perlu ditindaklanjuti.</p></div>
+    <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-950">{openCount} peringatan belum selesai. Menandai sebagai sudah dibaca tidak menyelesaikan masalah. Nilai terkait peringatan bukan otomatis kerugian.</div>
+    <div className="flex flex-wrap gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"><div><label htmlFor="severity" className="block text-xs font-semibold text-zinc-600">Tingkat</label><select id="severity" value={severity} onChange={(event) => setSeverity(event.target.value as typeof severity)} className="mt-1 min-h-10 rounded-lg border border-zinc-300 bg-white px-3 text-sm"><option value="ALL">Semua tingkat</option><option value="CRITICAL">Kritis</option><option value="HIGH">Tinggi</option><option value="MEDIUM">Sedang</option><option value="LOW">Rendah</option></select></div><div><label htmlFor="alert-status" className="block text-xs font-semibold text-zinc-600">Status</label><select id="alert-status" value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className="mt-1 min-h-10 rounded-lg border border-zinc-300 bg-white px-3 text-sm"><option value="ALL">Semua status</option><option value="NEW">Baru</option><option value="ACKNOWLEDGED">Sudah dibaca</option><option value="RESOLVED">Selesai</option></select></div></div>
+    {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">Gagal memuat peringatan: {error}</p>}
+    {loading ? <p className="rounded-xl bg-white p-6 text-sm text-zinc-500">Memuat peringatan…</p> : filtered.length === 0 ? <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center"><p className="font-semibold text-zinc-900">Tidak ada peringatan untuk filter ini.</p><p className="mt-1 text-sm text-zinc-500">Ubah filter atau lanjutkan memantau proyek.</p></div> : <div className="space-y-3">{filtered.map((item) => <article key={item.id} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-center gap-2"><SeverityBadge severity={item.severity} /><span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-700">{typeLabels[item.type]}</span><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.status === 'NEW' ? 'bg-red-50 text-red-700' : 'bg-zinc-100 text-zinc-700'}`}>{statusLabels[item.status]}</span></div><h2 className="mt-3 text-base font-semibold text-zinc-950">{item.title}</h2><p className="mt-1 text-sm leading-relaxed text-zinc-600">{item.description}</p><div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-4"><div><p className="text-xs text-zinc-500">{item.projectName}</p><p className="mt-1 text-sm font-semibold text-zinc-900">Nilai terkait: {formatRupiah(item.rupiahImpact)}</p></div><div className="flex gap-3"><Link href={`/projects/${item.projectId}`} className="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-100">Buka proyek</Link><button type="button" onClick={() => setSelected(item)} className="min-h-10 rounded-lg bg-red-600 px-3 text-sm font-semibold text-white hover:bg-red-700">Lihat rincian</button></div></div></article>)}</div>}
+    <EvidenceDrawer alert={selected} onClose={() => setSelected(null)} onActionComplete={() => { void refreshAlerts(); }} />
+  </div>;
 }
