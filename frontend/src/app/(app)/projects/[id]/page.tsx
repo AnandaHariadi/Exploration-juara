@@ -41,15 +41,15 @@ export default function ProjectDetailPage() {
 
   const [showAddCostModal, setShowAddCostModal] = React.useState(false);
   const [costCategory, setCostCategory] = React.useState<ActualCostItem['category']>('DEVELOPMENT');
-  const [costAmount, setCostAmount] = React.useState<number>(25000000);
+  const [costAmount, setCostAmount] = React.useState<number>(0);
   const [costDesc, setCostDesc] = React.useState('');
 
   const [showAddCRModal, setShowAddCRModal] = React.useState(false);
   const [crTitle, setCrTitle] = React.useState('');
   const [crDesc, setCrDesc] = React.useState('');
   const [crScope, setCrScope] = React.useState('');
-  const [crValue, setCrValue] = React.useState<number>(100000000);
-  const [crDays, setCrDays] = React.useState<number>(14);
+  const [crValue, setCrValue] = React.useState<number>(0);
+  const [crDays, setCrDays] = React.useState<number>(0);
 
   const loadProject = React.useCallback(() => {
     const p = storageService.getProject(projectId);
@@ -65,10 +65,20 @@ export default function ProjectDetailPage() {
 
   if (!project) {
     return (
-      <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
-        <FolderGit2 className="w-10 h-10 text-slate-400 mx-auto mb-3" />
-        <h2 className="text-lg font-bold text-slate-800">Project Tidak Ditemukan</h2>
-        <p className="text-xs text-slate-500 mt-1">ID: {projectId}</p>
+      <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-4">
+        <FolderGit2 className="w-10 h-10 text-slate-400 mx-auto" />
+        <div>
+          <h2 className="text-lg font-bold text-slate-800">Project Tidak Ditemukan</h2>
+          <p className="text-xs text-slate-500 mt-1">ID: {projectId}</p>
+        </div>
+        <div>
+          <a
+            href="/projects"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+          >
+            Kembali ke Daftar Project
+          </a>
+        </div>
       </div>
     );
   }

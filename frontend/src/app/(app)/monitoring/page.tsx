@@ -26,8 +26,28 @@ export default function MonitoringPage() {
         </p>
       </div>
 
-      <div className="space-y-6">
-        {projects.map((proj) => {
+      {projects.length === 0 ? (
+        <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+            <Activity className="w-6 h-6" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-slate-900">Belum Ada Project untuk Dimonitor</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              Fitur monitoring otomatis akan memetakan progres, batas revisi, dan deviasi scope setelah kontrak baru diunggah.
+            </p>
+          </div>
+          <Link
+            href="/projects/new"
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-colors"
+          >
+            <span>Upload Kontrak Pertama</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {projects.map((proj) => {
           const limit = proj.agreementBaseline?.revisionLimit || 3;
           const isOverLimit = proj.activeRevisionCount > limit;
           const deviationCount = (proj.agreementBaseline?.scopeItems || []).filter((s) => s.status === 'NEEDS_REVIEW').length;
@@ -118,6 +138,7 @@ export default function MonitoringPage() {
           );
         })}
       </div>
-    </div>
-  );
+    )}
+  </div>
+);
 }

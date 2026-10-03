@@ -1,404 +1,114 @@
-# CLARA — Frontend Task List
+# CLARA — Rencana Kerja Frontend dan Pengalaman Pengguna
 
-> Role: Product / UIUX / Frontend  
-> Scope: Hackathon MVP  
-> Total: 15 tasks
+> Fokus: frontend, alur pengguna, bahasa antarmuka, dan demo yang datanya tersimpan.
+> Kerjakan satu tahap sampai selesai sebelum lanjut. Tanda selesai hanya untuk alur yang sudah diuji, bukan sekadar tampilan yang sudah ada.
 
----
+## Kondisi repo saat audit
 
-## TASK 01 — Setup Frontend Project Structure
+- Aplikasi menggunakan Next.js App Router, React, TypeScript, dan Tailwind CSS. Daftar lama yang menyebut Vite, React Router, Axios, serta folder pages tidak sesuai repo.
+- Landing dan halaman dashboard, proyek, pemantauan, keuangan, perubahan pekerjaan, peringatan, dan pencarian klausul sudah memiliki tampilan awal.
+- Data aplikasi masih memakai localStorage. Belum ada API atau SQLite.
+- Persona Budi, Siti, Hendra, dan Admin masih berupa data tetap di frontend, belum menjadi pengguna demo yang disimpan.
+- Upload dokumen dan pemrosesannya masih simulasi. Sebagian metrik dan status belum berubah mengikuti tindakan pengguna.
+- Checklist lama terlalu banyak bertanda selesai meskipun fungsi belum terhubung. Seluruh pekerjaan di bawah dimulai sebagai belum selesai dan diverifikasi satu per satu.
 
-**Goal:** Menyiapkan struktur frontend CLARA agar mudah dikembangkan dan diintegrasikan.
+## Prinsip produk dan bahasa
 
-### Checklist
-- [x] Setup project React + Vite
-- [x] Setup Tailwind CSS
-- [x] Setup React Router
-- [x] Buat struktur folder `pages`, `components`, `services`, `hooks`, `types`
-- [x] Setup API client / Axios
-- [x] Buat environment variable untuk backend URL
+- Pengguna harus tahu kondisi proyek, tindakan berikutnya, dan alasan sebuah angka atau peringatan muncul.
+- Gunakan bahasa Indonesia yang ringkas. Istilah teknis internal boleh dipakai dalam kode/API, tetapi label utama antarmuka memakai kata yang dipahami pengguna.
+- Usulan istilah: "baseline" → "acuan proyek" atau "kesepakatan awal"; "billable" → "siap ditagih"; "unbilled" → "belum ditagih"; "variance" → "selisih"; "change request" → "permintaan perubahan"; "evidence" → "bukti pendukung".
+- Jelaskan angka uang dengan konteks. "Belum ditagih" adalah pekerjaan yang sudah berhak ditagih, bukan otomatis kerugian.
+- Data contoh, hasil simulasi, dan hasil pemeriksaan dokumen sungguhan harus terlihat berbeda. Jangan menampilkan kutipan atau tingkat keyakinan seolah sudah diverifikasi bila sumbernya belum ada.
+- Font, ukuran huruf, warna, animasi, dan dekorasi dipilih karena membantu keterbacaan serta tindakan pengguna.
 
-### Done When
-Frontend dapat dijalankan dan routing dasar bekerja.
+## Tahap 1 — Tetapkan alur frontend dan kebutuhan data
 
----
+- [ ] Petakan alur pengguna demo: masuk/pilih pengguna → lihat tugas sesuai peran → buka proyek → lakukan tindakan → lihat perubahan ringkasan.
+- [ ] Petakan alur proyek baru: isi informasi → unggah berkas atau pilih data contoh → tinjau hasil → koreksi → setujui acuan proyek.
+- [ ] Definisikan state kosong, memuat, gagal, berhasil, perlu ditinjau, dan selesai untuk setiap alur.
+- [ ] Tetapkan arti dan rumus nilai kontrak, rencana biaya, biaya aktual, siap ditagih, sudah ditagih, sudah dibayar, dan belum ditagih.
+- [ ] Tetapkan kontrak data frontend–API untuk pengguna demo, proyek, dokumen, acuan proyek dan versinya, milestone, event, biaya, invoice, pembayaran, permintaan perubahan, serta peringatan.
+- [ ] Pisahkan akses data dari komponen agar halaman dapat beralih dari localStorage ke API tanpa mengulang desain.
 
-## TASK 02 — Build App Layout & Navigation
+**Selesai jika:** alur, istilah, aturan angka, dan respons tiap tindakan telah disepakati dan dapat dipakai sebagai acuan implementasi.
 
-**Goal:** Membuat layout utama aplikasi CLARA.
+## Tahap 2 — Pengguna demo dan SQLite
 
-### Checklist
-- [x] Sidebar navigation
-- [x] Header/topbar
-- [x] Responsive layout
-- [x] Navigation state aktif
-- [x] Menu utama:
-  - Dashboard
-  - Projects
-  - Contract & RAB
-  - Monitoring
-  - Finance
-  - Change Request
-  - Alerts & Evidence
-  - Legal AI
+SQLite adalah penyimpanan lokal untuk demo dan pengujian. Browser mengaksesnya melalui API/server Next.js, bukan langsung ke file database. Pilihan database produksi diputuskan terpisah.
 
-### Done When
-User dapat berpindah antarhalaman tanpa reload.
+- [ ] Buat skema dan migrasi SQLite untuk pengguna demo serta data minimum yang diperlukan alur utama.
+- [ ] Seed pengguna demo: Budi (pengelola proyek), Siti (keuangan), Hendra (pimpinan), dan Admin. Seed proyek contoh harus konsisten secara angka dan status.
+- [ ] Buat alur memilih/masuk sebagai pengguna demo dan simpan sesi aktif di server. Jelaskan bahwa ini mode demo, bukan login produksi.
+- [ ] Putuskan apakah peran hanya mengubah tampilan atau juga membatasi tindakan demo; UI dan API harus berperilaku sama.
+- [ ] Buat API baca/tulis untuk proyek, milestone/event, biaya, invoice/pembayaran, permintaan perubahan, dan peringatan yang diperlukan frontend.
+- [ ] Pindahkan sumber data utama dari localStorage ke SQLite melalui API. Refresh halaman dan browser baru harus membaca data yang sama.
+- [ ] Sediakan reset data demo yang disengaja, dengan konfirmasi dan hasil seed yang dapat diulang.
+- [ ] Uji perpindahan pengguna demo, perubahan data, refresh, dan reset.
 
----
+**Selesai jika:** pengguna demo dan perubahan utama tersimpan di SQLite serta terbaca kembali lewat API.
 
-## TASK 03 — Build Dashboard Overview
+## Tahap 3 — Perbaiki tampilan dan alur pengguna
 
-**Goal:** Menampilkan kondisi project secara cepat.
+### 3.1 Navigasi dan ringkasan
 
-### Data yang ditampilkan
-- Contract Value
-- Planned Cost
-- Actual Cost
-- Project Progress
-- Billable Value
-- Billed Value
-- Unbilled Value
-- Jumlah alert
+- [ ] Tata ulang sidebar, header, pemilih proyek, dan menu pengguna untuk desktop, tablet, serta ponsel.
+- [ ] Dashboard menampilkan tindakan terpenting sesuai peran dan membawa pengguna ke proyek yang tepat.
+- [ ] Tiap angka ringkasan memiliki label yang jelas, konteks proyek/periode, dan nilai yang sesuai detailnya.
+- [ ] Bedakan peringatan baru, sudah dibaca, sedang ditangani, dan selesai. Membaca peringatan tidak menghapus masalah yang belum selesai.
 
-### Checklist
-- [x] Summary cards
-- [x] Project health section
-- [x] Priority alerts
-- [x] Progress indicator
-- [x] Link ke detail project
+### 3.2 Proyek baru
 
-### Done When
-Owner dapat memahami kondisi project dari satu layar.
+- [ ] Form punya input file nyata, validasi format/ukuran, dan pilihan data contoh yang diberi label jelas.
+- [ ] Hasil pemrosesan ditampilkan sebagai usulan untuk ditinjau; sumber, nilai kontrak, anggaran, ruang lingkup, dan jadwal pembayaran dapat diperiksa.
+- [ ] Hanya data yang benar-benar ditinjau dan disetujui pengguna yang menjadi acuan proyek aktif.
+- [ ] Bila pemrosesan dokumen belum tersedia, gunakan penjelasan mode demo yang jujur.
 
----
+### 3.3 Pemantauan dan keuangan
 
-## TASK 04 — Build Projects Page
+- [ ] Event penyelesaian terhubung ke tahap pekerjaan yang dipilih dan memperbarui progres serta nilai siap ditagih.
+- [ ] Biaya aktual memperbarui total dan selisih terhadap rencana biaya.
+- [ ] Tagihan hanya dapat dibuat saat syarat tahap pekerjaan terpenuhi; status terkirim, lunas, dan terlambat mempunyai alur yang jelas.
+- [ ] Permintaan perubahan mempunyai status, pihak yang menyetujui, dan riwayat perubahan nilai, ruang lingkup, serta tenggat.
+- [ ] Bukti pendukung menunjukkan sumber yang dapat diperiksa dan tindakan lanjutan yang sesuai.
+- [ ] Pencarian klausul hanya mengklaim jawaban dari kontrak terpilih bila sumbernya benar-benar tersedia.
 
-**Goal:** Menampilkan semua project yang sedang dikelola.
+### 3.4 Keterbacaan dan akses
 
-### Checklist
-- [x] Project list
-- [x] Project status
-- [x] Contract value
-- [x] Progress
-- [x] Alert indicator
-- [x] Button `Open Project`
-- [x] Button `Create Project`
+- [ ] Audit font: kurangi variasi yang tidak perlu, pakai ukuran teks yang nyaman, dan bedakan judul, angka, label, serta bantuan form secara konsisten.
+- [ ] Ganti kata teknis dan campuran bahasa yang membingungkan dengan istilah Indonesia yang relevan. Uji apakah pengguna memahami label tanpa penjelasan lisan.
+- [ ] Perbaiki kontras, jarak antar elemen, ukuran area klik, dan tampilan tabel/form di layar kecil.
+- [ ] Hubungkan label dengan input, tampilkan kesalahan dekat field, dan berikan pesan setelah tindakan berhasil.
+- [ ] Dialog dan panel bukti dapat digunakan dengan keyboard, mengelola fokus, dan mudah ditutup.
 
-### Done When
-User dapat melihat dan membuka project tertentu.
+**Selesai jika:** pengguna demo dapat menuntaskan alur utama di ponsel maupun desktop dan memahami setiap angka serta tindakan.
 
----
+## Tahap 4 — Singkirkan elemen yang tidak membantu
 
-## TASK 05 — Build New Project Flow
+- [ ] Audit menu, kartu, tombol, badge, font, dekorasi, animasi, dan teks promosi berdasarkan manfaatnya untuk tugas pengguna.
+- [ ] Hapus atau sederhanakan pengulangan informasi antara dashboard dan detail proyek.
+- [ ] Hapus kontrol yang tidak berfungsi; jika harus ada untuk demo, beri keterangan simulasi yang jelas.
+- [ ] Hapus klaim hasil AI, bukti, dan dampak uang yang belum dapat dibuktikan dari data.
+- [ ] Catat elemen yang dihapus atau diganti beserta alasan dan dampaknya pada alur.
 
-**Goal:** Membuat flow pembuatan project baru.
+**Selesai jika:** setiap elemen yang tersisa membantu pengguna memahami kondisi, mengambil tindakan, atau memeriksa bukti.
 
-### Flow
-`Create Project → Upload Contract → Upload RAB → AI Extraction → Confirmation → Baseline`
+## Tahap 5 — Audit ulang dashboard dan sistem
 
-### Checklist
-- [x] Project name
-- [x] Client name
-- [x] Contract upload
-- [x] RAB upload
-- [x] Upload status
-- [x] Continue button
+- [ ] Inventaris setiap kartu, filter, tautan, tombol, dan notifikasi dashboard untuk tiap pengguna demo.
+- [ ] Catat sumber data, rumus, tindakan, state kosong/loading/error, dan perubahan hasil setelah operasi terkait.
+- [ ] Uji alur: buat proyek → setujui acuan → selesaikan tahap → muncul nilai siap ditagih → buat tagihan → catat pembayaran → periksa ringkasan dan peringatan.
+- [ ] Uji biaya melebihi rencana, revisi melewati batas, tambahan pekerjaan, dan persetujuan perubahan.
+- [ ] Cocokkan angka dashboard, detail proyek, dan record SQLite; selisih menjadi bug dengan langkah reproduksi.
+- [ ] Susun matriks fungsi: berjalan, gagal, atau belum dibuat, lalu urutkan perbaikan berikutnya.
 
-### Done When
-User dapat memulai project dan mengirim dokumen ke backend.
+**Selesai jika:** semua fungsi dashboard mempunyai hasil audit yang dapat direproduksi dan angka utama konsisten dengan data tersimpan.
 
----
+## Urutan kerja
 
-## TASK 06 — Build AI Extraction Loading & Result UI
+1. Finalisasi alur dan kontrak data.
+2. Bangun pengguna demo dan SQLite.
+3. Perbaiki tampilan serta bahasa antarmuka.
+4. Singkirkan elemen yang tidak membantu.
+5. Audit ulang fungsi dashboard dan sistem.
 
-**Goal:** Menampilkan proses dan hasil ekstraksi Contract + RAB.
-
-### Checklist
-- [x] Processing/loading state
-- [x] Error state
-- [x] Contract extraction result
-- [x] RAB extraction result
-- [x] Group hasil berdasarkan kategori
-- [x] Tampilkan source/evidence jika tersedia
-
-### Data contoh
-- Contract value
-- Deadline
-- Scope
-- Milestones
-- Payment terms
-- Revision limit
-- Planned cost
-
-### Done When
-Hasil ekstraksi AI mudah dibaca user.
-
----
-
-## TASK 07 — Build Baseline Confirmation Page
-
-**Goal:** Memastikan AI tidak langsung dianggap benar.
-
-### Checklist
-- [x] Semua hasil extraction dapat direview
-- [x] Field penting dapat diedit
-- [x] Tampilkan Agreement Baseline
-- [x] Tampilkan Plan Baseline
-- [x] Warning sebelum baseline dikunci
-- [x] Button `Confirm & Lock Baseline`
-
-### Done When
-Baseline hanya aktif setelah dikonfirmasi user.
-
----
-
-## TASK 08 — Build Project Detail Page
-
-**Goal:** Menjadi pusat informasi satu project.
-
-### Sections
-- Overview
-- Baseline
-- Monitoring
-- Finance
-- Change Requests
-- Alerts
-
-### Checklist
-- [x] Project header
-- [x] Status
-- [x] Client
-- [x] Contract value
-- [x] Active baseline version
-- [x] Tab navigation
-
-### Done When
-Semua informasi project dapat diakses dari satu halaman.
-
----
-
-## TASK 09 — Build Project Monitoring UI
-
-**Goal:** Memungkinkan update project berbasis event, bukan input harian.
-
-### Checklist
-- [x] Progress update
-- [x] Milestone status
-- [x] Revision count
-- [x] Add project event
-- [x] Add task/scope item
-- [x] Event history / timeline
-
-### Event contoh
-- Milestone completed
-- New task added
-- Revision added
-- Scope changed
-
-### Done When
-PM dapat memperbarui kondisi project hanya saat ada event penting.
-
----
-
-## TASK 10 — Build Scope Comparison UI
-
-**Goal:** Menampilkan perbandingan scope baseline dengan pekerjaan aktual.
-
-### Status
-- `MATCH`
-- `NEEDS REVIEW`
-- `APPROVED CHANGE`
-
-### Checklist
-- [x] Contract scope list
-- [x] Actual scope/task list
-- [x] Match indicator
-- [x] Possible deviation indicator
-- [x] Evidence button
-
-### Done When
-User dapat melihat task mana yang sesuai atau berpotensi keluar scope.
-
----
-
-## TASK 11 — Build Finance Tracking Page
-
-**Goal:** Menampilkan planned cost, actual cost, billing, dan payment.
-
-### Checklist
-- [x] Planned Cost
-- [x] Actual Cost
-- [x] Cost breakdown
-- [x] Add actual cost form
-- [x] Invoice list
-- [x] Add/upload invoice
-- [x] Invoice status
-- [x] Payment status
-
-### Done When
-Finance dapat memperbarui data finansial project.
-
----
-
-## TASK 12 — Build Billing & Value Realization UI
-
-**Goal:** Menampilkan apakah nilai kontrak sudah terealisasi.
-
-### Metrics
-- Contract Value
-- Billable Value
-- Billed Value
-- Paid Value
-- Unbilled Value
-
-### Checklist
-- [x] Value summary
-- [x] Milestone billing table
-- [x] Billing mismatch indicator
-- [x] Completed but unbilled indicator
-
-### Done When
-User dapat melihat gap antara hak tagih dengan invoice aktual.
-
----
-
-## TASK 13 — Build Change Request Flow
-
-**Goal:** Mendukung perubahan resmi project dan baseline versioning.
-
-### Checklist
-- [x] Create Change Request
-- [x] Additional scope
-- [x] Additional value
-- [x] Deadline extension
-- [x] Reason/notes
-- [x] Status:
-  - DRAFT
-  - PENDING
-  - APPROVED
-  - REJECTED
-- [x] Baseline version history
-
-### Done When
-Approved Change Request dapat terlihat sebagai Baseline V2/V3.
-
----
-
-## TASK 14 — Build Alerts & Evidence Drawer
-
-**Goal:** Setiap warning harus transparan dan punya bukti.
-
-### Alert Types
-- Budget Variance
-- Scope Variance
-- Billing Variance
-- Revision Limit
-- Deadline Risk
-
-### Checklist
-- [x] Alert list
-- [x] Severity/status
-- [x] Rp impact
-- [x] `Show Evidence`
-- [x] Contract evidence
-- [x] Project evidence
-- [x] Finance evidence
-- [x] Human review action
-
-### Done When
-User dapat mengetahui alasan CLARA menghasilkan sebuah alert.
-
----
-
-## TASK 15 — Frontend Integration, Demo Polish & Fallback
-
-**Goal:** Menyatukan seluruh frontend dengan backend dan menyiapkan demo hackathon.
-
-### Checklist
-- [x] Integrasikan API real
-- [x] Loading state semua request
-- [x] Empty state
-- [x] Error handling
-- [x] Success feedback
-- [x] Responsive check
-- [x] Demo dataset
-- [x] Demo project siap pakai
-- [x] Fallback mock data jika backend gagal
-- [x] Final UI polish
-- [x] Pastikan alur demo berjalan:
-  `Upload → Extract → Confirm → Monitor → Detect → Evidence`
-
-### Done When
-Frontend siap digunakan untuk demo end-to-end.
-
----
-
-# Frontend MVP Priority
-
-## P0 — Wajib Jadi
-1. App Layout
-2. Dashboard
-3. Projects
-4. Contract + RAB Upload
-5. AI Extraction Result
-6. Baseline Confirmation
-7. Project Detail
-8. Project Monitoring
-9. Finance
-10. Alerts & Evidence
-
-## P1 — Sangat Penting
-11. Scope Comparison
-12. Billing / Value Realization
-13. Change Request
-
-## P2 — Polish
-14. Responsive & UX polish
-15. Demo fallback / presentation mode
-
----
-
-# Main Frontend Flow
-
-```text
-Dashboard
-   ↓
-Projects
-   ↓
-Create Project
-   ↓
-Upload Contract + RAB
-   ↓
-AI Processing
-   ↓
-Review Extraction
-   ↓
-Confirm Baseline
-   ↓
-Project Active
-   ↓
-Monitoring + Finance
-   ↓
-CLARA Detects Variance
-   ↓
-Alert + Rp Impact
-   ↓
-Show Evidence
-   ↓
-Human Decision
-```
-
----
-
-## Frontend Principle
-
-> Frontend CLARA harus membuat user dapat memahami masalah dalam beberapa detik, bukan sekadar menampilkan data sebanyak mungkin.
-
-Prioritaskan:
-- clarity,
-- evidence,
-- financial impact,
-- simple project flow,
-- human confirmation.
+Kerjakan satu tahap pada satu waktu. Jangan menandai pekerjaan selesai hanya karena tampilannya sudah dibuat.

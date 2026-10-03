@@ -24,17 +24,21 @@ export default function NewProjectFlowPage() {
   const [step, setStep] = React.useState<1 | 2 | 3>(1);
 
   // Form inputs
-  const [projectName, setProjectName] = React.useState('Aplikasi Monitoring Pelabuhan Pintar (Smart Port)');
-  const [clientName, setClientName] = React.useState('PT Pelabuhan Terpadu Nusantara');
+  const [projectName, setProjectName] = React.useState('');
+  const [clientName, setClientName] = React.useState('');
   const [contractFile, setContractFile] = React.useState<File | null>(null);
   const [rabFile, setRabFile] = React.useState<File | null>(null);
 
   // Extracted data (editable by user in step 3)
-  const [contractValue, setContractValue] = React.useState<number>(1450000000);
-  const [plannedCost, setPlannedCost] = React.useState<number>(950000000);
-  const [deadline, setDeadline] = React.useState('2027-04-30');
+  const [contractValue, setContractValue] = React.useState<number>(0);
+  const [plannedCost, setPlannedCost] = React.useState<number>(0);
+  const [deadline, setDeadline] = React.useState('');
   const [revisionLimit, setRevisionLimit] = React.useState<number>(3);
   const [paymentTerms, setPaymentTerms] = React.useState('30% DP, 40% UAT Staging, 30% Final Go-Live');
+
+  // File input refs
+  const contractInputRef = React.useRef<HTMLInputElement>(null);
+  const rabInputRef = React.useRef<HTMLInputElement>(null);
 
   // Extraction Progress simulation
   const [parsingStage, setParsingStage] = React.useState<string>('Ekstraksi teks digital dari dokumen PKS PDF...');
@@ -61,6 +65,13 @@ export default function NewProjectFlowPage() {
 
     setTimeout(() => {
       setStep(3);
+      if (contractValue === 0) setContractValue(750000000);
+      if (plannedCost === 0) setPlannedCost(500000000);
+      if (!deadline) {
+        const d = new Date();
+        d.setMonth(d.getMonth() + 6);
+        setDeadline(d.toISOString().split('T')[0]);
+      }
     }, 3800);
   };
 
@@ -92,27 +103,27 @@ export default function NewProjectFlowPage() {
         paymentTerms,
         revisionLimit,
         scopeItems: [
-          { id: 'SCP-01', title: 'Port Vessel Traffic Tracking System', description: 'Pelacakan armada kapal sandar.', category: 'CORE_FEATURE', status: 'MATCH' },
-          { id: 'SCP-02', title: 'Container Yard IoT Gate Integration', description: 'Sensor barrier gate otomatis.', category: 'INTEGRATION', status: 'MATCH' },
-          { id: 'SCP-03', title: 'Executive Operations Dashboard', description: 'Laporan throughput peti kemas real-time.', category: 'CORE_FEATURE', status: 'MATCH' },
+          { id: 'SCP-01', title: `${projectName || 'Pekerjaan Utama'} - Core Implementation`, description: 'Deliverable utama sesuai kesepakatan PKS.', category: 'CORE_FEATURE', status: 'MATCH' },
+          { id: 'SCP-02', title: 'System Integration & Deployment', description: 'Integrasi sistem dan deployment lingkungan kerja.', category: 'INTEGRATION', status: 'MATCH' },
+          { id: 'SCP-03', title: 'User Acceptance Testing & Handover', description: 'Verifikasi UAT dan serah terima dokumen operasional.', category: 'CORE_FEATURE', status: 'MATCH' },
         ],
         milestones: [
-          { id: 'MLS-01', title: 'Termin 1: Down Payment (30%)', percentage: 30, value: contractValue * 0.3, targetDate: '2026-11-15', status: 'PENDING', billingStatus: 'UNBILLED' },
-          { id: 'MLS-02', title: 'Termin 2: UAT Delivery Staging (40%)', percentage: 40, value: contractValue * 0.4, targetDate: '2027-02-28', status: 'PENDING', billingStatus: 'UNBILLED' },
-          { id: 'MLS-03', title: 'Termin 3: Final Acceptance & Handover (30%)', percentage: 30, value: contractValue * 0.3, targetDate: deadline, status: 'PENDING', billingStatus: 'UNBILLED' },
+          { id: 'MLS-01', title: 'Termin 1: Down Payment (30%)', percentage: 30, value: Math.round(contractValue * 0.3), targetDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0], status: 'PENDING', billingStatus: 'UNBILLED' },
+          { id: 'MLS-02', title: 'Termin 2: UAT Delivery Staging (40%)', percentage: 40, value: Math.round(contractValue * 0.4), targetDate: new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0], status: 'PENDING', billingStatus: 'UNBILLED' },
+          { id: 'MLS-03', title: 'Termin 3: Final Acceptance & Handover (30%)', percentage: 30, value: Math.round(contractValue * 0.3), targetDate: deadline || new Date(Date.now() + 120 * 86400000).toISOString().split('T')[0], status: 'PENDING', billingStatus: 'UNBILLED' },
         ],
         clausesSummary: [
           { clauseNumber: 'Pasal 5', title: 'Batas Revisi', description: `Maksimal ${revisionLimit} putaran revisi resmi.` },
-          { clauseNumber: 'Pasal 8', title: 'Ketentuan Termin', description: paymentTerms },
+          { clauseNumber: 'Pasal 8', title: 'Ketentuan Termin', description: paymentTerms || 'Termin pembayaran berkala sesuai progres deliverable.' },
         ],
       },
       planBaseline: {
         totalPlannedCost: plannedCost,
-        contingencyBudget: plannedCost * 0.05,
+        contingencyBudget: Math.round(plannedCost * 0.05),
         items: [
-          { id: 'RAB-1', category: 'Software Development', description: 'Backend, Frontend & Mobile Eng', plannedAmount: plannedCost * 0.7, actualAmount: 0 },
-          { id: 'RAB-2', category: 'Hardware & IoT Gateway', description: 'Sensors, Gateway & Mounting', plannedAmount: plannedCost * 0.2, actualAmount: 0 },
-          { id: 'RAB-3', category: 'Testing & Deployment', description: 'QA, Cloud Cluster & UAT', plannedAmount: plannedCost * 0.1, actualAmount: 0 },
+          { id: 'RAB-1', category: 'Biaya Tenaga Ahli (Engineering)', description: 'Tim implementasi dan rekayasa sistem', plannedAmount: Math.round(plannedCost * 0.7), actualAmount: 0 },
+          { id: 'RAB-2', category: 'Infrastruktur & Lisensi', description: 'Server, cloud hosting & lisensi pendukung', plannedAmount: Math.round(plannedCost * 0.2), actualAmount: 0 },
+          { id: 'RAB-3', category: 'Testing & Quality Assurance', description: 'UAT, audit keamanan sistem & dokumentasi', plannedAmount: Math.round(plannedCost * 0.1), actualAmount: 0 },
         ],
       },
       actualCosts: [],
@@ -197,25 +208,49 @@ export default function NewProjectFlowPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
             {/* Upload Kontrak */}
-            <div className="p-6 border border-dashed border-slate-300 hover:border-slate-500 rounded-2xl text-center bg-slate-50/50 hover:bg-slate-50 transition-all cursor-pointer group">
+            <div
+              onClick={() => contractInputRef.current?.click()}
+              className="p-6 border border-dashed border-slate-300 hover:border-slate-500 rounded-2xl text-center bg-slate-50/50 hover:bg-slate-50 transition-all cursor-pointer group"
+            >
+              <input
+                ref={contractInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) setContractFile(e.target.files[0]);
+                }}
+              />
               <UploadCloud className="w-8 h-8 text-slate-400 group-hover:text-slate-700 mx-auto mb-3 transition-colors" />
               <h3 className="text-xs font-bold text-slate-800">Upload Dokumen Kontrak / PKS</h3>
-              <p className="text-[11px] text-slate-500 mt-1">Format PDF (Maks 25MB)</p>
+              <p className="text-[11px] text-slate-500 mt-1">Format PDF / DOC (Maks 25MB)</p>
               <div className="mt-4">
                 <span className="inline-block bg-white border border-slate-200 text-slate-700 font-semibold text-xs px-3 py-1.5 rounded-lg shadow-2xs font-mono">
-                  {contractFile ? contractFile.name : 'PKS_SmartPort_2026_Final.pdf (Sample Ready)'}
+                  {contractFile ? contractFile.name : 'Pilih file PDF kontrak...'}
                 </span>
               </div>
             </div>
 
             {/* Upload RAB */}
-            <div className="p-6 border border-dashed border-slate-300 hover:border-slate-500 rounded-2xl text-center bg-slate-50/50 hover:bg-slate-50 transition-all cursor-pointer group">
+            <div
+              onClick={() => rabInputRef.current?.click()}
+              className="p-6 border border-dashed border-slate-300 hover:border-slate-500 rounded-2xl text-center bg-slate-50/50 hover:bg-slate-50 transition-all cursor-pointer group"
+            >
+              <input
+                ref={rabInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) setRabFile(e.target.files[0]);
+                }}
+              />
               <FileSpreadsheet className="w-8 h-8 text-slate-400 group-hover:text-slate-700 mx-auto mb-3 transition-colors" />
               <h3 className="text-xs font-bold text-slate-800">Upload Rencana Anggaran Biaya (RAB)</h3>
               <p className="text-[11px] text-slate-500 mt-1">Format XLSX / CSV (Maks 15MB)</p>
               <div className="mt-4">
                 <span className="inline-block bg-white border border-slate-200 text-slate-700 font-semibold text-xs px-3 py-1.5 rounded-lg shadow-2xs font-mono">
-                  {rabFile ? rabFile.name : 'RAB_SmartPort_Approved_V1.xlsx (Sample Ready)'}
+                  {rabFile ? rabFile.name : 'Pilih file spreadsheet RAB...'}
                 </span>
               </div>
             </div>

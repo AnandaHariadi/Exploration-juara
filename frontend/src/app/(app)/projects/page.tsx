@@ -79,8 +79,30 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {/* Projects Grid / Table */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Projects Grid / Table or Empty State */}
+      {filteredProjects.length === 0 ? (
+        <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+            <FolderGit2 className="w-6 h-6" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-slate-900">Belum Ada Project Ditemukan</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              {searchQuery || statusFilter !== 'ALL'
+                ? 'Tidak ada project yang cocok dengan kriteria pencarian atau filter Anda.'
+                : 'Mulai dengan mengunggah dokumen kontrak PKS dan RAB pertama Anda.'}
+            </p>
+          </div>
+          <Link
+            href="/projects/new"
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Upload Kontrak Baru</span>
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProjects.map((project) => {
           const activeAlerts = (project.alerts || []).filter((a) => a.status === 'NEW');
           const hasRisk = project.status === 'AT_RISK' || activeAlerts.length > 0;
@@ -170,7 +192,8 @@ export default function ProjectsPage() {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

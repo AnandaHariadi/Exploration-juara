@@ -105,9 +105,12 @@ export default function ChangeRequestsPage() {
         ))}
 
         {allCRs.length === 0 && (
-          <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 text-slate-500 text-xs">
-            <GitPullRequest className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-            Belum ada Change Request yang diajukan.
+          <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 text-slate-500 text-xs space-y-2">
+            <GitPullRequest className="w-10 h-10 text-slate-400 mx-auto" />
+            <h3 className="text-base font-bold text-slate-800">Belum Ada Change Request</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              Change Request dapat diajukan dari halaman detail project untuk meresmikan penambahan scope, kompensasi anggaran, atau adendum kontrak.
+            </p>
           </div>
         )}
       </div>

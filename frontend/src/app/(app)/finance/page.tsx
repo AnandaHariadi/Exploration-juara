@@ -164,23 +164,31 @@ export default function FinancePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {allInvoices.map((inv) => (
-                <tr key={inv.id} className="hover:bg-slate-50/80">
-                  <td className="py-3 px-3 font-mono font-bold text-blue-600">{inv.invoiceNumber}</td>
-                  <td className="py-3 px-3 font-semibold text-slate-800">{inv.projectName}</td>
-                  <td className="py-3 px-3 text-slate-600">{inv.milestoneTitle || '-'}</td>
-                  <td className="py-3 px-3 font-bold text-slate-900">{formatRupiah(inv.amount)}</td>
-                  <td className="py-3 px-3 text-slate-500">{formatDate(inv.issueDate)}</td>
-                  <td className="py-3 px-3 text-slate-500">{formatDate(inv.dueDate)}</td>
-                  <td className="py-3 px-3">
-                    <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                      inv.status === 'PAID' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'
-                    }`}>
-                      {inv.status}
-                    </span>
+              {allInvoices.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-xs text-slate-400">
+                    Belum ada riwayat faktur / invoice yang diterbitkan.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                allInvoices.map((inv) => (
+                  <tr key={inv.id} className="hover:bg-slate-50/80">
+                    <td className="py-3 px-3 font-mono font-bold text-blue-600">{inv.invoiceNumber}</td>
+                    <td className="py-3 px-3 font-semibold text-slate-800">{inv.projectName}</td>
+                    <td className="py-3 px-3 text-slate-600">{inv.milestoneTitle || '-'}</td>
+                    <td className="py-3 px-3 font-bold text-slate-900">{formatRupiah(inv.amount)}</td>
+                    <td className="py-3 px-3 text-slate-500">{formatDate(inv.issueDate)}</td>
+                    <td className="py-3 px-3 text-slate-500">{formatDate(inv.dueDate)}</td>
+                    <td className="py-3 px-3">
+                      <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                        inv.status === 'PAID' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'
+                      }`}>
+                        {inv.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

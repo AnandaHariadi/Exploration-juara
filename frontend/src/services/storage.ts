@@ -7,16 +7,16 @@ const STORAGE_KEY = 'clara_projects_db';
 
 export const storageService = {
   getProjects(): Project[] {
-    if (typeof window === 'undefined') return INITIAL_PROJECTS;
+    if (typeof window === 'undefined') return [];
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PROJECTS));
-        return INITIAL_PROJECTS;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+        return [];
       }
       return JSON.parse(stored);
     } catch {
-      return INITIAL_PROJECTS;
+      return [];
     }
   },
 
@@ -282,7 +282,7 @@ export const storageService = {
 
   resetToDefault(): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PROJECTS));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
     localStorage.setItem('clara_active_persona', 'BUDI');
     window.dispatchEvent(new Event('clara_data_updated'));
     window.dispatchEvent(new Event('clara_persona_changed'));

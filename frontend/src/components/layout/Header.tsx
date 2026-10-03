@@ -19,16 +19,28 @@ import { Project, UserPersonaId, USER_PERSONAS } from '@/types';
 export const Header: React.FC = () => {
   const router = useRouter();
   const [projects, setProjects] = React.useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = React.useState<string>('PRJ-001');
+  const [selectedProjectId, setSelectedProjectId] = React.useState<string>('');
   const [activePersonaId, setActivePersonaId] = React.useState<UserPersonaId>('BUDI');
   const [isPersonaMenuOpen, setIsPersonaMenuOpen] = React.useState<boolean>(false);
 
   React.useEffect(() => {
-    setProjects(storageService.getProjects());
+    const initial = storageService.getProjects();
+    setProjects(initial);
+    if (initial.length > 0) {
+      setSelectedProjectId(initial[0].id);
+    } else {
+      setSelectedProjectId('');
+    }
     setActivePersonaId(storageService.getActivePersona());
 
     const handleDataUpdate = () => {
-      setProjects(storageService.getProjects());
+      const updated = storageService.getProjects();
+      setProjects(updated);
+      if (updated.length > 0) {
+        setSelectedProjectId((prev) => (updated.some((p) => p.id === prev) ? prev : updated[0].id));
+      } else {
+        setSelectedProjectId('');
+      }
     };
     const handlePersonaUpdate = () => {
       setActivePersonaId(storageService.getActivePersona());
@@ -71,11 +83,15 @@ export const Header: React.FC = () => {
               onChange={handleSelectProject}
               className="appearance-none bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-lg pl-3 pr-8 py-1.5 hover:bg-slate-100 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer transition-colors"
             >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.id})
-                </option>
-              ))}
+              {projects.length === 0 ? (
+                <option value="">-- Belum Ada Project Aktif --</option>
+              ) : (
+                projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.id})
+                  </option>
+                ))
+              )}
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-2 pointer-events-none" />
           </div>

@@ -4,9 +4,12 @@ import React from 'react';
 import { FileSearch, Search, FileText, Send, Scale, BookOpen, ShieldCheck } from 'lucide-react';
 import { storageService } from '@/services/storage';
 
+import { Project } from '@/types';
+
 export default function LegalAiPage() {
   const [query, setQuery] = React.useState('');
-  const [selectedContract, setSelectedContract] = React.useState('PRJ-001');
+  const [projects, setProjects] = React.useState<Project[]>([]);
+  const [selectedContract, setSelectedContract] = React.useState('');
   const [chatLog, setChatLog] = React.useState<
     { role: 'user' | 'assistant'; text: string; citation?: string; clause?: string }[]
   >([
@@ -16,6 +19,14 @@ export default function LegalAiPage() {
     },
   ]);
 
+  React.useEffect(() => {
+    const list = storageService.getProjects();
+    setProjects(list);
+    if (list.length > 0) {
+      setSelectedContract(list[0].id);
+    }
+  }, []);
+
   const handleAsk = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
@@ -24,24 +35,29 @@ export default function LegalAiPage() {
     setQuery('');
     setChatLog((prev) => [...prev, { role: 'user', text: userText }]);
 
+    const activeProject = projects.find((p) => p.id === selectedContract);
+    const contractNum = activeProject?.agreementBaseline?.contractNumber || (selectedContract ? `PKS/${selectedContract}` : 'PKS Belum Terdaftar');
+    const revLimit = activeProject?.agreementBaseline?.revisionLimit ?? 3;
+    const paymentTerms = activeProject?.agreementBaseline?.paymentTerms || '30% DP, 40% UAT Staging, 30% Final Go-Live';
+
     setTimeout(() => {
       let reply = 'Berdasarkan audit komputasional pada naskah kontrak tersebut, tidak ditemukan ketentuan spesifik mengenai hal yang ditanyakan.';
-      let citation = 'PKS ASL/IT/PKS/2026/089';
+      let citation = contractNum;
       let clause = 'Ketentuan Umum';
 
       const lower = userText.toLowerCase();
       if (lower.includes('revisi') || lower.includes('batas')) {
-        reply = 'Berdasarkan Pasal 6 Ayat 3, Klien berhak mengajukan maksimal 3 (tiga) putaran revisi desain dan alur kerja. Revisi tambahan wajib diajukan melalui mekanisme Change Request resmi dengan tarif man-day terpisah.';
-        clause = 'Pasal 6 Ayat 3: Batas Revisi & Add-on Komersial';
+        reply = `Berdasarkan klausul kontrak resmi pada ${contractNum}, Klien berhak mengajukan maksimal ${revLimit} putaran revisi desain dan alur kerja. Revisi tambahan wajib diajukan melalui mekanisme Change Request resmi dengan tarif man-day terpisah.`;
+        clause = `Pasal 5: Batas Revisi (Maksimal ${revLimit} Putaran)`;
       } else if (lower.includes('termin') || lower.includes('bayar') || lower.includes('dp')) {
-        reply = 'Ketentuan pembayaran termin diatur pada Pasal 7: Termin 1 (30% DP) telah selesai, Termin 2 (30%) jatuh tempo saat Berita Acara UAT ditandatangani. Termin 3 (30%) Go-Live, dan 10% Retensi 90 hari.';
-        clause = 'Pasal 7: Skema Termin Pembayaran';
+        reply = `Ketentuan pembayaran termin diatur secara formal: ${paymentTerms}. Pembayaran diverifikasi berdasarkan milestone Berita Acara Serah Terima (BAST).`;
+        clause = 'Pasal 8: Skema Termin Pembayaran';
       } else if (lower.includes('denda') || lower.includes('penalti') || lower.includes('telat')) {
-        reply = 'Pasal 9 Ayat 2 mengatur bahwa keterlambatan pembayaran oleh pihak pertama dikenakan denda sebesar 1‰ (satu permil) per hari kalender dengan batas maksimal akumulasi 5% dari nilai invoice tertunggak.';
+        reply = `Klausul kontrak ${contractNum} mengatur bahwa keterlambatan pembayaran oleh pihak pertama dikenakan denda sebesar 1‰ (satu permil) per hari kalender dengan batas maksimal akumulasi 5% dari nilai invoice tertunggak.`;
         clause = 'Pasal 9 Ayat 2: Denda Keterlambatan Finansial';
       } else {
-        reply = `Audit kontrak CLARA: Ruang lingkup terkait "${userText}" terikat pada Lampiran Teknis A (Scope of Work). Segala penambahan di luar lampiran tersebut mewajibkan persetujuan adendum tertulis agar tidak memicu deviasi scope.`;
-        clause = 'Pasal 12: Klausul Penutup & Addendum';
+        reply = `Audit kontrak CLARA: Ruang lingkup terkait "${userText}" terikat pada dokumen kesepakatan ${activeProject ? activeProject.name : 'kontrak'}. Segala penambahan di luar lampiran tersebut mewajibkan persetujuan adendum tertulis agar tidak memicu deviasi scope.`;
+        clause = 'Klausul Scope of Work & Adendum';
       }
 
       setChatLog((prev) => [...prev, { role: 'assistant', text: reply, citation, clause }]);
@@ -70,9 +86,15 @@ export default function LegalAiPage() {
             onChange={(e) => setSelectedContract(e.target.value)}
             className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 shadow-2xs focus:outline-none"
           >
-            <option value="PRJ-001">PKS ERP PT Astra Sahabat Logistik</option>
-            <option value="PRJ-002">PKS Mobile Banking Mandiri Syariah</option>
-            <option value="PRJ-003">PKS Smart Warehouse IoT Pelabuhan</option>
+            {projects.length === 0 ? (
+              <option value="">-- Belum ada kontrak terdaftar --</option>
+            ) : (
+              projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.agreementBaseline?.contractNumber || p.id} - {p.name}
+                </option>
+              ))
+            )}
           </select>
         </div>
       </div>
