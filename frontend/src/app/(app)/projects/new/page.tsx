@@ -8,7 +8,7 @@ import { btn, inputClass, labelClass } from '@/components/shared/ui';
 
 const CONTRACT_EXT = /\.(pdf|png|jpe?g|webp)$/i;
 const MAX_CONTRACT = 10 * 1024 * 1024;
-const MAX_RAB = 2 * 1024 * 1024;
+const MAX_RAB = 5 * 1024 * 1024;
 
 type Source = 'upload' | 'sample' | 'manual';
 
@@ -29,8 +29,8 @@ export default function NewProjectPage() {
       setError('Kontrak harus PDF, JPG, PNG, atau WebP, maksimal 10 MB.');
       return;
     }
-    if (kind === 'rab' && (!/\.csv$/i.test(file.name) || file.size > MAX_RAB)) {
-      setError('RAB harus berkas CSV (kategori, deskripsi, jumlah), maksimal 2 MB. Untuk XLSX, simpan sebagai CSV.');
+    if (kind === 'rab' && (!/\.(csv|xlsx|xls)$/i.test(file.name) || file.size > MAX_RAB)) {
+      setError('RAB harus berkas CSV, XLSX, atau XLS dengan kolom uraian/kegiatan dan jumlah biaya, maksimal 5 MB.');
       return;
     }
     if (kind === 'contract') setContractFile(file);
@@ -44,6 +44,10 @@ export default function NewProjectPage() {
     setError(null);
     let projectId: string | null = null;
     try {
+      if (source === 'upload' && rabFile) {
+        setStep('Memeriksa RAB…');
+        await dataClient.previewRab(rabFile);
+      }
       setStep('Membuat proyek…');
       const project = await dataClient.createProject({ name: name.trim(), client: client.trim(), useSample: source === 'sample' });
       projectId = project.id;
@@ -90,7 +94,7 @@ export default function NewProjectPage() {
         <fieldset className="border-t border-zinc-100 pt-5">
           <legend className={labelClass}>Dokumen kontrak & RAB</legend>
           <div className="mt-3 grid gap-3">
-            {choice('upload', 'Unggah berkas saya', 'Kontrak dianalisis AI; RAB CSV dibaca langsung oleh sistem.')}
+            {choice('upload', 'Unggah berkas saya', 'Kontrak dianalisis AI; RAB Excel/CSV dibaca langsung oleh sistem.')}
             {choice('sample', 'Gunakan berkas contoh (demo)', 'Kontrak PKS contoh Rp120 juta + RAB Rp75 juta. Diberi label data demo.')}
             {choice('manual', 'Isi manual tanpa dokumen', 'Tanpa analisis; semua nilai diisi sendiri pada langkah tinjauan.')}
           </div>
@@ -106,8 +110,8 @@ export default function NewProjectPage() {
             </div>
             <div>
               <label htmlFor="rab-file" className={labelClass}>Berkas RAB (opsional)</label>
-              <input id="rab-file" type="file" accept=".csv" onChange={(e) => pick('rab', e.target.files?.[0])} className={inputClass} />
-              <p className="mt-1 text-xs text-zinc-500">CSV: kategori, deskripsi, jumlah · maks. 2 MB</p>
+              <input id="rab-file" type="file" accept=".csv,.xlsx,.xls" onChange={(e) => pick('rab', e.target.files?.[0])} className={inputClass} />
+              <p className="mt-1 text-xs text-zinc-500">CSV, XLSX, XLS: uraian/kegiatan dan jumlah biaya · maks. 5 MB</p>
               {rabFile && <p className="mt-1 text-xs text-zinc-700">{rabFile.name}</p>}
               <div className="mt-2 flex flex-wrap gap-3 text-xs">
                 <a href="/api/demo/samples/rab" className="inline-flex items-center gap-1 font-semibold text-red-700 hover:underline"><Download className="h-3 w-3" />Contoh RAB CSV</a>

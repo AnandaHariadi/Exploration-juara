@@ -76,7 +76,7 @@ function ProjectDetail() {
     <div className="space-y-6 pb-16">
       <NoticeBar notice={notice} onClose={clear} />
 
-      <div className="flex flex-col justify-between gap-5 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6 lg:flex-row lg:items-center">
+      <div className="space-y-5 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className="rounded bg-zinc-100 px-2 py-0.5 font-mono text-xs font-semibold text-zinc-500">{project.id}</span>
@@ -88,11 +88,11 @@ function ProjectDetail() {
           <p className="mt-1 text-sm text-zinc-500">Klien: <strong className="text-zinc-700">{project.client}</strong>{project.agreementBaseline.contractNumber ? ` · ${project.agreementBaseline.contractNumber}` : ''}</p>
         </div>
         {m.hasBaseline && (
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-zinc-100 pt-4 sm:grid-cols-4 lg:border-t-0 lg:pt-0">
-            <div><dt className="text-xs font-semibold uppercase text-zinc-500">Nilai kontrak</dt><dd className="text-lg font-bold text-zinc-950">{formatRupiah(m.contractValue)}</dd></div>
-            <div><dt className="text-xs font-semibold uppercase text-zinc-500">Progres</dt><dd className="text-lg font-bold text-zinc-950">{m.progress}%</dd></div>
-            <div><dt className="text-xs font-semibold uppercase text-zinc-500">Belum ditagih</dt><dd className={`text-lg font-bold ${m.unbilledValue > 0 ? 'text-amber-700' : 'text-zinc-950'}`}>{formatRupiah(m.unbilledValue)}</dd></div>
-            <div><dt className="text-xs font-semibold uppercase text-zinc-500">Peringatan</dt><dd className={`text-lg font-bold ${openAlerts.length ? 'text-red-700' : 'text-zinc-950'}`}>{openAlerts.length}</dd></div>
+          <dl className="grid gap-3 border-t border-zinc-200 pt-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3"><dt className="text-sm text-zinc-600">Nilai kontrak</dt><dd className="mt-1 text-lg font-bold text-zinc-950">{formatRupiah(m.contractValue)}</dd></div>
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3"><dt className="text-sm text-zinc-600">Progres pekerjaan</dt><dd className="mt-1 text-lg font-bold text-zinc-950">{m.progress}%</dd></div>
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3"><dt className="text-sm text-zinc-600">Belum dibuat tagihan</dt><dd className={`mt-1 text-lg font-bold ${m.unbilledValue > 0 ? 'text-amber-700' : 'text-zinc-950'}`}>{formatRupiah(m.unbilledValue)}</dd></div>
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3"><dt className="text-sm text-zinc-600">Peringatan terbuka</dt><dd className={`mt-1 text-lg font-bold ${openAlerts.length ? 'text-red-700' : 'text-zinc-950'}`}>{openAlerts.length}</dd></div>
           </dl>
         )}
       </div>
@@ -133,7 +133,7 @@ function ProjectDetail() {
             {activeTab === 'alerts' && (
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-sm text-zinc-600">{openAlerts.length} peringatan belum selesai. Membaca peringatan tidak menyelesaikan masalah.</p>
+                  <p className="text-sm text-zinc-600">{openAlerts.length} peringatan belum selesai. Buka bukti untuk memeriksa dasar temuan dan tindak lanjutnya.</p>
                   <label className="flex items-center gap-2 text-sm text-zinc-700"><input type="checkbox" checked={showResolved} onChange={(e) => setShowResolved(e.target.checked)} className="accent-red-600" />Tampilkan yang selesai</label>
                 </div>
                 <AlertList alerts={showResolved ? project.alerts : openAlerts} onOpen={setSelectedAlert} emptyText={m.hasBaseline ? 'Tidak ada peringatan terbuka. Semua pemeriksaan sesuai acuan.' : 'Belum ada data untuk diperiksa.'} />

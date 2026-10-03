@@ -34,7 +34,7 @@ export default function AlertsPage() {
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-red-700">Rekonsiliasi</p>
         <h1 className="mt-2 font-heading text-2xl font-bold text-zinc-950 sm:text-3xl">Peringatan</h1>
-        <p className="mt-2 text-sm text-zinc-600">Setiap peringatan menjelaskan apa yang terjadi, besar nilainya, alasannya, dan buktinya.</p>
+        <p className="mt-2 text-sm text-zinc-600">Periksa temuan, dampak terkait, dan statusnya. Buka bukti sebelum menentukan tindak lanjut.</p>
       </div>
       <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-950">
         {openCount} peringatan belum selesai. &ldquo;Indikasi&rdquo; dan &ldquo;perlu tinjauan&rdquo; bukan pelanggaran kontrak; &ldquo;belum ditagih&rdquo; bukan kerugian.
@@ -47,6 +47,7 @@ export default function AlertsPage() {
         <div><label htmlFor="severity" className="block text-xs font-semibold text-zinc-600">Tingkat</label><select id="severity" value={severity} onChange={(e) => setSeverity(e.target.value as typeof severity)} className={selectClass}><option value="ALL">Semua tingkat</option><option value="CRITICAL">Kritis</option><option value="HIGH">Tinggi</option><option value="MEDIUM">Sedang</option><option value="LOW">Rendah</option></select></div>
       </div>
       {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-red-50 p-4 text-sm text-red-700"><span>Gagal memuat peringatan: {error}</span><button type="button" onClick={() => void refreshAlerts()} className={btn.secondary}>Coba lagi</button></div>}
+      <p className="text-sm text-zinc-600">Menampilkan {filtered.length} dari {alerts.length} peringatan.</p>
       {loading && alerts.length === 0 ? <p className="rounded-xl bg-white p-6 text-sm text-zinc-500">Memuat peringatan…</p> : <AlertList alerts={filtered} onOpen={setSelected} showProject emptyText="Tidak ada peringatan untuk filter ini." />}
       <EvidenceDrawer alert={selected} onClose={() => setSelected(null)} />
     </div>
