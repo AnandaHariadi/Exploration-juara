@@ -41,7 +41,9 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
   const upload = async (kind: 'CONTRACT' | 'RAB', file?: File) => {
     if (!file) return;
     setUploading(kind);
-    await run(() => dataClient.uploadDocument(project.id, kind, file), `${kind === 'CONTRACT' ? 'Kontrak' : 'RAB'} ${file.name} diunggah. CLARA mulai menganalisis otomatis.`);
+    await run(() => dataClient.uploadDocument(project.id, kind, file), kind === 'CONTRACT'
+      ? `Kontrak ${file.name} diunggah. CLARA mulai menganalisis otomatis.`
+      : `RAB ${file.name} diunggah. Jumlah biaya dibaca oleh sistem.`);
     setUploading(null);
   };
 
@@ -59,7 +61,7 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
           ) : (
             <p className="mt-0.5 text-sm text-zinc-500">Belum diunggah.</p>
           )}
-          <p className="mt-1 text-xs text-zinc-500">{kind === 'CONTRACT' ? 'PDF, JPG, PNG, WebP · maks. 10 MB' : 'CSV dengan kolom kategori, deskripsi, jumlah · maks. 2 MB. XLSX: simpan sebagai CSV.'}</p>
+          <p className="mt-1 text-xs text-zinc-500">{kind === 'CONTRACT' ? 'PDF, JPG, PNG, WebP · maks. 10 MB' : 'CSV, XLSX, XLS · kolom uraian/kegiatan dan jumlah biaya · maks. 5 MB'}</p>
         </div>
       </div>
       {!locked && (
@@ -70,7 +72,7 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
             type="file"
             className="sr-only"
             disabled={uploading !== null}
-            accept={kind === 'CONTRACT' ? '.pdf,.png,.jpg,.jpeg,.webp' : '.csv'}
+            accept={kind === 'CONTRACT' ? '.pdf,.png,.jpg,.jpeg,.webp' : '.csv,.xlsx,.xls'}
             onChange={(e) => {
               void upload(kind, e.target.files?.[0]);
               e.target.value = '';

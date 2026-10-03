@@ -8,10 +8,11 @@ import { formatDate, formatRupiah, isOpenAlert } from '@/lib/utils';
 import { btn, EmptyState, inputClass, labelClass, Panel, SourceQuote } from '@/components/shared/ui';
 import { BasisBadge, documentKindLabel, DocumentStatusBadge } from '@/components/shared/labels';
 import { DraftCard } from './DraftCard';
+import { AccessibleDialog } from '@/components/shared/AccessibleDialog';
 
 type Run = <T>(action: () => Promise<T>, success: string | ((r: T) => string)) => Promise<T | undefined>;
 
-const UPLOAD_KINDS: DocumentKind[] = ['INVOICE', 'ADDENDUM', 'CLIENT_APPROVAL', 'SUPPORTING'];
+const UPLOAD_KINDS: DocumentKind[] = ['INVOICE', 'ADDENDUM', 'CLIENT_APPROVAL', 'RAB', 'SUPPORTING'];
 const SAMPLES = [
   { key: 'invoice-uat', label: 'Invoice termin UAT', hint: 'sesuai kontrak' },
   { key: 'invoice-tambahan', label: 'Invoice pekerjaan tambahan', hint: 'mengandung anomali' },
@@ -22,6 +23,7 @@ const SAMPLES = [
 export function DocumentsTab({ project, run, onOpenAlert }: { project: Project; run: Run; onOpenAlert: (alert: Alert) => void }) {
   const [kind, setKind] = React.useState<DocumentKind>('INVOICE');
   const [busy, setBusy] = React.useState<string | null>(null);
+  const [selectedDocId, setSelectedDocId] = React.useState<string | null>(null);
   const act = async (key: string, action: () => Promise<unknown>, text: string) => {
     setBusy(key);
     await run(action, text);
@@ -33,7 +35,7 @@ export function DocumentsTab({ project, run, onOpenAlert }: { project: Project; 
     <div className="space-y-5">
       <Panel
         title="Dokumen & analisis CLARA"
-        description="Setiap dokumen yang diunggah dianalisis otomatis: diklasifikasi, dibaca, dibandingkan dengan acuan aktif dan catatan proyek, lalu temuan beserta buktinya dibuat."
+        description="Unggah berkas untuk diperiksa. Hasil dan tindakan tiap berkas tersedia di daftar di bawah."
       >
         <div className="flex flex-wrap items-end gap-3 rounded-xl bg-zinc-50 p-4">
           <div>
@@ -45,9 +47,9 @@ export function DocumentsTab({ project, run, onOpenAlert }: { project: Project; 
           <label className={`${btn.primary} relative cursor-pointer`}>
             {busy === 'upload' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             {busy === 'upload' ? 'Mengunggah…' : 'Unggah & analisis otomatis'}
-            <input type="file" className="sr-only" accept=".pdf,.png,.jpg,.jpeg,.webp" disabled={busy !== null} onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void act('upload', () => dataClient.uploadDocument(project.id, kind, file), `${file.name} diunggah. CLARA sedang menganalisis.`); }} />
+            <input type="file" className="sr-only" accept={kind === 'RAB' ? '.csv,.xlsx,.xls' : '.pdf,.png,.jpg,.jpeg,.webp'} disabled={busy !== null} onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void act('upload', () => dataClient.uploadDocument(project.id, kind, file), kind === 'RAB' ? `${file.name} diunggah. Jumlah biaya dibaca oleh sistem.` : `${file.name} diunggah. CLARA sedang menganalisis.`); }} />
           </label>
-          <p className="text-xs text-zinc-500">PDF, JPG, PNG, WebP · maks. 10 MB</p>
+          <p className="text-xs text-zinc-500">{kind === 'RAB' ? 'CSV, XLSX, XLS · maks. 5 MB' : 'PDF, JPG, PNG, WebP · maks. 10 MB'}</p>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
           <span className="text-xs text-zinc-500">Dokumen contoh (demo):</span>
@@ -60,16 +62,24 @@ export function DocumentsTab({ project, run, onOpenAlert }: { project: Project; 
       </Panel>
 
       {docs.length === 0 ? (
-        <EmptyState title="Belum ada dokumen" />
-      ) : (
-        docs.map((doc) => {
+        <EmptyState title="Belum ada dokumen">Unggah dokumen di atas untuk memulai pemeriksaan.</EmptyState>
+      ) : (<>
+        <Panel title="Daftar dokumen" description="Lihat status dan temuan lebih dulu; buka rincian untuk memeriksa hasil atau mengambil tindakan.">
+          <div className="overflow-x-auto rounded-xl border border-zinc-200"><table className="w-full min-w-[900px] border-collapse text-left text-sm"><thead className="bg-zinc-50"><tr><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Dokumen</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Jenis</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Status</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Hasil singkat</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Peringatan terbuka</th><th scope="col" className="border-b border-zinc-200 px-4 py-3 font-semibold">Rincian</th></tr></thead><tbody className="divide-y divide-zinc-200">{docs.map((doc) => {
+            const relatedOpen = project.alerts.filter((alert) => alert.sourceDocumentId === doc.id && isOpenAlert(alert)).length;
+            return <tr key={doc.id} className="hover:bg-zinc-50"><td className="border-r border-zinc-200 px-4 py-3"><strong className="break-all text-zinc-900">{doc.fileName}</strong><span className="mt-1 block text-xs text-zinc-500">Diunggah {formatDate(doc.uploadedAt)}{doc.isSample ? ' · data contoh' : ''}</span></td><td className="border-r border-zinc-200 px-4 py-3">{documentKindLabel[doc.kind]}</td><td className="border-r border-zinc-200 px-4 py-3"><DocumentStatusBadge status={doc.status} /></td><td className="border-r border-zinc-200 px-4 py-3 text-zinc-700"><span className="line-clamp-2 max-w-md">{doc.status === 'FAILED' ? doc.error?.message ?? 'Analisis gagal' : doc.status === 'PROCESSING' ? 'Sedang dibaca' : doc.analysis?.summary ?? 'Belum ada hasil analisis'}</span></td><td className={`border-r border-zinc-200 px-4 py-3 text-right tabular-nums ${relatedOpen > 0 ? 'font-semibold text-red-700' : ''}`}>{relatedOpen}</td><td className="px-4 py-3"><button type="button" onClick={() => setSelectedDocId(doc.id)} className="font-semibold text-red-700 hover:underline">Lihat rincian</button></td></tr>;
+          })}</tbody></table></div>
+        </Panel>
+        {docs.filter((doc) => doc.id === selectedDocId).map((doc) => {
           const a = doc.analysis;
           const related = project.alerts.filter((x) => x.sourceDocumentId === doc.id);
           const open = related.filter(isOpenAlert);
           const inv = a?.invoice;
           const matched = inv?.matchedMilestoneId ? project.agreementBaseline.milestones.find((m) => m.id === inv.matchedMilestoneId) : undefined;
           return (
-            <article key={doc.id} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <AccessibleDialog key={doc.id} titleId="document-detail-title" onClose={() => setSelectedDocId(null)}>
+            <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xl">
+              <div className="mb-4 flex items-center justify-between gap-3 border-b border-zinc-200 pb-3"><h2 id="document-detail-title" className="text-lg font-bold text-zinc-950">Rincian dokumen</h2><button type="button" onClick={() => setSelectedDocId(null)} className={btn.ghost}>Tutup</button></div>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
                   <FileText className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
@@ -142,7 +152,7 @@ export function DocumentsTab({ project, run, onOpenAlert }: { project: Project; 
                         {related.map((x) => (
                           <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm">
                             <span className={isOpenAlert(x) ? 'text-zinc-900' : 'text-zinc-500 line-through'}>{x.title}</span>
-                            <button type="button" onClick={() => onOpenAlert(x)} className="text-xs font-semibold text-red-700 hover:underline">Lihat bukti</button>
+                            <button type="button" onClick={() => { setSelectedDocId(null); onOpenAlert(x); }} className="text-xs font-semibold text-red-700 hover:underline">Lihat bukti</button>
                           </li>
                         ))}
                       </ul>
@@ -178,9 +188,10 @@ export function DocumentsTab({ project, run, onOpenAlert }: { project: Project; 
                 )}
               </div>
             </article>
+            </AccessibleDialog>
           );
-        })
-      )}
+        })}
+      </>)}
 
       <Panel title="Draf yang disiapkan CLARA" description="Draf dari temuan, permintaan perubahan, dan Studio. Semua harus ditinjau dan disetujui manusia sebelum dikirim.">
         {project.drafts.length === 0 ? (
