@@ -63,11 +63,11 @@ export function HeroSection() {
           className="object-cover object-center"
         />
       </div>
-      {/* Clara Executive Monumental Ribbon (Left Flank - 3D Architectural Flow & Radiant Aura) */}
-      <div className="absolute -left-6 sm:-left-4 lg:left-0 xl:left-2 top-0 sm:top-2 lg:top-4 w-36 sm:w-56 md:w-72 lg:w-96 xl:w-[440px] h-auto pointer-events-none select-none z-[1] opacity-85 sm:opacity-95 transition-all">
+      {/* Clara Executive Ribbon (Left Flank - Slim & Spacious) */}
+      <div className="absolute -left-10 sm:-left-8 lg:-left-4 xl:-left-2 top-0 sm:top-2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-52 h-auto pointer-events-none select-none z-[1] opacity-50 sm:opacity-60 lg:opacity-70 transition-all">
         <Image
           src="/images/shapes/hero_ribbon_monument_left.svg"
-          alt="Clara Executive Ribbon Left"
+          alt="Clara Ribbon Left"
           width={650}
           height={1000}
           className="w-full h-auto object-contain"
@@ -75,11 +75,11 @@ export function HeroSection() {
         />
       </div>
 
-      {/* Clara Executive Monumental Ribbon (Right Flank - 3D Upward Momentum & FinTech Strata) */}
-      <div className="absolute -right-6 sm:-right-4 lg:right-0 xl:right-2 top-0 sm:top-2 lg:top-4 w-36 sm:w-56 md:w-72 lg:w-96 xl:w-[440px] h-auto pointer-events-none select-none z-[1] opacity-85 sm:opacity-95 transition-all">
+      {/* Clara Executive Ribbon (Right Flank - Slim & Spacious) */}
+      <div className="absolute -right-10 sm:-right-8 lg:-right-4 xl:-right-2 top-0 sm:top-2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-52 h-auto pointer-events-none select-none z-[1] opacity-50 sm:opacity-60 lg:opacity-70 transition-all">
         <Image
           src="/images/shapes/hero_ribbon_monument_right.svg"
-          alt="Clara Executive Ribbon Right"
+          alt="Clara Ribbon Right"
           width={650}
           height={1000}
           className="w-full h-auto object-contain"
