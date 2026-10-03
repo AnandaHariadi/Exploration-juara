@@ -80,7 +80,7 @@ export function WorkflowSteps() {
   return (
     <section id="alur" className="py-20 md:py-28 bg-white border-b border-zinc-200 relative overflow-hidden">
       {/* Left Flank: Stepped Progressive Milestone Wave */}
-      <div className="absolute left-0 sm:left-2 lg:left-4 xl:left-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-65 sm:opacity-75 transition-opacity">
+      <div className="absolute left-0 sm:left-2 lg:left-4 xl:left-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-65 sm:opacity-75 transition-opacity animate-float-slow">
         <Image
           src="/images/shapes/shape_alur_left.svg"
           alt="Clara Stepped Wave Left"
@@ -91,7 +91,7 @@ export function WorkflowSteps() {
       </div>
 
       {/* Right Flank: Circular Milestone Completion Orbit */}
-      <div className="absolute right-0 sm:right-2 lg:right-4 xl:right-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-65 sm:opacity-75 transition-opacity">
+      <div className="absolute right-0 sm:right-2 lg:right-4 xl:right-8 top-1/2 -translate-y-1/2 w-20 sm:w-28 md:w-36 lg:w-44 xl:w-56 h-auto pointer-events-none select-none z-0 opacity-65 sm:opacity-75 transition-opacity animate-float-reverse">
         <Image
           src="/images/shapes/shape_alur_right.svg"
           alt="Clara Milestone Orbit Right"

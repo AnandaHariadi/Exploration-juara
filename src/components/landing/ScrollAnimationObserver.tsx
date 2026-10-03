@@ -11,35 +11,37 @@ export function ScrollAnimationObserver() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add("revealed");
+          } else {
+            // When user scrolls past or away, remove revealed so scrolling back triggers smoothly
+            const rect = entry.target.getBoundingClientRect();
+            // If scrolled above or far below, allow re-trigger
+            if (rect.top > window.innerHeight || rect.bottom < -50) {
+              entry.target.classList.remove("revealed");
+            }
           }
         });
       },
       {
-        threshold: 0.05,
-        rootMargin: "50px 0px 50px 0px",
+        threshold: [0.08, 0.2],
+        rootMargin: "0px 0px -40px 0px",
       }
     );
 
     const elements = document.querySelectorAll(selector);
     elements.forEach((el) => {
-      // If already in initial viewport, reveal immediately
+      // If currently visible in initial viewport on page load, reveal immediately
       const rect = el.getBoundingClientRect();
-      if (rect.top < window.innerHeight + 100) {
+      if (rect.top < window.innerHeight - 50 && rect.bottom > 0) {
         el.classList.add("revealed");
       }
       observer.observe(el);
     });
 
-    // Safety fallback: ensure nothing stays hidden
-    const safetyTimer = setTimeout(() => {
-      document.querySelectorAll(selector).forEach((el) => el.classList.add("revealed"));
-    }, 1200);
-
     return () => {
       observer.disconnect();
-      clearTimeout(safetyTimer);
     };
   }, []);
 
   return null;
 }
+

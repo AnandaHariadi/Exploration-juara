@@ -170,9 +170,32 @@ export function HeroSection() {
           </h1>
 
           {/* Elevating Clara Company Copy - Corporate, Visionary & Prestigious */}
-          <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-2xl mx-auto">
-            Kontrak adalah apa yang disepakati. RAB adalah apa yang direncanakan. Progress dan actual cost adalah apa yang terjadi. Invoice adalah apa yang direalisasikan menjadi uang. CLARA mencocokkan semuanya secara deterministik untuk melindungi margin dan mengoptimalkan nilai bisnis proyek Anda.
+          <p className="text-sm sm:text-base md:text-lg text-zinc-600 leading-relaxed font-normal mb-6 max-w-2xl mx-auto">
+            Platform Contract Intelligence &amp; Value Assurance terpadu untuk menyelaraskan klausul kesepakatan, alokasi anggaran, progres eksekusi lapangan, hingga kepastian penagihan secara deterministik demi melindungi margin profitabilitas bisnis Anda.
           </p>
+
+          {/* 4-Pillar Visual Alignment Pipeline Badges */}
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 mb-8 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100/90 border border-zinc-200/80 text-xs font-semibold text-zinc-700 shadow-xs hover:border-red-500/40 hover:bg-red-50/50 transition-all">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
+              <span>Kontrak Kesepakatan</span>
+            </div>
+            <span className="text-zinc-300 font-bold hidden sm:inline">→</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100/90 border border-zinc-200/80 text-xs font-semibold text-zinc-700 shadow-xs hover:border-red-500/40 hover:bg-red-50/50 transition-all">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+              <span>Rencana Anggaran (RAB)</span>
+            </div>
+            <span className="text-zinc-300 font-bold hidden sm:inline">→</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100/90 border border-zinc-200/80 text-xs font-semibold text-zinc-700 shadow-xs hover:border-red-500/40 hover:bg-red-50/50 transition-all">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span>Progres &amp; Biaya Lapangan</span>
+            </div>
+            <span className="text-zinc-300 font-bold hidden sm:inline">→</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100/90 border border-zinc-200/80 text-xs font-semibold text-zinc-700 shadow-xs hover:border-red-500/40 hover:bg-red-50/50 transition-all">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+              <span>Realisasi Penagihan</span>
+            </div>
+          </div>
 
           {/* Action Buttons - Centered */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
