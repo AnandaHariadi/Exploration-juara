@@ -1,47 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { claraDb } from '@/lib/db';
-import { UserPersonaId } from '@/types';
-
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-export async function GET() {
-  try {
-    const activePersona = claraDb.getActivePersona();
-    return NextResponse.json({
-      success: true,
-      data: {
-        activePersonaId: activePersona,
-        mode: 'demo',
-        label: 'Mode Demo CLARA',
-      },
-    });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
-}
+import { NextRequest } from 'next/server';
+import { claraDb } from '@/lib/db';
+import { ok, oneOf, readJson, route } from '@/lib/api';
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const persona = body.personaId as UserPersonaId;
+const session = () => ({ activePersonaId: claraDb.getActivePersona(), mode: 'demo', label: 'Mode Demo CLARA' });
 
-    if (!['BUDI', 'SITI', 'HENDRA', 'ADMIN'].includes(persona)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid persona ID. Must be BUDI, SITI, HENDRA, or ADMIN.' },
-        { status: 400 }
-      );
-    }
+export const GET = route('GET /api/demo/session', async () => ok(session()));
 
-    claraDb.setActivePersona(persona);
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        activePersonaId: persona,
-        mode: 'demo',
-      },
-    });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
-}
+export const POST = route('POST /api/demo/session', async (req: NextRequest) => {
+  const body = await readJson(req);
+  claraDb.setActivePersona(oneOf(body, 'personaId', ['BUDI', 'SITI', 'HENDRA', 'ADMIN'] as const));
+  return ok(session());
+});
