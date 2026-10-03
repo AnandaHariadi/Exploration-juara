@@ -10,8 +10,15 @@
 import { Router, Request, Response } from "express";
 import passport from "passport";
 import { verifyToken } from "../middleware/auth";
+import { googleOAuthEnabled } from "../config/passport";
 
 const router = Router();
+
+// Without OAuth credentials the Google routes answer clearly instead of crashing.
+router.use("/google", (_req: Request, res: Response, next) => {
+    if (googleOAuthEnabled) return next();
+    res.status(503).json({ status: "error", code: "OAUTH_NOT_CONFIGURED", message: "Google OAuth belum dikonfigurasi pada layanan ini." });
+});
 
 const FRONTEND_URL = process.env.FRONTEND_URL ?? "http://localhost:5173";
 
