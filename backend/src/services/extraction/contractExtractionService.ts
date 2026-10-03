@@ -1,18 +1,20 @@
 /**
- * contractExtractionService.ts
- * Contract → structured commercial terms for the CLARA business layer.
+ * contractExtractionService.ts — Document Guardian, AI side.
  *
- * Pipeline:
+ * Every uploaded business document goes through:
  *   1. OCR with Gemini multimodal, keeping explicit page markers.
- *   2. Structured extraction with Gemini (JSON mode). The model only reads and
- *      quotes; it is told never to compute or guess values.
+ *   2. Structured extraction (JSON mode) with a prompt for the document kind:
+ *      contract / addendum, invoice, or other supporting documents.
+ *      The model only reads and quotes; it never computes or guesses values.
  *   3. Deterministic validation: types, ranges, dates.
- *   4. Evidence verification: every quote is searched in the OCR text. Page
+ *   4. Evidence verification: every quote is searched in the OCR text; page
  *      numbers come from the page markers, not from the model.
+ *   5. Legacy CLARA guardrails (Indonesian statutory/pattern checks) on contracts.
  */
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { env, aiConfigured, geminiRequestOptions } from "../../config/env";
 import { applyOcrCorrections } from "../ocr/ocrService";
+import { runGuardrailChecks } from "../guardrail/guardrailService";
 
 export class AiNotConfiguredError extends Error {
   constructor() {
@@ -20,6 +22,8 @@ export class AiNotConfiguredError extends Error {
     this.name = "AiNotConfiguredError";
   }
 }
+
+export type AnalysisKind = "CONTRACT" | "ADDENDUM" | "INVOICE" | "OTHER";
 
 export interface EvidenceRef {
   page: number | null;
@@ -35,9 +39,31 @@ export interface ExtractedMilestone {
   evidence: EvidenceRef | null;
 }
 
-export interface ContractExtraction {
-  documentType: "CONTRACT" | "NOT_CONTRACT";
+export interface ContractTerms {
+  hourlyRate: number | null;
+  revisionUnitPrice: number | null;
+  revisionExtensionDays: number | null;
+  penaltyPerDayPercent: number | null;
+  penaltyCapPercent: number | null;
+  paymentDueDays: number | null;
+}
+
+export interface InvoiceExtraction {
+  invoiceNumber: string | null;
+  issueDate: string | null;
+  issuer: string | null;
+  recipient: string | null;
+  total: number | null;
+  milestoneReference: string | null;
+  revisionsCharged: number | null;
+  lineItems: { description: string; quantity: number | null; unit: string | null; unitPrice: number | null; amount: number | null; evidence: EvidenceRef | null }[];
+}
+
+export interface DocumentExtraction {
+  kind: AnalysisKind;
+  documentType: string;
   confidence: number | null;
+  summary: string;
   contract: {
     contractNumber: string | null;
     title: string | null;
@@ -51,23 +77,30 @@ export interface ContractExtraction {
     scope: string[];
     obligations: string[];
     penalties: string[];
-  };
+  } | null;
+  terms: ContractTerms | null;
   milestones: ExtractedMilestone[];
+  invoice: InvoiceExtraction | null;
+  approval: { approved: boolean | null; approver: string | null; date: string | null; reference: string | null } | null;
   fieldEvidence: Record<string, EvidenceRef>;
-  risks: { title: string; severity: "LOW" | "MEDIUM" | "HIGH"; detail: string; evidence: EvidenceRef | null }[];
+  risks: { title: string; severity: "LOW" | "MEDIUM" | "HIGH"; detail: string; evidence: EvidenceRef | null; origin: "AI" | "GUARDRAIL" }[];
   warnings: string[];
   extractionMeta: { sourceFile: string; pages: number | null; processedAt: string; engine: string; textLength: number };
 }
 
 const PAGE_MARKER = /^=== HALAMAN (\d+) ===$/gm;
 
-function model(json = false) {
+export function model(json = false, systemInstruction?: string) {
   if (!aiConfigured()) throw new AiNotConfiguredError();
   const genAI = new GoogleGenerativeAI(env.GOOGLE_AI_API_KEY);
-  return genAI.getGenerativeModel({
-    model: env.GEMINI_MODEL,
-    generationConfig: json ? { temperature: 0, responseMimeType: "application/json" } : { temperature: 0 },
-  }, geminiRequestOptions());
+  return genAI.getGenerativeModel(
+    {
+      model: env.GEMINI_MODEL,
+      ...(systemInstruction ? { systemInstruction } : {}),
+      generationConfig: json ? { temperature: 0, responseMimeType: "application/json" } : { temperature: 0.2 },
+    },
+    geminiRequestOptions(),
+  );
 }
 
 async function ocrWithPages(buffer: Buffer, mimeType: string): Promise<string> {
@@ -80,33 +113,75 @@ async function ocrWithPages(buffer: Buffer, mimeType: string): Promise<string> {
   return text.includes("=== HALAMAN") ? text : `=== HALAMAN 1 ===\n${text}`;
 }
 
-const EXTRACTION_PROMPT = `Anda adalah pembaca kontrak. Baca teks kontrak di bawah (setiap halaman diawali "=== HALAMAN n ===") dan kembalikan JSON dengan bentuk PERSIS:
+const RULES = `ATURAN WAJIB:
+- Isi null bila informasi tidak tertulis eksplisit. Jangan menebak, jangan menghitung, jangan membulatkan.
+- Semua kutipan ("evidence_quote" dan nilai di "field_evidence") harus disalin VERBATIM dari teks (satu kalimat, maksimal 200 karakter), bukan parafrase.
+- Jangan menyebut sesuatu sebagai pelanggaran, penipuan, atau ilegal. Gunakan "perlu ditinjau", "potensi risiko", "kemungkinan tidak konsisten".
+- Jawab hanya JSON.`;
+
+const CONTRACT_PROMPT = `Anda adalah pembaca kontrak. Baca teks dokumen di bawah (setiap halaman diawali "=== HALAMAN n ===") dan kembalikan JSON dengan bentuk PERSIS:
 {
-  "document_type": "CONTRACT" atau "NOT_CONTRACT",
+  "document_type": "CONTRACT" | "ADDENDUM" | "INVOICE" | "OTHER",
+  "summary": string,                   // 1-2 kalimat isi dokumen
   "contract_number": string|null,
   "title": string|null,
   "client_name": string|null,          // pihak pemberi kerja / pembeli jasa
   "vendor_name": string|null,          // pihak pelaksana / penyedia jasa
-  "contract_value": integer|null,      // nilai kontrak dalam rupiah persis seperti tertulis, tanpa titik/koma
+  "contract_value": integer|null,      // nilai kontrak (untuk adendum: nilai kontrak SETELAH adendum bila tertulis) dalam rupiah persis seperti tertulis
   "start_date": "YYYY-MM-DD"|null,
   "deadline": "YYYY-MM-DD"|null,       // tanggal selesai pekerjaan
   "revision_limit": integer|null,      // jumlah putaran revisi yang termasuk nilai kontrak
   "payment_terms_summary": string|null,
-  "scope": [string],                   // daftar pekerjaan yang disepakati
+  "scope": [string],
   "obligations": [string],
   "penalties": [string],
+  "terms": {
+    "hourly_rate": integer|null,             // tarif pekerjaan tambahan per jam (rupiah)
+    "revision_unit_price": integer|null,     // biaya per putaran revisi tambahan (rupiah)
+    "revision_extension_days": integer|null, // tambahan hari untuk adendum revisi
+    "penalty_per_day_percent": number|null,  // denda keterlambatan per hari, persen dari nilai kontrak
+    "penalty_cap_percent": number|null,      // batas maksimum denda, persen dari nilai kontrak
+    "payment_due_days": integer|null         // tempo pembayaran tagihan (hari)
+  },
   "milestones": [{"name": string, "billing_percentage": number|null, "trigger": string, "target_date": "YYYY-MM-DD"|null, "evidence_quote": string|null}],
-  "field_evidence": {"contract_number": string|null, "contract_value": string|null, "start_date": string|null, "deadline": string|null, "revision_limit": string|null, "scope": string|null},
-  "risks": [{"title": string, "severity": "LOW"|"MEDIUM"|"HIGH", "detail": string, "evidence_quote": string|null}],
-  "confidence": number,                // 0..1, keyakinan Anda atas keseluruhan hasil
+  "field_evidence": {"contract_number": string|null, "contract_value": string|null, "start_date": string|null, "deadline": string|null, "revision_limit": string|null, "scope": string|null, "hourly_rate": string|null, "revision_unit_price": string|null, "penalty": string|null},
+  "risks": [{"title": string, "severity": "LOW"|"MEDIUM"|"HIGH", "detail": string, "evidence_quote": string|null}],  // klausul tidak lazim, samar, saling bertentangan, atau paparan denda/tanggung jawab tinggi
+  "confidence": number,
   "warnings": [string]
 }
-ATURAN WAJIB:
-- Isi null bila informasi tidak tertulis eksplisit. Jangan menebak, jangan menghitung, jangan membulatkan.
-- milestones adalah termin pembayaran; billing_percentage persis seperti tertulis.
-- Semua "evidence_quote" dan nilai "field_evidence" harus disalin VERBATIM dari teks (satu kalimat, maksimal 200 karakter), bukan parafrase.
-- Jangan menyebut sesuatu sebagai pelanggaran. Risiko hanya menjelaskan klausul yang perlu diperhatikan.
-- Jawab hanya JSON.`;
+milestones adalah termin pembayaran; billing_percentage persis seperti tertulis.
+${RULES}`;
+
+const INVOICE_PROMPT = `Anda adalah pembaca invoice/tagihan. Baca teks dokumen di bawah (setiap halaman diawali "=== HALAMAN n ===") dan kembalikan JSON dengan bentuk PERSIS:
+{
+  "document_type": "INVOICE" | "CONTRACT" | "ADDENDUM" | "OTHER",
+  "summary": string,
+  "invoice_number": string|null,
+  "issue_date": "YYYY-MM-DD"|null,
+  "issuer": string|null,
+  "recipient": string|null,
+  "total": integer|null,                    // total tagihan dalam rupiah persis seperti tertulis
+  "milestone_reference": string|null,       // termin/tahap yang ditagih, persis seperti tertulis
+  "revisions_charged": integer|null,        // jumlah total putaran revisi yang disebut/ditagih dalam invoice
+  "line_items": [{"description": string, "quantity": number|null, "unit": string|null, "unit_price": integer|null, "amount": integer|null, "evidence_quote": string|null}],
+  "field_evidence": {"invoice_number": string|null, "total": string|null, "milestone_reference": string|null},
+  "risks": [{"title": string, "severity": "LOW"|"MEDIUM"|"HIGH", "detail": string, "evidence_quote": string|null}],
+  "confidence": number,
+  "warnings": [string]
+}
+Jangan menghitung ulang angka; salin angka seperti tertulis.
+${RULES}`;
+
+const OTHER_PROMPT = `Anda adalah asisten dokumen bisnis. Baca teks dokumen di bawah (setiap halaman diawali "=== HALAMAN n ===") dan kembalikan JSON dengan bentuk PERSIS:
+{
+  "document_type": "CLIENT_APPROVAL" | "QUOTATION" | "SOW" | "MINUTES" | "CONTRACT" | "ADDENDUM" | "INVOICE" | "OTHER",
+  "summary": string,
+  "approval": {"approved": boolean|null, "approver": string|null, "date": "YYYY-MM-DD"|null, "reference": string|null},
+  "key_points": [{"text": string, "evidence_quote": string|null}],
+  "confidence": number,
+  "warnings": [string]
+}
+${RULES}`;
 
 const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
 
@@ -121,8 +196,7 @@ export function locateQuote(text: string, quote: string | null | undefined): Evi
   const index = haystack.indexOf(probe);
   if (index < 0) return { page: null, snippet, verified: false };
   let page: number | null = null;
-  const markers = [...haystack.matchAll(/=== halaman (\d+) ===/g)];
-  for (const marker of markers) {
+  for (const marker of haystack.matchAll(/=== halaman (\d+) ===/g)) {
     if ((marker.index ?? 0) <= index) page = Number(marker[1]);
   }
   return { page, snippet, verified: true };
@@ -141,6 +215,15 @@ function asInt(value: unknown, field: string, warnings: string[], max: number): 
   return n;
 }
 
+function asNum(value: unknown, field: string, warnings: string[], max: number): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > max) {
+    warnings.push(`Nilai ${field} dari AI tidak valid (${String(value).slice(0, 40)}); dikosongkan.`);
+    return null;
+  }
+  return value;
+}
+
 function asDate(value: unknown, field: string, warnings: string[]): string | null {
   if (value === null || value === undefined || value === "") return null;
   if (!isIsoDate(value)) {
@@ -152,66 +235,116 @@ function asDate(value: unknown, field: string, warnings: string[]): string | nul
 
 const strOrNull = (v: unknown, max = 300) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
 const strList = (v: unknown, maxItems = 30) => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()).map((x: string) => x.trim().slice(0, 300)).slice(0, maxItems) : []);
+const severity = (v: unknown) => (v === "HIGH" || v === "MEDIUM" || v === "LOW" ? v : "MEDIUM");
 
-export async function extractContract(buffer: Buffer, mimeType: string, fileName: string): Promise<ContractExtraction> {
-  console.log(`[AI] received document type=${mimeType} size=${buffer.length}`);
-  console.log("[AI] OCR started");
-  const raw = applyOcrCorrections(await ocrWithPages(buffer, mimeType));
-  const pages = [...raw.matchAll(PAGE_MARKER)].length || null;
-  console.log(`[AI] OCR completed pages=${pages ?? "?"} chars=${raw.length}`);
+function evidenceFields(raw: string, source: unknown, keys: Record<string, string>, warnings: string[]) {
+  const fieldEvidenceRaw = (source ?? {}) as Record<string, unknown>;
+  const result: Record<string, EvidenceRef> = {};
+  for (const [rawKey, key] of Object.entries(keys)) {
+    const ref = locateQuote(raw, fieldEvidenceRaw[rawKey] as string | null);
+    if (ref) {
+      result[key] = ref;
+      if (!ref.verified) warnings.push(`Kutipan untuk ${key} tidak ditemukan di teks dokumen; periksa manual.`);
+    }
+  }
+  return result;
+}
 
-  console.log("[AI] extraction started");
-  const result = await model(true).generateContent(`${EXTRACTION_PROMPT}\n\nTEKS KONTRAK:\n${raw.slice(0, 120_000)}`);
-  let parsed: Record<string, unknown>;
+async function askJson(prompt: string, raw: string): Promise<Record<string, unknown>> {
+  const result = await model(true).generateContent(`${prompt}\n\nTEKS DOKUMEN:\n${raw.slice(0, 120_000)}`);
+  let parsed: unknown;
   try {
     parsed = JSON.parse(result.response.text());
   } catch {
     throw new Error("AI returned malformed JSON for the extraction.");
   }
-  if (!parsed || typeof parsed !== "object") throw new Error("AI returned an empty extraction.");
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("AI returned an empty extraction.");
+  return parsed as Record<string, unknown>;
+}
+
+/** Map legacy guardrail checks (statutory patterns) to risk findings. */
+async function guardrailRisks(raw: string): Promise<DocumentExtraction["risks"]> {
+  try {
+    const report = await runGuardrailChecks(raw);
+    return report.checks
+      .filter((c) => c.triggered)
+      .map((c) => ({
+        title: `Guardrail: ${c.name.replace(/_/g, " ")}`,
+        severity: c.severity === "CRITICAL" ? ("HIGH" as const) : c.severity === "WARNING" ? ("MEDIUM" as const) : ("LOW" as const),
+        detail: `${c.message} ${c.advice}${c.legal_basis ? ` (Dasar: ${c.legal_basis})` : ""}`.trim(),
+        evidence: null,
+        origin: "GUARDRAIL" as const,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export async function analyzeDocument(buffer: Buffer, mimeType: string, fileName: string, kind: AnalysisKind): Promise<DocumentExtraction> {
+  console.log(`[AI] document received kind=${kind} type=${mimeType} size=${buffer.length}`);
+  console.log("[AI] OCR started");
+  const raw = applyOcrCorrections(await ocrWithPages(buffer, mimeType));
+  const pages = [...raw.matchAll(PAGE_MARKER)].length || null;
+  console.log(`[AI] OCR completed pages=${pages ?? "?"} chars=${raw.length}`);
+  console.log("[AI] extraction started");
+  const prompt = kind === "INVOICE" ? INVOICE_PROMPT : kind === "OTHER" ? OTHER_PROMPT : CONTRACT_PROMPT;
+  const parsed = await askJson(prompt, raw);
   console.log("[AI] extraction completed");
 
   const warnings: string[] = strList(parsed.warnings, 10);
-  const fieldEvidenceRaw = (parsed.field_evidence ?? {}) as Record<string, unknown>;
-  const fieldEvidence: Record<string, EvidenceRef> = {};
-  const fieldKeys: Record<string, string> = {
-    contract_number: "contractNumber",
-    contract_value: "contractValue",
-    start_date: "startDate",
-    deadline: "deadline",
-    revision_limit: "revisionLimit",
-    scope: "scope",
-  };
-  for (const [rawKey, key] of Object.entries(fieldKeys)) {
-    const ref = locateQuote(raw, fieldEvidenceRaw[rawKey] as string | null);
-    if (ref) {
-      fieldEvidence[key] = ref;
-      if (!ref.verified) warnings.push(`Kutipan untuk ${key} tidak ditemukan di teks dokumen; periksa manual.`);
-    }
-  }
-
-  const milestones: ExtractedMilestone[] = (Array.isArray(parsed.milestones) ? parsed.milestones : []).slice(0, 20).map((m: Record<string, unknown>, i: number) => {
-    let pct: number | null = typeof m.billing_percentage === "number" ? m.billing_percentage : null;
-    if (pct !== null && !(pct > 0 && pct <= 100)) {
-      warnings.push(`Persentase termin ${i + 1} dari AI tidak valid (${pct}); dikosongkan.`);
-      pct = null;
-    }
-    return {
-      name: strOrNull(m.name, 160) ?? `Termin ${i + 1}`,
-      billingPercentage: pct,
-      trigger: strOrNull(m.trigger, 300) ?? "",
-      targetDate: asDate(m.target_date, `target termin ${i + 1}`, warnings),
-      evidence: locateQuote(raw, m.evidence_quote as string | null),
-    };
-  });
-  const pctSum = milestones.reduce((s, m) => s + (m.billingPercentage ?? 0), 0);
-  if (milestones.length && Math.abs(pctSum - 100) > 0.01) warnings.push(`Total persentase termin dari dokumen ${pctSum}% (bukan 100%). Periksa sebelum menyetujui.`);
-
-  const severity = (v: unknown) => (v === "HIGH" || v === "MEDIUM" || v === "LOW" ? v : "MEDIUM");
-  const extraction: ContractExtraction = {
-    documentType: parsed.document_type === "NOT_CONTRACT" ? "NOT_CONTRACT" : "CONTRACT",
+  const documentType = strOrNull(parsed.document_type, 40) ?? "OTHER";
+  const base: DocumentExtraction = {
+    kind,
+    documentType,
     confidence: typeof parsed.confidence === "number" && parsed.confidence >= 0 && parsed.confidence <= 1 ? parsed.confidence : null,
-    contract: {
+    summary: strOrNull(parsed.summary, 600) ?? "",
+    contract: null,
+    terms: null,
+    milestones: [],
+    invoice: null,
+    approval: null,
+    fieldEvidence: {},
+    risks: [],
+    warnings,
+    extractionMeta: { sourceFile: fileName, pages, processedAt: new Date().toISOString(), engine: `Gemini ${env.GEMINI_MODEL}`, textLength: raw.length },
+  };
+  const risks = (Array.isArray(parsed.risks) ? parsed.risks : []).slice(0, 10).map((r: Record<string, unknown>) => ({
+    title: strOrNull(r.title, 160) ?? "Klausul perlu diperhatikan",
+    severity: severity(r.severity),
+    detail: strOrNull(r.detail, 600) ?? "",
+    evidence: locateQuote(raw, r.evidence_quote as string | null),
+    origin: "AI" as const,
+  }));
+
+  if (kind === "CONTRACT" || kind === "ADDENDUM") {
+    base.fieldEvidence = evidenceFields(raw, parsed.field_evidence, {
+      contract_number: "contractNumber",
+      contract_value: "contractValue",
+      start_date: "startDate",
+      deadline: "deadline",
+      revision_limit: "revisionLimit",
+      scope: "scope",
+      hourly_rate: "hourlyRate",
+      revision_unit_price: "revisionUnitPrice",
+      penalty: "penalty",
+    }, warnings);
+    base.milestones = (Array.isArray(parsed.milestones) ? parsed.milestones : []).slice(0, 20).map((m: Record<string, unknown>, i: number) => {
+      let pct: number | null = typeof m.billing_percentage === "number" ? m.billing_percentage : null;
+      if (pct !== null && !(pct > 0 && pct <= 100)) {
+        warnings.push(`Persentase termin ${i + 1} dari AI tidak valid (${pct}); dikosongkan.`);
+        pct = null;
+      }
+      return {
+        name: strOrNull(m.name, 160) ?? `Termin ${i + 1}`,
+        billingPercentage: pct,
+        trigger: strOrNull(m.trigger, 300) ?? "",
+        targetDate: asDate(m.target_date, `target termin ${i + 1}`, warnings),
+        evidence: locateQuote(raw, m.evidence_quote as string | null),
+      };
+    });
+    const pctSum = base.milestones.reduce((s, m) => s + (m.billingPercentage ?? 0), 0);
+    if (kind === "CONTRACT" && base.milestones.length && Math.abs(pctSum - 100) > 0.01) warnings.push(`Total persentase termin dari dokumen ${pctSum}% (bukan 100%). Periksa sebelum menyetujui.`);
+    base.contract = {
       contractNumber: strOrNull(parsed.contract_number, 120),
       title: strOrNull(parsed.title, 200),
       clientName: strOrNull(parsed.client_name, 160),
@@ -224,19 +357,60 @@ export async function extractContract(buffer: Buffer, mimeType: string, fileName
       scope: strList(parsed.scope),
       obligations: strList(parsed.obligations),
       penalties: strList(parsed.penalties),
-    },
-    milestones,
-    fieldEvidence,
-    risks: (Array.isArray(parsed.risks) ? parsed.risks : []).slice(0, 10).map((r: Record<string, unknown>) => ({
-      title: strOrNull(r.title, 160) ?? "Klausul perlu diperhatikan",
-      severity: severity(r.severity),
-      detail: strOrNull(r.detail, 600) ?? "",
-      evidence: locateQuote(raw, r.evidence_quote as string | null),
-    })),
-    warnings,
-    extractionMeta: { sourceFile: fileName, pages, processedAt: new Date().toISOString(), engine: `Gemini ${env.GEMINI_MODEL}`, textLength: raw.length },
-  };
-  if (extraction.documentType === "NOT_CONTRACT") warnings.unshift("Dokumen tidak terdeteksi sebagai kontrak.");
-  console.log(`[AI] response normalized milestones=${milestones.length} warnings=${warnings.length}`);
-  return extraction;
+    };
+    const t = (parsed.terms ?? {}) as Record<string, unknown>;
+    base.terms = {
+      hourlyRate: asInt(t.hourly_rate, "tarif per jam", warnings, 1_000_000_000),
+      revisionUnitPrice: asInt(t.revision_unit_price, "biaya revisi tambahan", warnings, 1_000_000_000),
+      revisionExtensionDays: asInt(t.revision_extension_days, "tambahan hari revisi", warnings, 365),
+      penaltyPerDayPercent: asNum(t.penalty_per_day_percent, "denda per hari", warnings, 100),
+      penaltyCapPercent: asNum(t.penalty_cap_percent, "batas denda", warnings, 100),
+      paymentDueDays: asInt(t.payment_due_days, "tempo pembayaran", warnings, 365),
+    };
+    base.risks = [...risks, ...(await guardrailRisks(raw))];
+  } else if (kind === "INVOICE") {
+    base.fieldEvidence = evidenceFields(raw, parsed.field_evidence, { invoice_number: "invoiceNumber", total: "total", milestone_reference: "milestoneReference" }, warnings);
+    base.invoice = {
+      invoiceNumber: strOrNull(parsed.invoice_number, 80),
+      issueDate: asDate(parsed.issue_date, "tanggal invoice", warnings),
+      issuer: strOrNull(parsed.issuer, 160),
+      recipient: strOrNull(parsed.recipient, 160),
+      total: asInt(parsed.total, "total invoice", warnings, 1_000_000_000_000),
+      milestoneReference: strOrNull(parsed.milestone_reference, 200),
+      revisionsCharged: asInt(parsed.revisions_charged, "revisi ditagih", warnings, 1000),
+      lineItems: (Array.isArray(parsed.line_items) ? parsed.line_items : []).slice(0, 50).map((l: Record<string, unknown>, i: number) => ({
+        description: strOrNull(l.description, 200) ?? `Baris ${i + 1}`,
+        quantity: asNum(l.quantity, `kuantitas baris ${i + 1}`, warnings, 1_000_000),
+        unit: strOrNull(l.unit, 40),
+        unitPrice: asInt(l.unit_price, `harga satuan baris ${i + 1}`, warnings, 1_000_000_000_000),
+        amount: asInt(l.amount, `jumlah baris ${i + 1}`, warnings, 1_000_000_000_000),
+        evidence: locateQuote(raw, l.evidence_quote as string | null),
+      })),
+    };
+    base.risks = risks;
+  } else {
+    const a = (parsed.approval ?? {}) as Record<string, unknown>;
+    base.approval = {
+      approved: typeof a.approved === "boolean" ? a.approved : null,
+      approver: strOrNull(a.approver, 160),
+      date: asDate(a.date, "tanggal persetujuan", warnings),
+      reference: strOrNull(a.reference, 200),
+    };
+    base.risks = (Array.isArray(parsed.key_points) ? parsed.key_points : []).slice(0, 8).map((k: Record<string, unknown>) => ({
+      title: "Poin penting",
+      severity: "LOW" as const,
+      detail: strOrNull(k.text, 400) ?? "",
+      evidence: locateQuote(raw, k.evidence_quote as string | null),
+      origin: "AI" as const,
+    }));
+  }
+  const declared = kind === "OTHER" ? null : kind;
+  if (declared && documentType !== declared && !(declared === "CONTRACT" && documentType === "ADDENDUM")) {
+    warnings.unshift(`Dokumen diunggah sebagai ${declared}, tetapi terdeteksi sebagai ${documentType}. Periksa jenis dokumen.`);
+  }
+  console.log(`[AI] extraction normalized kind=${kind} type=${documentType} warnings=${warnings.length}`);
+  return base;
 }
+
+/** Backwards-compatible entry used by the original contract flow. */
+export const extractContract = (buffer: Buffer, mimeType: string, fileName: string) => analyzeDocument(buffer, mimeType, fileName, "CONTRACT");
