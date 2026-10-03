@@ -9,6 +9,7 @@ import { dataClient } from '@/services/dataClient';
 import { useProjects } from '@/hooks/useClaraData';
 import { Project, InvoiceItem } from '@/types';
 import { formatRupiah, formatDate } from '@/lib/utils';
+import { baselineAvailability } from '@/lib/baseline';
 import { BillingBadge } from '@/components/shared/Badge';
 import * as XLSX from 'xlsx-js-style';
 
@@ -18,6 +19,10 @@ export default function FinancePage() {
   const [busyPaymentId, setBusyPaymentId] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [actionNotice, setActionNotice] = React.useState<string | null>(null);
+  const availableFor = (project: Project) => {
+    const active = project.baselines.find((version) => version.status === 'ACTIVE');
+    return active ? baselineAvailability(active) : null;
+  };
 
   React.useEffect(() => {
     if (actionNotice) {
@@ -29,11 +34,13 @@ export default function FinancePage() {
   const totalContract = projects.reduce((a, b) => a + (b.contractValue || 0), 0);
   const totalPlannedCost = projects.reduce((total, project) => total + (project.plannedCost || 0), 0);
   const totalActualCost = projects.reduce((total, project) => total + (project.actualCost || 0), 0);
+  const actualCostWithRab = projects.filter((project) => availableFor(project)?.budget).reduce((total, project) => total + project.actualCost, 0);
+  const budgetCostRecords = projects.filter((project) => availableFor(project)?.budget).reduce((count, project) => count + project.actualCosts.length, 0);
   const totalBillable = projects.reduce((a, b) => a + (b.billableValue || 0), 0);
   const totalBilled = projects.reduce((a, b) => a + (b.billedValue || 0), 0);
   const totalPaid = projects.reduce((a, b) => a + (b.paidValue || 0), 0);
-  const totalUnbilled = Math.max(0, totalBillable - totalBilled);
-  const unbilledStages = projects.flatMap((project) => project.agreementBaseline.milestones
+  const totalUnbilled = projects.reduce((total, project) => total + project.metrics.unbilledValue, 0);
+  const unbilledStages = projects.flatMap((project) => (availableFor(project)?.billing ? project.agreementBaseline.milestones : [])
     .filter((milestone) => milestone.status === 'COMPLETED' && (milestone.billedAmount ?? 0) < milestone.value)
     .map((milestone) => ({ project, milestone, remaining: milestone.value - (milestone.billedAmount ?? 0) })));
 
@@ -153,7 +160,7 @@ export default function FinancePage() {
       fill: { fgColor: { rgb: 'DC2626' } },
       border: borderThin
     });
-    const subHeaders = ['TARGET / BASELINE', 'REALISASI SAAT INI', 'SELISIH / MARGIN'];
+    const subHeaders = ['ACUAN', 'TERCATAT SAAT INI', 'SELISIH BIAYA / TAGIHAN'];
     subHeaders.forEach((sh, idx) => {
       addCell(rowIdx, idx + 1, sh, {
         fill: { fgColor: { rgb: idx === 0 ? 'E11D48' : idx === 1 ? 'EA580C' : 'F97316' } },
@@ -249,7 +256,7 @@ export default function FinancePage() {
     // ==========================================
     const sec2BannerRow = rowIdx;
     for (let c = 0; c < 4; c++) {
-      addCell(sec2BannerRow, c, c === 0 ? 'II. RINCIAN BIAYA PELAKSANAAN & MARGIN PROYEK' : '', {
+      addCell(sec2BannerRow, c, c === 0 ? 'II. RINCIAN BIAYA PELAKSANAAN PROYEK' : '', {
         fill: { fgColor: { rgb: 'FFEDD5' } },
         font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '7C2D12' } },
         alignment: { horizontal: 'left', vertical: 'center' },
@@ -262,9 +269,10 @@ export default function FinancePage() {
     projects.forEach((p, idx) => {
       const isAlt = idx % 2 === 1;
       const rowFill = isAlt ? { fgColor: { rgb: 'F8FAFC' } } : undefined;
-      const planned = p.plannedCost || 0;
+      const hasRab = Boolean(availableFor(p)?.budget);
+      const planned = hasRab ? p.plannedCost : null;
       const actual = p.actualCost || 0;
-      const margin = planned - actual;
+      const difference = planned !== null && p.actualCosts.length ? planned - actual : null;
 
       addCell(rowIdx, 0, `  ${idx + 1}. ${p.name} (${p.client}) - Progres: ${p.progress}%`, {
         fill: rowFill,
@@ -272,7 +280,7 @@ export default function FinancePage() {
         alignment: { horizontal: 'left', vertical: 'center' },
         border: borderThin
       });
-      addCell(rowIdx, 1, planned, {
+      addCell(rowIdx, 1, planned ?? 'RAB belum ada', {
         fill: rowFill,
         font: { name: 'Calibri', sz: 10, color: { rgb: '0F172A' } },
         alignment: { horizontal: 'right', vertical: 'center' },
@@ -284,9 +292,9 @@ export default function FinancePage() {
         alignment: { horizontal: 'right', vertical: 'center' },
         border: borderThin
       }, true);
-      addCell(rowIdx, 3, margin, {
+      addCell(rowIdx, 3, difference ?? 'Belum dapat dibandingkan', {
         fill: rowFill,
-        font: { name: 'Calibri', sz: 10, bold: true, color: margin >= 0 ? { rgb: '15803D' } : { rgb: 'DC2626' } },
+        font: { name: 'Calibri', sz: 10, bold: true, color: difference === null || difference >= 0 ? { rgb: '15803D' } : { rgb: 'DC2626' } },
         alignment: { horizontal: 'right', vertical: 'center' },
         border: borderThin
       }, true);
@@ -314,7 +322,7 @@ export default function FinancePage() {
       alignment: { horizontal: 'right', vertical: 'center' },
       border: borderDoubleBottom
     }, true);
-    addCell(rowIdx, 3, totalPlanned - totalActual, {
+    addCell(rowIdx, 3, budgetCostRecords ? totalPlanned - actualCostWithRab : 'Belum dapat dibandingkan', {
       fill: { fgColor: { rgb: 'F1F5F9' } },
       font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '15803D' } },
       alignment: { horizontal: 'right', vertical: 'center' },
@@ -517,7 +525,7 @@ export default function FinancePage() {
           <tbody className="divide-y divide-zinc-200">
             <tr><th scope="row" className="border-r border-zinc-200 px-4 py-3 text-left font-semibold">Nilai kontrak</th><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{formatRupiah(totalContract)}</td><td className="px-4 py-3 text-zinc-600">Total nilai proyek dengan acuan aktif.</td></tr>
             <tr><th scope="row" className="border-r border-zinc-200 px-4 py-3 text-left font-semibold">Rencana biaya (RAB)</th><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{formatRupiah(totalPlannedCost)}</td><td className="px-4 py-3 text-zinc-600">Anggaran proyek pada acuan aktif.</td></tr>
-            <tr><th scope="row" className="border-r border-zinc-200 px-4 py-3 text-left font-semibold">Biaya tercatat</th><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{formatRupiah(totalActualCost)}</td><td className="px-4 py-3 text-zinc-600">{totalPlannedCost <= 0 ? 'RAB belum tersedia untuk dibandingkan.' : totalActualCost > totalPlannedCost ? `Melebihi RAB ${formatRupiah(totalActualCost - totalPlannedCost)}.` : `Sisa rencana ${formatRupiah(totalPlannedCost - totalActualCost)}.`}</td></tr>
+            <tr><th scope="row" className="border-r border-zinc-200 px-4 py-3 text-left font-semibold">Biaya tercatat</th><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{formatRupiah(totalActualCost)}</td><td className="px-4 py-3 text-zinc-600">{!totalPlannedCost ? 'RAB belum tersedia untuk dibandingkan.' : !budgetCostRecords ? 'Biaya pada proyek ber-RAB belum dicatat.' : `Selisih terhadap RAB dihitung hanya untuk proyek yang punya RAB: ${formatRupiah(actualCostWithRab - totalPlannedCost)}.`}</td></tr>
             <tr><th scope="row" className="border-r border-zinc-200 px-4 py-3 text-left font-semibold">Hak tagih</th><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{formatRupiah(totalBillable)}</td><td className="px-4 py-3 text-zinc-600">Tahap pekerjaan yang memenuhi syarat tagih.</td></tr>
             <tr><th scope="row" className="border-r border-zinc-200 px-4 py-3 text-left font-semibold">Sudah ditagih</th><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{formatRupiah(totalBilled)}</td><td className="px-4 py-3 text-zinc-600">Tagihan yang tercatat dalam sistem.</td></tr>
             <tr><th scope="row" className="border-r border-zinc-200 px-4 py-3 text-left font-semibold text-amber-800">Belum ditagih</th><td className="border-r border-zinc-200 px-4 py-3 text-right font-semibold tabular-nums text-amber-800">{formatRupiah(totalUnbilled)}</td><td className="px-4 py-3 text-zinc-600">Hak tagih tanpa tagihan; tindak lanjuti tahap di bawah.</td></tr>
@@ -690,7 +698,7 @@ export default function FinancePage() {
                       <th className="py-3 px-3.5 border-r border-red-500/50 w-2/5">NAMA AKUN / INDIKATOR</th>
                       <th className="py-3 px-3.5 border-r border-red-500/50 text-right w-1/5">TARGET / BASELINE</th>
                       <th className="py-3 px-3.5 border-r border-red-500/50 text-right w-1/5">REALISASI SAAT INI</th>
-                      <th className="py-3 px-3.5 text-right w-1/5">SELISIH / MARGIN</th>
+                      <th className="py-3 px-3.5 text-right w-1/5">SELISIH BIAYA / TAGIHAN</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-200">
@@ -741,22 +749,23 @@ export default function FinancePage() {
 
                     {/* SECTION 2: BIAYA & MARGIN PELAKSANAAN PROYEK */}
                     <tr className="bg-orange-100/90 text-orange-950 font-bold uppercase text-[11px] tracking-wide border-t-2 border-zinc-900">
-                      <td colSpan={4} className="py-2 px-3.5">II. RINCIAN BIAYA PELAKSANAAN &amp; MARGIN PROYEK</td>
+                      <td colSpan={4} className="py-2 px-3.5">II. RINCIAN BIAYA PELAKSANAAN PROYEK</td>
                     </tr>
                     {projects.map((p, idx) => {
-                      const planned = p.plannedCost || 0;
+                      const hasRab = Boolean(availableFor(p)?.budget);
+                      const planned = hasRab ? p.plannedCost : null;
                       const actual = p.actualCost || 0;
-                      const marginDiff = planned - actual;
+                      const difference = planned !== null && p.actualCosts.length ? planned - actual : null;
                       return (
                         <tr key={p.id} className="hover:bg-zinc-50/80">
                           <td className="py-2.5 px-3.5 pl-6">
                             <span className="font-semibold text-zinc-900">{idx + 1}. {p.name}</span>
                             <span className="block text-[11px] text-zinc-500 font-normal">Klien: {p.client} &bull; Progres: {p.progress}%</span>
                           </td>
-                          <td className="py-2.5 px-3.5 text-right tabular-nums text-zinc-700">{formatRupiah(planned)}</td>
+                          <td className="py-2.5 px-3.5 text-right tabular-nums text-zinc-700">{planned === null ? 'RAB belum ada' : formatRupiah(planned)}</td>
                           <td className="py-2.5 px-3.5 text-right tabular-nums font-semibold text-zinc-900">{formatRupiah(actual)}</td>
-                          <td className={`py-2.5 px-3.5 text-right tabular-nums font-semibold ${marginDiff >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                            {marginDiff >= 0 ? `+${formatRupiah(marginDiff)}` : formatRupiah(marginDiff)}
+                          <td className={`py-2.5 px-3.5 text-right tabular-nums font-semibold ${difference === null || difference >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                            {difference === null ? 'Belum dapat dibandingkan' : difference >= 0 ? `+${formatRupiah(difference)}` : formatRupiah(difference)}
                           </td>
                         </tr>
                       );
@@ -767,7 +776,7 @@ export default function FinancePage() {
                       <td className="py-2.5 px-3.5 text-right tabular-nums font-bold">{formatRupiah(projects.reduce((s, p) => s + (p.plannedCost || 0), 0))}</td>
                       <td className="py-2.5 px-3.5 text-right tabular-nums font-bold text-zinc-950">{formatRupiah(projects.reduce((s, p) => s + (p.actualCost || 0), 0))}</td>
                       <td className="py-2.5 px-3.5 text-right tabular-nums font-bold text-emerald-700">
-                        {formatRupiah(projects.reduce((s, p) => s + ((p.plannedCost || 0) - (p.actualCost || 0)), 0))}
+                        {budgetCostRecords ? formatRupiah(totalPlannedCost - actualCostWithRab) : 'Belum dapat dibandingkan'}
                       </td>
                     </tr>
 

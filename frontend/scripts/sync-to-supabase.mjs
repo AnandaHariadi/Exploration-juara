@@ -7,8 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.join(__dirname, '..', 'data');
 const dbPath = path.join(dataDir, 'clara.db');
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://igublmncvmpkrgnzxgtu.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlndWJsbW5jdm1wa3Jnbnp4Z3R1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MTA0NzQ5MSwiZXhwIjoyMTA2NjIzNDkxfQ.RbiHVms7ieTnMDY965C9PlZdl-1U7-pEq_k_l7v7hM4';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) throw new Error('Atur SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY sebelum sinkronisasi.');
 
 const client = createClient(supabaseUrl, supabaseKey);
 const db = new Database(dbPath);
@@ -26,14 +28,7 @@ async function main() {
   }
   console.log(`✓ Synced ${users.length} demo users`);
 
-  // 2. Sync Demo Session
-  const session = db.prepare('SELECT * FROM demo_session WHERE id = 1').get();
-  if (session) {
-    await client.from('demo_session').upsert(session, { onConflict: 'id' });
-    console.log('✓ Synced active demo session');
-  }
-
-  // 3. Sync Projects
+  // 2. Sync Projects
   const projectRows = db.prepare('SELECT * FROM projects').all();
   for (const row of projectRows) {
     const project = JSON.parse(row.data_json);

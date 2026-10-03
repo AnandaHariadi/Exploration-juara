@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { Project, UserPersonaId } from '@/types';
+import type { Project } from '@/types';
 import { USER_PERSONAS } from '@/types';
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -75,25 +75,6 @@ export async function deleteProjectFromSupabase(projectId: string): Promise<void
 }
 
 /**
- * Sync active persona session to Supabase.
- */
-export async function syncSessionToSupabase(personaId: UserPersonaId): Promise<void> {
-  const sb = getSupabase();
-  if (!sb) return;
-
-  try {
-    const { error } = await sb.from('demo_session').upsert({
-      id: 1,
-      active_user_id: personaId,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'id' });
-    if (error) console.warn(`[SUPABASE] sync session failed:`, error.message);
-  } catch (err) {
-    console.warn(`[SUPABASE] sync session error:`, err instanceof Error ? err.message : err);
-  }
-}
-
-/**
  * Sync all initial seed data (users + projects) to Supabase.
  */
 export async function syncSeedToSupabase(projects: Project[]): Promise<void> {
@@ -119,20 +100,13 @@ export async function syncSeedToSupabase(projects: Project[]): Promise<void> {
     }));
     await sb.from('demo_users').upsert(users, { onConflict: 'id' });
 
-    // 3. Sync Default Session
-    await sb.from('demo_session').upsert({
-      id: 1,
-      active_user_id: 'BUDI',
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'id' });
-
-    // 4. Sync Meta
+    // 3. Sync Meta
     await sb.from('demo_meta').upsert({
       key: 'data_version',
       value: '4',
     }, { onConflict: 'key' });
 
-    // 5. Clean up any extra/test projects in Supabase not in the seed
+    // 4. Clean up any extra/test projects in Supabase not in the seed
     const seedIds = new Set(projects.map((p) => p.id));
     const { data: existingRows } = await sb.from('projects').select('id');
     if (existingRows) {
@@ -143,7 +117,7 @@ export async function syncSeedToSupabase(projects: Project[]): Promise<void> {
       }
     }
 
-    // 6. Sync Projects
+    // 5. Sync Projects
     for (const p of projects) {
       await syncProjectToSupabase(p);
     }
@@ -245,22 +219,6 @@ export async function fetchProjectFromSupabase(id: string): Promise<Project | nu
     return p;
   } catch (err) {
     console.warn(`[SUPABASE] fetch project=${id} error:`, err instanceof Error ? err.message : err);
-    return null;
-  }
-}
-
-/**
- * Fetch active demo session persona from Supabase.
- */
-export async function fetchSessionFromSupabase(): Promise<UserPersonaId | null> {
-  const sb = getSupabase();
-  if (!sb) return null;
-
-  try {
-    const { data, error } = await sb.from('demo_session').select('active_user_id').eq('id', 1).maybeSingle();
-    if (error || !data) return null;
-    return (data.active_user_id as UserPersonaId) || null;
-  } catch (err) {
     return null;
   }
 }

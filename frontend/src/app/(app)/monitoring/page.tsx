@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useProjects } from '@/hooks/useClaraData';
 import { formatDate } from '@/lib/utils';
+import { baselineAvailability } from '@/lib/baseline';
 import { StatusBadge, ScopeBadge } from '@/components/shared/Badge';
 import { btn, EmptyState, InsightBadge } from '@/components/shared/ui';
 
@@ -34,6 +35,9 @@ export default function MonitoringPage() {
           <div className="space-y-5">
             {active.map((p) => {
               const m = p.metrics;
+              const current = p.baselines.find((version) => version.status === 'ACTIVE');
+              const available = current ? baselineAvailability(current) : null;
+              const hasProgress = p.events.some((event) => event.type === 'PROGRESS_UPDATED');
               const review = p.agreementBaseline.scopeItems.filter((s) => s.status === 'NEEDS_REVIEW');
               return (
                 <article key={p.id} className="space-y-5 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
@@ -46,10 +50,10 @@ export default function MonitoringPage() {
                     <Link href={`/projects/${p.id}?tab=monitoring`} className={`${btn.secondary} self-start`}>Catat kegiatan <ArrowRight className="h-4 w-4" /></Link>
                   </div>
                   <div className="grid gap-3 md:grid-cols-4">
-                    <div className="rounded-xl bg-zinc-50 p-4"><p className="text-xs font-semibold uppercase text-zinc-500">Progres</p><p className="mt-1 text-xl font-bold">{m.progress}%</p><div className="mt-2 h-1.5 rounded-full bg-zinc-200"><div className="h-full rounded-full bg-red-600" style={{ width: `${m.progress}%` }} /></div></div>
-                    <div className={`rounded-xl p-4 ${m.revisionVariance > 0 ? 'bg-red-50' : 'bg-zinc-50'}`}><p className="text-xs font-semibold uppercase text-zinc-500">Revisi</p><p className="mt-1 text-xl font-bold">{m.actualRevisions} / {m.includedRevisions}</p><p className="text-xs text-zinc-600">{m.revisionVariance > 0 ? `+${m.revisionVariance} di luar acuan` : 'Dalam batas'}</p></div>
-                    <div className={`rounded-xl p-4 ${m.deadlineVarianceDays && m.deadlineVarianceDays > 0 ? 'bg-amber-50' : 'bg-zinc-50'}`}><p className="text-xs font-semibold uppercase text-zinc-500">Tenggat</p><p className="mt-1 text-xl font-bold">{formatDate(m.deadline ?? '')}</p><p className="text-xs text-zinc-600">{m.projectedFinish ? `Perkiraan ${formatDate(m.projectedFinish)}` : 'Perkiraan belum dicatat'}</p></div>
-                    <div className={`rounded-xl p-4 ${review.length ? 'bg-amber-50' : 'bg-zinc-50'}`}><p className="text-xs font-semibold uppercase text-zinc-500">Ruang lingkup</p><p className="mt-1 text-xl font-bold">{review.length ? `${review.length} perlu ditinjau` : 'Sesuai'}</p><p className="text-xs text-zinc-600">{p.agreementBaseline.scopeItems.length} pekerjaan</p></div>
+                    <div className="rounded-xl bg-zinc-50 p-4"><p className="text-xs font-semibold uppercase text-zinc-500">Progres</p><p className="mt-1 text-xl font-bold">{hasProgress ? `${m.progress}%` : 'Belum dicatat'}</p>{hasProgress && <div className="mt-2 h-1.5 rounded-full bg-zinc-200"><div className="h-full rounded-full bg-red-600" style={{ width: `${m.progress}%` }} /></div>}</div>
+                    <div className={`rounded-xl p-4 ${m.revisionVariance > 0 ? 'bg-red-50' : 'bg-zinc-50'}`}><p className="text-xs font-semibold uppercase text-zinc-500">Revisi</p><p className="mt-1 text-xl font-bold">{available?.revisionLimit ? `${m.actualRevisions} / ${m.includedRevisions}` : `${m.actualRevisions} tercatat`}</p><p className="text-xs text-zinc-600">{!available?.revisionLimit ? 'Batas belum ada' : m.revisionVariance > 0 ? `+${m.revisionVariance} di luar acuan` : 'Dalam batas'}</p></div>
+                    <div className={`rounded-xl p-4 ${m.deadlineVarianceDays && m.deadlineVarianceDays > 0 ? 'bg-amber-50' : 'bg-zinc-50'}`}><p className="text-xs font-semibold uppercase text-zinc-500">Tenggat</p><p className="mt-1 text-xl font-bold">{available?.deadline ? formatDate(m.deadline ?? '') : 'Belum ada acuan'}</p><p className="text-xs text-zinc-600">{m.projectedFinish ? `Perkiraan ${formatDate(m.projectedFinish)}` : 'Perkiraan belum dicatat'}</p></div>
+                    <div className={`rounded-xl p-4 ${review.length ? 'bg-amber-50' : 'bg-zinc-50'}`}><p className="text-xs font-semibold uppercase text-zinc-500">Ruang lingkup</p><p className="mt-1 text-xl font-bold">{!available?.scope ? 'Belum ada acuan' : review.length ? `${review.length} perlu ditinjau` : 'Belum ada selisih tercatat'}</p><p className="text-xs text-zinc-600">{available?.scope ? `${p.agreementBaseline.scopeItems.length} pekerjaan` : 'Tambahkan kesepakatan'}</p></div>
                   </div>
                   <div className="grid gap-2 md:grid-cols-2">
                     {p.reconciliation.map((c) => (

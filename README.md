@@ -83,36 +83,32 @@ npm --prefix frontend run test:ui            # browser: full pitch flow by click
 
 All tests start with a demo reset and can be rerun.
 
-## Pitch demo script
+## Alur demo singkat
 
-Start: sidebar → **Atur ulang data demo** (confirm). Header persona → **Budi Santoso**.
+Tidak perlu login. Pilih Budi, Siti, atau Hendra dari profil di kanan atas. Pilihan peran tersimpan per browser; proyek dan tombol **Atur ulang data demo** masih memakai data bersama. Untuk mengulang presentasi, atur ulang data lebih dulu (ini juga menghapus perubahan pengunjung lain).
 
-**A. Project start (Budi)**
-1. **Proyek baru** → name *Sistem Manajemen Armada*, client *PT Astra Sahabat Logistik* → **Gunakan berkas contoh (demo)** → **Buat proyek & lanjut ke analisis**.
-2. CLARA analyzes the contract automatically (no button). If AI is unavailable, click **Muat data contoh (tanpa AI)**.
-3. Review: Rp120.000.000 · RAB Rp75.000.000 · 30 Nov 2026 · 3 revisions · UAT 25% · Rp2.000.000/extra revision · Rp500.000/hour — each with the quoted clause and page (*Buka sumber*).
-4. **4 · Setujui sebagai acuan V1** (planned profit Rp45.000.000).
+Mulai sebagai **Budi** lewat **Proyek baru**, isi nama proyek dan klien, pilih salah satu jalur di bawah, lalu pilih **Gunakan berkas contoh**. Semua berkas dan proyek contoh diberi label data demo.
 
-**B–C. Monitoring and anomalies**
-5. Pemantauan: progres **60** → Simpan. Keuangan: biaya **64000000** → Catat biaya (85,3% of RAB).
-6. Pemantauan: **UAT diterima** → Tandai selesai (no invoice). Catat revisi **5**.
-7. Peringatan → *UAT diterima selesai, belum ditagih* → **Lihat bukti**: clause 4.1 p.2, UAT event, no invoice, 25% × Rp120.000.000 = Rp30.000.000 (belum ditagih, bukan kerugian). Optional: **Jelaskan dampak bisnis (AI)**.
-8. *2 revisi di luar acuan V1* → bukti 5 − 3 = 2 · nilai menurut tarif kontrak Rp4.000.000.
+| Jalur | Setelah acuan V1 disetujui | Langkah yang ditunjukkan |
+| --- | --- | --- |
+| Kesepakatan saja | Nilai, tenggat, revisi, ruang lingkup, dan hak tagih hanya muncul bila ketentuannya tersedia. Perbandingan biaya terhadap RAB belum tersedia. | Catat progres atau tahap selesai. Tambahkan RAB lewat **Acuan proyek**, periksa hasil baca, lalu setujui V2. |
+| RAB saja | Biaya bisa dibandingkan dengan rencana. Nilai kesepakatan, laba rencana, dan hak tagih belum tersedia. | Catat biaya. Tambahkan kesepakatan lewat **Acuan proyek**, periksa hasil AI atau gunakan isian manual, lalu setujui V2. |
+| Kesepakatan + RAB | Pemantauan pekerjaan, biaya, dan tagihan memakai acuan yang lengkap. | Lanjutkan cerita persetujuan perubahan di bawah. |
 
-**D. AI remediation**
-9. In that drawer: **Buat permintaan perubahan (AI)** → CR drafted: +2 revisi, +Rp4.000.000 (2 × Rp2.000.000, Pasal 5), +5 hari, with an addendum draft that passed self-review.
-10. **Ajukan untuk persetujuan internal**.
+Untuk mencoba keputusan manusia: **Budi** mencatat pekerjaan atau revisi di luar acuan dan mengajukan perubahan → **Siti** memeriksa dampak biaya → **Hendra** menyetujui atau menolak. Jika disetujui internal, **Budi** mencatat bukti persetujuan klien; setelah itu perubahan berlaku sebagai acuan baru. AI membantu membaca dokumen dan menyiapkan saran; sistem menghitung angka; manusia menyetujui.
 
-**E–F. Finance and decision**
-11. Persona **Siti** → Dashboard → *Tinjau dampak keuangan CR/…* → **Konfirmasi dampak & teruskan**.
-12. Persona **Hendra** → Dashboard → *Putuskan CR/…* → **Setujui internal**. Baseline is still V1 (client approval required).
+Jika layanan AI tidak tersedia, gunakan **Muat data contoh (tanpa AI)** untuk kesepakatan contoh, atau **Isi manual**. RAB contoh tetap dibaca oleh parser sistem tanpa AI. Setelah presentasi, periksa riwayat V1/V2, peringatan, dan bukti di halaman proyek.
 
-**G. Official change**
-13. Persona **Budi** → tab **Dokumen & AI** → **Surat persetujuan klien** (sample) — CLARA reads it as approval 045/ASL-PROC/X/2026.
-14. Tab **Perubahan** → choose that document → **Catat persetujuan klien & resmikan** → **V2**: Rp124.000.000, 5 revisions, 5 Des 2026.
+## Contoh presentasi lengkap
 
-**H. Close the loop**
-15. Acuan proyek: V2 active, V1 archived with the change list. Peringatan: revision alert gone (show resolved → *Dijelaskan perubahan resmi*); Rp30.000.000 billing alert stays open.
-16. Dokumen & AI: approve the addendum draft → **Ekspor PDF untuk dikirim** (CLARA never sends documents itself).
-17. Optional cross-document demo: Dokumen & AI → **Invoice pekerjaan tambahan** → CLARA flags Rp650.000 vs Rp500.000/hour (Rp6.000.000 verified difference), 8 revisions charged vs 5 allowed, and billing before the addendum milestone is done.
-18. Dashboard / **Pusat AI**: summary, priorities, analyzed documents, prepared actions.
+Mulai dengan **Atur ulang data demo** bila memang ingin menghapus seluruh perubahan sebelumnya. Pilih **Budi Santoso** dari profil di header.
+
+1. Buka **Proyek baru**. Isi *Sistem Manajemen Armada* dan *PT Astra Sahabat Logistik*. Pilih **Kesepakatan + RAB**, lalu **Gunakan berkas contoh**.
+2. Kontrak contoh dianalisis otomatis. Bila layanan AI gagal, pilih **Muat data contoh (tanpa AI)**. Tinjau nilai kesepakatan Rp120.000.000, RAB Rp75.000.000, tenggat, batas revisi, dan syarat tagih. Setujui acuan V1.
+3. Di **Pemantauan**, catat progres 60%, selesaikan tahap *UAT diterima*, dan catat 5 revisi. Di **Keuangan**, catat biaya Rp64.000.000.
+4. Buka **Peringatan** dan **Lihat bukti**. Tahap UAT menghasilkan Rp30.000.000 yang siap ditagih tetapi belum dibuatkan invoice. Dua revisi melampaui batas tiga revisi; tarif kesepakatan menunjukkan tambahan Rp4.000.000.
+5. Sebagai **Budi**, buat dan ajukan permintaan perubahan. Gunakan saran AI bila tersedia, atau isi permintaan secara manual. Acuan belum berubah pada tahap ini.
+6. Ganti pengguna ke **Siti**. Dari dashboard atau tab **Perubahan**, periksa dampak biaya dan teruskan permintaan.
+7. Ganti pengguna ke **Hendra**. Setujui atau tolak permintaan. Jika disetujui internal, acuan tetap V1 sampai ada persetujuan klien.
+8. Kembali ke **Budi**. Lampirkan atau pilih bukti persetujuan klien di **Dokumen & AI**, lalu catat persetujuan pada tab **Perubahan**. Acuan V2 berlaku dan V1 tetap ada di riwayat.
+9. Buka **Acuan proyek** dan **Peringatan** untuk menunjukkan perubahan yang resmi serta tagihan UAT yang masih perlu dikerjakan.

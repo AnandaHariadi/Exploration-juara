@@ -161,11 +161,25 @@ export interface PlanBaseline {
   sourceFile?: string;
 }
 
+/** Which comparisons are supported by the fields approved in this version. */
+export interface BaselineAvailability {
+  agreement: boolean;
+  budget: boolean;
+  contractValue: boolean;
+  startDate: boolean;
+  deadline: boolean;
+  revisionLimit: boolean;
+  scope: boolean;
+  billing: boolean;
+}
+
 export interface BaselineVersion {
   id: string;
   version: number;
   label: string; // "V1", "V2"
   status: 'ACTIVE' | 'ARCHIVED';
+  /** Absent on older, complete baselines stored before partial acuan support. */
+  availability?: BaselineAvailability;
   contractValue: number;
   plannedCost: number;
   startDate: string;

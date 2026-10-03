@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Plus, Search, FolderGit2 } from 'lucide-react';
 import { useProjects } from '@/hooks/useClaraData';
 import { formatCompactRupiah, formatDate, isOpenAlert } from '@/lib/utils';
+import { baselineAvailability } from '@/lib/baseline';
 import { StatusBadge } from '@/components/shared/Badge';
 
 export default function ProjectsPage() {
@@ -115,20 +116,23 @@ export default function ProjectsPage() {
               {filteredProjects.map((project) => {
                 const alertCount = project.alerts.filter(isOpenAlert).length;
                 const hasBaseline = project.metrics.hasBaseline;
+                const active = project.baselines.find((version) => version.status === 'ACTIVE');
+                const available = active ? baselineAvailability(active) : null;
+                const hasProgress = project.events.some((event) => event.type === 'PROGRESS_UPDATED');
                 return (
                   <tr key={project.id} className="hover:bg-zinc-50">
                     <td className="border-r border-zinc-200 px-4 py-3">
                       <Link href={`/projects/${project.id}`} className="font-semibold text-zinc-900 hover:text-red-700 hover:underline">{project.name}</Link>
                       <span className="mt-1 block text-zinc-500">{project.client} / {project.id}</span>
-                      {hasBaseline && <span className="mt-1 block text-zinc-500">Tenggat {formatDate(project.endDate)}</span>}
+                      {available?.deadline && <span className="mt-1 block text-zinc-500">Tenggat {formatDate(project.endDate)}</span>}
                     </td>
                     <td className="border-r border-zinc-200 px-4 py-3"><StatusBadge status={project.status} /><span className="mt-1 block text-zinc-600">{hasBaseline ? `Acuan ${project.baselineVersion}` : 'Acuan belum disetujui'}</span></td>
-                    <td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{hasBaseline ? `${project.progress}%` : '-'}</td>
-                    <td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{hasBaseline ? formatCompactRupiah(project.contractValue) : '-'}</td>
+                    <td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{hasProgress ? `${project.progress}%` : 'Belum dicatat'}</td>
+                    <td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{available?.contractValue ? formatCompactRupiah(project.contractValue) : 'Belum ada acuan'}</td>
                     <td className={`border-r border-zinc-200 px-4 py-3 text-right tabular-nums ${hasBaseline && project.plannedCost > 0 && project.actualCost > project.plannedCost ? 'font-semibold text-red-700' : ''}`}>{hasBaseline ? formatCompactRupiah(project.actualCost) : '-'}</td>
-                    <td className={`border-r border-zinc-200 px-4 py-3 text-right tabular-nums ${hasBaseline && project.metrics.unbilledValue > 0 ? 'font-semibold text-amber-800' : ''}`}>{hasBaseline ? formatCompactRupiah(project.metrics.unbilledValue) : '-'}</td>
+                    <td className={`border-r border-zinc-200 px-4 py-3 text-right tabular-nums ${hasBaseline && project.metrics.unbilledValue > 0 ? 'font-semibold text-amber-800' : ''}`}>{available?.billing ? formatCompactRupiah(project.metrics.unbilledValue) : 'Syarat tagih belum ada'}</td>
                     <td className={`border-r border-zinc-200 px-4 py-3 text-right tabular-nums ${alertCount > 0 ? 'font-semibold text-red-700' : ''}`}>{alertCount}</td>
-                    <td className="px-4 py-3"><Link href={`/projects/${project.id}`} className="font-semibold text-red-700 hover:underline">{hasBaseline ? 'Buka proyek' : 'Siapkan acuan'}</Link></td>
+                    <td className="px-4 py-3"><Link href={`/projects/${project.id}${hasBaseline && (!available?.agreement || !available?.budget) ? '?tab=baseline' : ''}`} className="font-semibold text-red-700 hover:underline">{hasBaseline ? available?.agreement && available?.budget ? 'Buka proyek' : 'Lengkapi acuan' : 'Siapkan acuan'}</Link></td>
                   </tr>
                 );
               })}

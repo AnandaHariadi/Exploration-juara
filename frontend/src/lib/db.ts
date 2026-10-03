@@ -4,21 +4,20 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import type { Alert, PortfolioSummary, Project, UserPersonaId } from '../types/index';
+import type { Alert, PortfolioSummary, Project } from '../types/index';
 import { USER_PERSONAS } from '../types/index';
 import { reconcile } from './engine';
 import { actorFor, randomId, type Ctx } from './domain';
 import { notFound } from './api';
+import { currentDemoPersona } from './demoPersona';
 import { buildSeed } from './seed';
 import { clearUploads, saveDocumentFile } from './files';
 import {
   isSupabaseConfigured,
   syncProjectToSupabase,
   deleteProjectFromSupabase,
-  syncSessionToSupabase,
   syncSeedToSupabase,
   fetchProjectsFromSupabase,
-  fetchSessionFromSupabase,
 } from './supabase';
 
 /** Bump when the stored project shape changes; older databases are re-seeded. */
@@ -53,7 +52,6 @@ function seedUsers() {
   for (const p of Object.values(USER_PERSONAS)) {
     insert.run(p.id, p.name, p.roleTitle, p.department, p.initials, p.avatarBg, p.badgeBg, p.badgeText, p.description, p.primaryFocus);
   }
-  db.prepare(`INSERT OR REPLACE INTO demo_session (id, active_user_id, updated_at) VALUES (1, 'BUDI', ?)`).run(new Date().toISOString());
 }
 
 function writeProject(project: Project) {
@@ -122,14 +120,7 @@ export async function pullLatestFromSupabase(): Promise<void> {
 
   inFlightSync = (async () => {
     try {
-      const [remoteProjects, remotePersona] = await Promise.all([
-        fetchProjectsFromSupabase(),
-        fetchSessionFromSupabase(),
-      ]);
-
-      if (remotePersona) {
-        db.prepare('UPDATE demo_session SET active_user_id = ?, updated_at = ? WHERE id = 1').run(remotePersona, new Date().toISOString());
-      }
+      const remoteProjects = await fetchProjectsFromSupabase();
 
       if (remoteProjects && remoteProjects.length > 0) {
         const remoteIds = new Set(remoteProjects.map((p) => p.id));
@@ -188,7 +179,7 @@ if (isSupabaseConfigured()) {
 }
 
 export function makeCtx(): Ctx {
-  return { now: new Date().toISOString(), actor: actorFor(claraDb.getActivePersona()), nextId: randomId };
+  return { now: new Date().toISOString(), actor: actorFor(currentDemoPersona()), nextId: randomId };
 }
 
 export const claraDb = {
@@ -196,17 +187,6 @@ export const claraDb = {
 
   getDemoUsers() {
     return db.prepare('SELECT * FROM demo_users ORDER BY rowid').all();
-  },
-
-  getActivePersona(): UserPersonaId {
-    const row = db.prepare('SELECT active_user_id FROM demo_session WHERE id = 1').get() as { active_user_id: UserPersonaId } | undefined;
-    return row?.active_user_id ?? 'BUDI';
-  },
-
-  setActivePersona(personaId: UserPersonaId) {
-    db.prepare('UPDATE demo_session SET active_user_id = ?, updated_at = ? WHERE id = 1').run(personaId, new Date().toISOString());
-    lastSyncTime = Date.now();
-    void syncSessionToSupabase(personaId);
   },
 
   getProjects(): Project[] {

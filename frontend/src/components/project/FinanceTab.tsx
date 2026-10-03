@@ -4,6 +4,7 @@ import React from 'react';
 import type { Project } from '@/types';
 import { dataClient } from '@/services/dataClient';
 import { formatDate, formatRupiah } from '@/lib/utils';
+import { baselineAvailability } from '@/lib/baseline';
 import { btn, EmptyState, inputClass, labelClass, Panel } from '@/components/shared/ui';
 import { BillingBadge } from '@/components/shared/Badge';
 
@@ -20,6 +21,8 @@ export function invoiceStatus(inv: { status: string; dueDate: string }, paid: nu
 
 export function FinanceTab({ project, run }: { project: Project; run: Run }) {
   const m = project.metrics;
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  const available = active ? baselineAvailability(active) : null;
   const [busy, setBusy] = React.useState<string | null>(null);
   const [invoiceAmounts, setInvoiceAmounts] = React.useState<Record<string, string>>({});
   const [cost, setCost] = React.useState({ amount: '', category: 'DEVELOPMENT', description: '', date: '' });
@@ -40,8 +43,8 @@ export function FinanceTab({ project, run }: { project: Project; run: Run }) {
           <table className="w-full min-w-[760px] border-collapse text-left text-sm">
             <thead className="bg-zinc-50"><tr><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Yang diperiksa</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Dasar</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Tercatat</th><th scope="col" className="border-b border-zinc-200 px-4 py-3 text-right font-semibold">Perlu perhatian</th></tr></thead>
             <tbody className="divide-y divide-zinc-200">
-              <tr><th scope="row" className="border-r border-zinc-200 px-4 py-3 text-left font-semibold">Biaya proyek<span className="mt-1 block text-xs font-normal text-zinc-500">RAB dibanding pengeluaran</span></th><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{m.plannedCost > 0 ? formatRupiah(m.plannedCost) : 'RAB belum ada'}</td><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{formatRupiah(m.actualCost)}</td><td className={`px-4 py-3 text-right font-semibold tabular-nums ${m.budgetVariance > 0 && m.plannedCost > 0 ? 'text-red-700' : ''}`}>{m.plannedCost <= 0 ? 'Belum bisa dibandingkan' : m.budgetVariance > 0 ? `Melebihi RAB ${formatRupiah(m.budgetVariance)}` : `Sisa RAB ${formatRupiah(-m.budgetVariance)}`}</td></tr>
-              <tr><th scope="row" className="border-r border-zinc-200 px-4 py-3 text-left font-semibold">Hak tagih<span className="mt-1 block text-xs font-normal text-zinc-500">Tahap selesai dibanding tagihan</span></th><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{formatRupiah(m.billableValue)}</td><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{formatRupiah(m.billedValue)}</td><td className={`px-4 py-3 text-right font-semibold tabular-nums ${m.unbilledValue > 0 ? 'text-amber-800' : ''}`}>{m.unbilledValue > 0 ? `Belum ditagih ${formatRupiah(m.unbilledValue)}` : 'Tidak ada hak tagih tertunda'}</td></tr>
+              <tr><th scope="row" className="border-r border-zinc-200 px-4 py-3 text-left font-semibold">Biaya proyek<span className="mt-1 block text-xs font-normal text-zinc-500">RAB dibanding pengeluaran</span></th><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{available?.budget ? formatRupiah(m.plannedCost) : 'RAB belum ada'}</td><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{project.actualCosts.length ? formatRupiah(m.actualCost) : 'Belum dicatat'}</td><td className={`px-4 py-3 text-right font-semibold tabular-nums ${m.budgetVariance > 0 && available?.budget ? 'text-red-700' : ''}`}>{!available?.budget ? 'Belum dapat dibandingkan' : !project.actualCosts.length ? 'Menunggu catatan biaya' : m.budgetVariance > 0 ? `Melebihi RAB ${formatRupiah(m.budgetVariance)}` : `Sisa RAB ${formatRupiah(-m.budgetVariance)}`}</td></tr>
+              <tr><th scope="row" className="border-r border-zinc-200 px-4 py-3 text-left font-semibold">Hak tagih<span className="mt-1 block text-xs font-normal text-zinc-500">Tahap selesai dibanding tagihan</span></th><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{available?.billing ? formatRupiah(m.billableValue) : 'Syarat tagih belum ada'}</td><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{project.invoices.length ? formatRupiah(m.billedValue) : 'Belum dicatat'}</td><td className={`px-4 py-3 text-right font-semibold tabular-nums ${m.unbilledValue > 0 ? 'text-amber-800' : ''}`}>{!available?.billing ? 'Belum dapat dihitung' : m.unbilledValue > 0 ? `Belum ditagih ${formatRupiah(m.unbilledValue)}` : m.billableValue > 0 ? 'Tidak ada hak tagih tertunda' : 'Belum ada tahap siap tagih'}</td></tr>
               <tr><th scope="row" className="border-r border-zinc-200 px-4 py-3 text-left font-semibold">Pembayaran<span className="mt-1 block text-xs font-normal text-zinc-500">Tagihan dibanding uang masuk</span></th><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{formatRupiah(m.billedValue)}</td><td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{formatRupiah(m.paidValue)}</td><td className="px-4 py-3 text-right font-semibold tabular-nums">{m.outstandingReceivable > 0 ? `Belum dibayar ${formatRupiah(m.outstandingReceivable)}` : 'Tidak ada tagihan belum dibayar'}</td></tr>
             </tbody>
           </table>
@@ -49,6 +52,7 @@ export function FinanceTab({ project, run }: { project: Project; run: Run }) {
       </Panel>
 
       <Panel title="Tagihan per tahap" description="Tagihan baru dapat dibuat setelah tahap pekerjaan selesai. Pencatatan di sini tidak mengirim tagihan ke klien.">
+        {!available?.billing ? <p className="text-sm text-zinc-600">Nilai dan syarat pembayaran belum menjadi acuan. Tambahkan kesepakatan di tab Acuan proyek sebelum menghitung hak tagih.</p> :
         <div className="overflow-x-auto rounded-xl border border-zinc-200">
           <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
             <thead className="bg-zinc-50"><tr><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Tahap dan syarat</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Nilai tahap</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Ditagih</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Dibayar</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Belum ditagih</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Status</th><th scope="col" className="border-b border-zinc-200 px-4 py-3 font-semibold">Tindakan</th></tr></thead>
@@ -71,7 +75,7 @@ export function FinanceTab({ project, run }: { project: Project; run: Run }) {
               </tr>;
             })}</tbody>
           </table>
-        </div>
+        </div>}
       </Panel>
 
       <Panel title="Daftar tagihan & pembayaran">

@@ -4,6 +4,7 @@ import React from 'react';
 import type { Project } from '@/types';
 import { dataClient } from '@/services/dataClient';
 import { formatDate, formatRupiah } from '@/lib/utils';
+import { baselineAvailability } from '@/lib/baseline';
 import { btn, inputClass, labelClass, Panel } from '@/components/shared/ui';
 import { BillingBadge, ScopeBadge } from '@/components/shared/Badge';
 
@@ -11,6 +12,9 @@ type Run = <T>(action: () => Promise<T>, success: string | ((r: T) => string)) =
 
 export function MonitoringTab({ project, run, onProposeChange }: { project: Project; run: Run; onProposeChange: (scopeTitle: string) => void }) {
   const m = project.metrics;
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  const available = active ? baselineAvailability(active) : null;
+  const canRequestChange = Boolean(available?.contractValue && available.deadline && available.revisionLimit);
   const pending = project.agreementBaseline.milestones.filter((x) => x.status !== 'COMPLETED');
   const [busy, setBusy] = React.useState<string | null>(null);
   const [progress, setProgress] = React.useState(String(m.progress));
@@ -33,10 +37,10 @@ export function MonitoringTab({ project, run, onProposeChange }: { project: Proj
       <Panel title="Yang dipantau di proyek ini" description="Catat kejadian saat pekerjaan berlangsung. Sistem membandingkannya dengan acuan proyek dan memperbarui peringatan atau hak tagih yang terkait.">
         <div className="overflow-x-auto rounded-xl border border-zinc-200"><table className="w-full min-w-[760px] border-collapse text-left text-sm"><thead className="bg-zinc-50"><tr><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Catatan</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Kondisi sekarang</th><th scope="col" className="border-b border-zinc-200 px-4 py-3 font-semibold">Gunanya</th></tr></thead><tbody className="[&>tr:not(:last-child)>td]:border-b [&>tr>td]:border-zinc-200">
           <tr><td className="border-r px-4 py-3 font-semibold">Progres pekerjaan</td><td className="border-r px-4 py-3">{m.progress}%</td><td className="px-4 py-3">Melihat kemajuan pekerjaan; tidak otomatis membuat tagihan.</td></tr>
-          <tr><td className="border-r px-4 py-3 font-semibold">Tahap selesai</td><td className="border-r px-4 py-3">{project.agreementBaseline.milestones.length - pending.length} dari {project.agreementBaseline.milestones.length} tahap</td><td className="px-4 py-3">Jika syarat tahap terpenuhi, nilainya masuk hak tagih.</td></tr>
-          <tr><td className="border-r px-4 py-3 font-semibold">Revisi</td><td className="border-r px-4 py-3">{m.actualRevisions} dari {m.includedRevisions} revisi</td><td className="px-4 py-3">Kelebihan revisi ditandai untuk ditinjau.</td></tr>
+          <tr><td className="border-r px-4 py-3 font-semibold">Tahap selesai</td><td className="border-r px-4 py-3">{available?.billing ? `${project.agreementBaseline.milestones.length - pending.length} dari ${project.agreementBaseline.milestones.length} tahap` : 'Syarat tagih belum ada'}</td><td className="px-4 py-3">{available?.billing ? 'Jika syarat tahap terpenuhi, nilainya masuk hak tagih.' : 'Tambahkan nilai dan syarat pembayaran ke acuan.'}</td></tr>
+          <tr><td className="border-r px-4 py-3 font-semibold">Revisi</td><td className="border-r px-4 py-3">{available?.revisionLimit ? `${m.actualRevisions} dari ${m.includedRevisions} revisi` : `${m.actualRevisions} tercatat; batas belum ada`}</td><td className="px-4 py-3">{available?.revisionLimit ? 'Kelebihan revisi ditandai untuk ditinjau.' : 'Belum dapat dibandingkan dengan kesepakatan.'}</td></tr>
           <tr><td className="border-r px-4 py-3 font-semibold">Perkiraan selesai</td><td className="border-r px-4 py-3">{m.projectedFinish ? formatDate(m.projectedFinish) : 'Belum dicatat'}</td><td className="px-4 py-3">{m.deadline ? `Dibandingkan dengan tenggat ${formatDate(m.deadline)}.` : 'Tenggat belum dicatat di acuan.'}</td></tr>
-          <tr><td className="border-r px-4 py-3 font-semibold">Pekerjaan tambahan</td><td className="border-r px-4 py-3">{project.agreementBaseline.scopeItems.filter((s) => s.status === 'NEEDS_REVIEW').length} perlu ditinjau</td><td className="px-4 py-3">Tentukan apakah termasuk kontrak atau perlu permintaan perubahan.</td></tr>
+          <tr><td className="border-r px-4 py-3 font-semibold">Pekerjaan tambahan</td><td className="border-r px-4 py-3">{available?.scope ? `${project.agreementBaseline.scopeItems.filter((s) => s.status === 'NEEDS_REVIEW').length} perlu ditinjau` : 'Ruang lingkup belum ada'}</td><td className="px-4 py-3">{available?.scope ? 'Tentukan apakah termasuk kesepakatan atau perlu perubahan.' : 'Belum dapat dibandingkan dengan kesepakatan.'}</td></tr>
         </tbody></table></div>
       </Panel>
 
@@ -49,7 +53,7 @@ export function MonitoringTab({ project, run, onProposeChange }: { project: Proj
           </form>
         </Panel>
 
-        <Panel title="Tahap pekerjaan selesai" description="Pilih tahap hanya setelah syaratnya benar-benar terpenuhi. Nilainya akan masuk hak tagih proyek.">
+        {available?.billing && <Panel title="Tahap pekerjaan selesai" description="Pilih tahap hanya setelah syaratnya benar-benar terpenuhi. Nilainya akan masuk hak tagih proyek.">
           {pending.length === 0 ? (
             <p className="text-sm text-zinc-500">Semua tahap sudah selesai.</p>
           ) : (
@@ -64,9 +68,9 @@ export function MonitoringTab({ project, run, onProposeChange }: { project: Proj
               <button type="submit" disabled={busy !== null || !milestoneId} className={btn.primary}>{busy === 'milestone' ? 'Menyimpan…' : 'Tandai selesai'}</button>
             </form>
           )}
-        </Panel>
+        </Panel>}
 
-        <Panel title="Catat revisi" description={`Acuan ${m.baselineVersion} mencakup ${m.includedRevisions} revisi.`}>
+        <Panel title="Catat revisi" description={available?.revisionLimit ? `Acuan ${m.baselineVersion} mencakup ${m.includedRevisions} revisi.` : 'Revisi dapat dicatat, tetapi batas kesepakatan belum tersedia untuk dibandingkan.'}>
           <form onSubmit={(e) => { e.preventDefault(); void submit('revision', () => dataClient.addEvent(project.id, { type: 'REVISION_LOGGED', revisionCount: Number(revisionCount), title: revisionTitle || undefined }), `${revisionCount} revisi dicatat.`, () => { setRevisionCount('1'); setRevisionTitle(''); }); }} className="grid gap-3 sm:grid-cols-[0.6fr_1.4fr_auto] sm:items-end">
             <div><label htmlFor="mon-rev-count" className={labelClass}>Jumlah</label><input id="mon-rev-count" type="number" min="1" max="50" required value={revisionCount} onChange={(e) => setRevisionCount(e.target.value)} className={inputClass} /></div>
             <div><label htmlFor="mon-rev-title" className={labelClass}>Keterangan</label><input id="mon-rev-title" value={revisionTitle} onChange={(e) => setRevisionTitle(e.target.value)} placeholder="Contoh: Revisi tata letak dashboard" className={inputClass} /></div>
@@ -74,16 +78,16 @@ export function MonitoringTab({ project, run, onProposeChange }: { project: Proj
           </form>
         </Panel>
 
-        <Panel title="Catat pekerjaan tambahan" description="Pekerjaan yang belum ada dalam acuan masuk daftar tinjauan. Setelah diperiksa, nyatakan termasuk kontrak atau ajukan perubahan.">
+        {available?.scope && <Panel title="Catat pekerjaan tambahan" description="Pekerjaan yang belum ada dalam acuan masuk daftar tinjauan. Setelah diperiksa, nyatakan termasuk kesepakatan atau ajukan perubahan.">
           <form onSubmit={(e) => { e.preventDefault(); void submit('scope', () => dataClient.addEvent(project.id, { type: 'SCOPE_ADDED', title: scopeTitle, description: scopeDesc || undefined }), 'Pekerjaan dicatat untuk ditinjau.', () => { setScopeTitle(''); setScopeDesc(''); }); }} className="space-y-3">
             <div><label htmlFor="mon-scope-title" className={labelClass}>Nama pekerjaan</label><input id="mon-scope-title" required value={scopeTitle} onChange={(e) => setScopeTitle(e.target.value)} placeholder="Contoh: Integrasi notifikasi WhatsApp" className={inputClass} /></div>
             <div><label htmlFor="mon-scope-desc" className={labelClass}>Keterangan (opsional)</label><input id="mon-scope-desc" value={scopeDesc} onChange={(e) => setScopeDesc(e.target.value)} className={inputClass} /></div>
             <button type="submit" disabled={busy !== null} className={btn.primary}>{busy === 'scope' ? 'Menyimpan…' : 'Catat pekerjaan'}</button>
           </form>
-        </Panel>
+        </Panel>}
       </div>
 
-      <Panel title="Tahap pembayaran">
+      {available?.billing && <Panel title="Tahap pembayaran">
         <div className="overflow-x-auto rounded-xl border border-zinc-200">
           <table className="w-full min-w-[760px] border-collapse text-left text-sm">
             <thead className="bg-zinc-50"><tr><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Tahap</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Syarat tagih</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Nilai</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Pekerjaan</th><th scope="col" className="border-b border-zinc-200 px-4 py-3 font-semibold">Tagihan</th></tr></thead>
@@ -100,11 +104,11 @@ export function MonitoringTab({ project, run, onProposeChange }: { project: Proj
             </tbody>
           </table>
         </div>
-      </Panel>
+      </Panel>}
 
-      <Panel title="Ruang lingkup pekerjaan" description="Pekerjaan yang perlu ditinjau dapat dinyatakan termasuk kontrak atau diajukan sebagai perubahan.">
-        <div className="overflow-x-auto rounded-xl border border-zinc-200"><table className="w-full min-w-[760px] border-collapse text-left text-sm"><thead className="bg-zinc-50"><tr><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Pekerjaan</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Status</th><th scope="col" className="border-b border-zinc-200 px-4 py-3 font-semibold">Tindakan</th></tr></thead><tbody className="[&>tr:not(:last-child)>td]:border-b [&>tr>td]:border-zinc-200">{project.agreementBaseline.scopeItems.map((s) => <tr key={s.id}><td className="border-r px-4 py-3"><strong className="text-zinc-900">{s.title}</strong><span className="mt-1 block text-sm text-zinc-600">{s.deviationNotes ?? s.description}</span></td><td className="border-r px-4 py-3"><ScopeBadge status={s.status} /></td><td className="px-4 py-3">{s.status === 'NEEDS_REVIEW' ? <div className="flex flex-wrap gap-2"><button type="button" disabled={busy !== null} onClick={() => { if (window.confirm(`Nyatakan "${s.title}" termasuk ruang lingkup kontrak?`)) void submit(`scope-${s.id}`, () => dataClient.reviewScope(project.id, s.id), `"${s.title}" dinyatakan termasuk kontrak.`); }} className={btn.secondary}>Termasuk kontrak</button><button type="button" onClick={() => onProposeChange(s.title)} className={btn.primary}>Ajukan perubahan</button></div> : 'Tidak perlu tindakan'}</td></tr>)}</tbody></table></div>
-      </Panel>
+      {available?.scope && <Panel title="Ruang lingkup pekerjaan" description="Pekerjaan yang perlu ditinjau dapat dinyatakan termasuk kesepakatan atau diajukan sebagai perubahan.">
+        <div className="overflow-x-auto rounded-xl border border-zinc-200"><table className="w-full min-w-[760px] border-collapse text-left text-sm"><thead className="bg-zinc-50"><tr><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Pekerjaan</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Status</th><th scope="col" className="border-b border-zinc-200 px-4 py-3 font-semibold">Tindakan</th></tr></thead><tbody className="[&>tr:not(:last-child)>td]:border-b [&>tr>td]:border-zinc-200">{project.agreementBaseline.scopeItems.map((s) => <tr key={s.id}><td className="border-r px-4 py-3"><strong className="text-zinc-900">{s.title}</strong><span className="mt-1 block text-sm text-zinc-600">{s.deviationNotes ?? s.description}</span></td><td className="border-r px-4 py-3"><ScopeBadge status={s.status} /></td><td className="px-4 py-3">{s.status === 'NEEDS_REVIEW' ? <div className="flex flex-wrap gap-2"><button type="button" disabled={busy !== null} onClick={() => { if (window.confirm(`Nyatakan "${s.title}" termasuk ruang lingkup kontrak?`)) void submit(`scope-${s.id}`, () => dataClient.reviewScope(project.id, s.id), `"${s.title}" dinyatakan termasuk kontrak.`); }} className={btn.secondary}>Termasuk kontrak</button>{canRequestChange ? <button type="button" onClick={() => onProposeChange(s.title)} className={btn.primary}>Ajukan perubahan</button> : <span className="self-center text-xs text-amber-800">Lengkapi nilai, tenggat, dan batas revisi untuk mengajukan perubahan.</span>}</div> : 'Tidak perlu tindakan'}</td></tr>)}</tbody></table></div>
+      </Panel>}
     </div>
   );
 }

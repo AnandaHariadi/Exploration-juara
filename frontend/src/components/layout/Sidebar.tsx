@@ -62,7 +62,7 @@ export function Sidebar({ desktopOpen, mobileOpen, onCloseMobile, onToggleDeskto
   }, [mobileOpen, onCloseMobile]);
 
   const resetDemo = async () => {
-    if (!window.confirm('Atur ulang data demo? Semua proyek, dokumen unggahan, dan perubahan kembali ke kondisi awal demo. Tindakan ini tidak bisa dibatalkan.')) return;
+    if (!window.confirm('Atur ulang data demo untuk semua pengunjung? Semua proyek, dokumen unggahan, dan perubahan kembali ke kondisi awal demo. Tindakan ini tidak bisa dibatalkan.')) return;
     setResetting(true);
     try {
       await dataClient.resetDemo();

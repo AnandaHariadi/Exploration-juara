@@ -5,6 +5,7 @@ import { Bot, ExternalLink, FileText, Loader2, RefreshCw, Upload } from 'lucide-
 import type { Alert, DocumentKind, Project } from '@/types';
 import { dataClient, documentUrl } from '@/services/dataClient';
 import { formatDate, formatRupiah, isOpenAlert } from '@/lib/utils';
+import { baselineAvailability } from '@/lib/baseline';
 import { btn, EmptyState, inputClass, labelClass, Panel, SourceQuote } from '@/components/shared/ui';
 import { BasisBadge, documentKindLabel, DocumentStatusBadge } from '@/components/shared/labels';
 import { DraftCard } from './DraftCard';
@@ -12,7 +13,6 @@ import { AccessibleDialog } from '@/components/shared/AccessibleDialog';
 
 type Run = <T>(action: () => Promise<T>, success: string | ((r: T) => string)) => Promise<T | undefined>;
 
-const UPLOAD_KINDS: DocumentKind[] = ['INVOICE', 'ADDENDUM', 'CLIENT_APPROVAL', 'RAB', 'SUPPORTING'];
 const SAMPLES = [
   { key: 'invoice-uat', label: 'Invoice termin UAT', hint: 'sesuai kontrak' },
   { key: 'invoice-tambahan', label: 'Invoice pekerjaan tambahan', hint: 'mengandung anomali' },
@@ -21,7 +21,11 @@ const SAMPLES = [
 
 /** Document Intelligence: every document, its analysis state, findings, evidence and next actions. */
 export function DocumentsTab({ project, run, onOpenAlert }: { project: Project; run: Run; onOpenAlert: (alert: Alert) => void }) {
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  const available = active ? baselineAvailability(active) : null;
+  const uploadKinds: DocumentKind[] = [...(!available?.agreement ? ['CONTRACT' as const] : []), ...(!available?.budget ? ['RAB' as const] : []), 'INVOICE', 'ADDENDUM', 'CLIENT_APPROVAL', 'SUPPORTING'];
   const [kind, setKind] = React.useState<DocumentKind>('INVOICE');
+  const selectedKind = uploadKinds.includes(kind) ? kind : 'INVOICE';
   const [busy, setBusy] = React.useState<string | null>(null);
   const [selectedDocId, setSelectedDocId] = React.useState<string | null>(null);
   const act = async (key: string, action: () => Promise<unknown>, text: string) => {
@@ -35,21 +39,21 @@ export function DocumentsTab({ project, run, onOpenAlert }: { project: Project; 
     <div className="space-y-5">
       <Panel
         title="Dokumen & analisis CLARA"
-        description="Unggah berkas untuk diperiksa. Hasil dan tindakan tiap berkas tersedia di daftar di bawah."
+        description="Unggah berkas untuk diperiksa. Kesepakatan atau RAB yang melengkapi acuan perlu ditinjau dan disetujui di tab Acuan proyek."
       >
         <div className="flex flex-wrap items-end gap-3 rounded-xl bg-zinc-50 p-4">
           <div>
             <label htmlFor="doc-kind" className={labelClass}>Jenis dokumen</label>
-            <select id="doc-kind" value={kind} onChange={(e) => setKind(e.target.value as DocumentKind)} className={inputClass}>
-              {UPLOAD_KINDS.map((k) => <option key={k} value={k}>{documentKindLabel[k]}</option>)}
+            <select id="doc-kind" value={selectedKind} onChange={(e) => setKind(e.target.value as DocumentKind)} className={inputClass}>
+              {uploadKinds.map((k) => <option key={k} value={k}>{documentKindLabel[k]}</option>)}
             </select>
           </div>
           <label className={`${btn.primary} relative cursor-pointer`}>
             {busy === 'upload' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             {busy === 'upload' ? 'Mengunggah…' : 'Unggah & analisis otomatis'}
-            <input type="file" className="sr-only" accept={kind === 'RAB' ? '.csv,.xlsx,.xls' : '.pdf,.png,.jpg,.jpeg,.webp'} disabled={busy !== null} onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void act('upload', () => dataClient.uploadDocument(project.id, kind, file), kind === 'RAB' ? `${file.name} diunggah. Jumlah biaya dibaca oleh sistem.` : `${file.name} diunggah. CLARA sedang menganalisis.`); }} />
+            <input type="file" className="sr-only" accept={selectedKind === 'RAB' ? '.csv,.xlsx,.xls' : '.pdf,.png,.jpg,.jpeg,.webp'} disabled={busy !== null} onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void act('upload', () => dataClient.uploadDocument(project.id, selectedKind, file), selectedKind === 'RAB' ? `${file.name} diunggah. Jumlah biaya dibaca oleh sistem.` : `${file.name} diunggah. CLARA sedang menganalisis.`); }} />
           </label>
-          <p className="text-xs text-zinc-500">{kind === 'RAB' ? 'CSV, XLSX, XLS · maks. 5 MB' : 'PDF, JPG, PNG, WebP · maks. 10 MB'}</p>
+          <p className="text-xs text-zinc-500">{selectedKind === 'RAB' ? 'CSV, XLSX, XLS · maks. 5 MB' : 'PDF, JPG, PNG, WebP · maks. 10 MB'}</p>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
           <span className="text-xs text-zinc-500">Dokumen contoh (demo):</span>

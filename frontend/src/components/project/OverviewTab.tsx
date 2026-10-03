@@ -4,44 +4,48 @@ import React from 'react';
 import { Clock } from 'lucide-react';
 import type { Alert, Project } from '@/types';
 import { formatDate, formatRupiah } from '@/lib/utils';
+import { baselineAvailability } from '@/lib/baseline';
 import { InsightBadge, Panel } from '@/components/shared/ui';
 
 export function OverviewTab({ project, onOpenAlert }: { project: Project; onOpenAlert: (alert: Alert) => void }) {
   const m = project.metrics;
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  const available = active ? baselineAvailability(active) : null;
+  const hasCost = project.actualCosts.length > 0;
   const comparison = [
     {
       label: 'Biaya proyek',
-      reference: formatRupiah(m.plannedCost),
-      current: formatRupiah(m.actualCost),
-      result: m.plannedCost <= 0 ? 'RAB belum dicatat' : m.budgetVariance > 0 ? `Melebihi rencana ${formatRupiah(m.budgetVariance)}` : `Sisa rencana ${formatRupiah(Math.max(0, -m.budgetVariance))}`,
+      reference: available?.budget ? formatRupiah(m.plannedCost) : 'RAB belum menjadi acuan',
+      current: hasCost ? formatRupiah(m.actualCost) : 'Biaya belum dicatat',
+      result: !available?.budget ? 'Belum dapat dibandingkan' : !hasCost ? 'Menunggu catatan biaya' : m.budgetVariance > 0 ? `Melebihi rencana ${formatRupiah(m.budgetVariance)}` : `Sisa rencana ${formatRupiah(Math.max(0, -m.budgetVariance))}`,
       note: 'RAB dibanding biaya yang sudah dicatat.',
     },
     {
       label: 'Revisi',
-      reference: `${m.includedRevisions} revisi termasuk`,
+      reference: available?.revisionLimit ? `${m.includedRevisions} revisi termasuk` : 'Batas revisi belum ada',
       current: `${m.actualRevisions} revisi dicatat`,
-      result: m.revisionVariance > 0 ? `${m.revisionVariance} di luar kesepakatan` : 'Masih dalam batas',
+      result: !available?.revisionLimit ? 'Belum dapat dibandingkan' : m.revisionVariance > 0 ? `${m.revisionVariance} di luar kesepakatan` : 'Masih dalam batas',
       note: 'Tambahan revisi dapat diajukan sebagai perubahan.',
     },
     {
       label: 'Tenggat',
-      reference: m.deadline ? formatDate(m.deadline) : 'Tenggat belum dicatat',
+      reference: available?.deadline && m.deadline ? formatDate(m.deadline) : 'Tenggat belum ada',
       current: m.projectedFinish ? formatDate(m.projectedFinish) : 'Perkiraan belum dicatat',
       result: m.deadlineVarianceDays === null ? 'Belum bisa dibandingkan' : m.deadlineVarianceDays > 0 ? `Lewat ${m.deadlineVarianceDays} hari` : 'Sesuai tenggat',
       note: 'Perkiraan selesai dicatat di Pemantauan.',
     },
     {
       label: 'Tagihan',
-      reference: `Hak tagih ${formatRupiah(m.billableValue)}`,
-      current: `Ditagih ${formatRupiah(m.billedValue)}`,
-      result: m.unbilledValue > 0 ? `Belum ditagih ${formatRupiah(m.unbilledValue)}` : 'Semua hak tagih sudah dicatat',
+      reference: available?.billing ? `Hak tagih ${formatRupiah(m.billableValue)}` : 'Syarat tagih belum ada',
+      current: project.invoices.length ? `Ditagih ${formatRupiah(m.billedValue)}` : 'Tagihan belum dicatat',
+      result: !available?.billing ? 'Hak tagih belum dapat dihitung' : m.unbilledValue > 0 ? `Belum ditagih ${formatRupiah(m.unbilledValue)}` : m.billableValue > 0 ? 'Semua hak tagih sudah dicatat' : 'Belum ada tahap siap tagih',
       note: 'Hak tagih muncul saat syarat tahap terpenuhi.',
     },
     {
       label: 'Pembayaran',
       reference: `Tagihan ${formatRupiah(m.billedValue)}`,
       current: `Dibayar ${formatRupiah(m.paidValue)}`,
-      result: m.billedValue > m.paidValue ? `Belum dibayar ${formatRupiah(m.billedValue - m.paidValue)}` : 'Tidak ada tagihan yang belum dibayar',
+      result: m.billedValue > m.paidValue ? `Belum dibayar ${formatRupiah(m.billedValue - m.paidValue)}` : m.billedValue > 0 ? 'Semua tagihan tercatat lunas' : 'Belum ada tagihan tercatat',
       note: 'Pembayaran dicatat di Keuangan.',
     },
   ];
@@ -85,7 +89,7 @@ export function OverviewTab({ project, onOpenAlert }: { project: Project; onOpen
                 <td className="border-r px-4 py-3"><InsightBadge status={check.status} /></td>
                 <td className="px-4 py-3">{alert && <button type="button" onClick={() => onOpenAlert(alert)} className="font-semibold text-red-700 hover:underline">Lihat bukti</button>}</td>
               </tr>;
-            })}</tbody>
+            })}{project.reconciliation.length === 0 && <tr><td colSpan={6} className="px-4 py-5 text-zinc-600">Belum ada pemeriksaan yang memiliki acuan. Lengkapi kesepakatan atau RAB di tab Acuan proyek.</td></tr>}</tbody>
           </table>
         </div>
       </Panel>

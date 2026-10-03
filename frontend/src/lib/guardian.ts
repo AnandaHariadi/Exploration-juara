@@ -8,9 +8,10 @@
 
 import type { DocumentAnalysis, DocumentFinding, ExtractionCandidate, Project, ProjectDocument } from '@/types';
 import { EMPTY_TERMS } from '@/types';
+import { baselineAvailability } from './baseline';
 import { badRequest, conflict, HttpError } from './api';
 import { claraDb, makeCtx } from './db';
-import { findDocument, latestDocument } from './domain';
+import { findDocument, latestDocument, supplementCandidate } from './domain';
 import { getDocumentFile, readDocumentFile } from './files';
 import { parseRabBuffer } from './rab';
 import { manualCandidate, sampleCandidate } from './samples';
@@ -97,12 +98,13 @@ export function startDocumentAnalysis(projectId: string, documentId: string): Pr
     const doc = findDocument(project, documentId);
     if (isRunning(doc)) throw conflict('Dokumen ini sedang dianalisis. Tunggu hingga selesai.', 'DOCUMENT_PROCESSING');
     const preBaseline = project.baselines.length === 0;
-    if (doc.kind === 'CONTRACT' && !preBaseline) throw conflict('Kontrak acuan sudah disetujui. Unggah adendum untuk perubahan.', 'BASELINE_LOCKED');
+    const active = project.baselines.find((version) => version.status === 'ACTIVE');
+    if (doc.kind === 'CONTRACT' && active && baselineAvailability(active).agreement) throw conflict('Kesepakatan sudah menjadi acuan. Unggah adendum untuk perubahan.', 'BASELINE_LOCKED');
     doc.status = 'PROCESSING';
     doc.statusAt = ctx.now;
     doc.error = undefined;
     if (doc.kind === 'CONTRACT') {
-      const placeholder = manualCandidate(project.client, project.name, ctx.now, { items: [], total: null, warnings: [] });
+      const placeholder = active ? supplementCandidate(project, ctx) : manualCandidate(project.client, project.name, ctx.now, { items: [], total: null, warnings: [] });
       project.extraction = { ...placeholder, status: 'PROCESSING', source: 'AI', completedAt: undefined, warnings: [] };
     }
     return { doc: { ...doc }, preBaseline };
@@ -119,7 +121,9 @@ async function runAnalysis(projectId: string, doc: ProjectDocument, startedAt: s
       const parsed = parseRabBuffer(file, doc.fileName);
       return claraDb.mutate(projectId, (project) => {
         const target = findDocument(project, doc.id);
-        target.status = project.baselines.length ? 'APPROVED' : 'ANALYZED';
+        const active = project.baselines.find((version) => version.status === 'ACTIVE');
+        const supplement = active && !baselineAvailability(active).budget;
+        target.status = supplement ? 'NEEDS_REVIEW' : active ? 'APPROVED' : 'ANALYZED';
         target.statusAt = new Date().toISOString();
         target.analysis = {
           analyzedAt: new Date().toISOString(),
@@ -131,7 +135,16 @@ async function runAnalysis(projectId: string, doc: ProjectDocument, startedAt: s
           warnings: parsed.warnings,
         };
         // Keep an unconfirmed candidate in sync with the latest RAB.
-        if (project.extraction?.status === 'READY' && !project.baselines.length) project.extraction.rab = rabFromProject(project);
+        if (supplement) {
+          const candidate = supplementCandidate(project, makeCtx());
+          candidate.rab = { items: parsed.items, total: parsed.total, sourceFile: doc.fileName, warnings: parsed.warnings };
+          project.extraction = candidate;
+        } else if (!active && project.extraction?.status === 'READY') {
+          project.extraction.rab = rabFromProject(project);
+        } else if (!active && !project.extraction) {
+          project.extraction = manualCandidate(project.client, project.name, new Date().toISOString(), rabFromProject(project));
+          project.extraction.warnings = parsed.warnings;
+        }
       }).project;
     }
 
@@ -145,7 +158,9 @@ async function runAnalysis(projectId: string, doc: ProjectDocument, startedAt: s
       target.statusAt = new Date().toISOString();
       if (target.kind === 'CONTRACT') {
         target.status = 'NEEDS_REVIEW';
-        project.extraction = candidateFrom(project, result, rabFromProject(project), startedAt);
+        const active = project.baselines.find((version) => version.status === 'ACTIVE');
+        const rab = active ? supplementCandidate(project, makeCtx()).rab : rabFromProject(project);
+        project.extraction = candidateFrom(project, result, rab, startedAt);
         project.events.unshift({
           id: makeCtx().nextId('EVT'),
           projectId,
@@ -207,18 +222,20 @@ export function analyzeInBackground(projectId: string, documentId: string) {
  */
 export async function runExtraction(projectId: string, mode: ExtractionMode): Promise<Project> {
   const project = claraDb.requireProject(projectId);
-  if (project.baselines.length > 0) throw conflict('Acuan proyek sudah disetujui. Perubahan berikutnya melalui permintaan perubahan.', 'BASELINE_LOCKED');
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  if (active && baselineAvailability(active).agreement && baselineAvailability(active).budget) throw conflict('Kedua acuan sudah disetujui. Perubahan berikutnya melalui permintaan perubahan.', 'BASELINE_LOCKED');
   const contract = latestDocument(project, 'CONTRACT');
   if (mode === 'AI') {
     if (!contract) throw badRequest('Unggah berkas kontrak terlebih dahulu.', 'CONTRACT_REQUIRED');
     return startDocumentAnalysis(projectId, contract.id);
   }
-  if (mode === 'SAMPLE' && !contract?.isSample) throw badRequest('Data contoh hanya tersedia untuk berkas contoh. Gunakan analisis AI untuk berkas Anda.', 'NOT_SAMPLE');
+  if (mode === 'SAMPLE' && (active || !contract?.isSample)) throw badRequest('Data contoh hanya tersedia sebelum acuan V1 disetujui.', 'NOT_SAMPLE');
   if (contract && isRunning(contract)) throw conflict('Analisis dokumen sedang berjalan. Tunggu hingga selesai.', 'EXTRACTION_IN_PROGRESS');
   const ctx = makeCtx();
   return claraDb.mutate(projectId, (p) => {
     const rab = rabFromProject(p);
-    p.extraction = mode === 'SAMPLE' ? { ...sampleCandidate(contract!.id, ctx.now), rab } : manualCandidate(p.client, p.name, ctx.now, rab);
+    p.extraction = mode === 'SAMPLE' ? { ...sampleCandidate(contract!.id, ctx.now), rab } : active ? supplementCandidate(p, ctx) : manualCandidate(p.client, p.name, ctx.now, rab);
+    if (active && !baselineAvailability(active).budget) p.extraction.rab = rab;
     if (mode === 'MANUAL') p.extraction.terms = { ...EMPTY_TERMS };
     p.events.unshift({
       id: ctx.nextId('EVT'),

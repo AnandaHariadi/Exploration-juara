@@ -6,6 +6,7 @@ import type { ChangeRequest, Project, UserPersonaId } from '@/types';
 import { dataClient } from '@/services/dataClient';
 import { useActivePersona } from '@/hooks/useClaraData';
 import { formatDate, formatRupiah } from '@/lib/utils';
+import { baselineAvailability } from '@/lib/baseline';
 import { btn, EmptyState, inputClass, labelClass, Panel } from '@/components/shared/ui';
 import { AccessibleDialog } from '@/components/shared/AccessibleDialog';
 
@@ -257,13 +258,16 @@ export function ChangeRequestsTab({ project, run, prefillScope, onPrefillUsed }:
   const [form, setForm] = React.useState(empty);
   const [open, setOpen] = React.useState(false);
   const [busy, setBusy] = React.useState<'draft' | 'submit' | 'ai' | null>(null);
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  const available = active ? baselineAvailability(active) : null;
+  const canRequestChange = Boolean(available?.contractValue && available.deadline && available.revisionLimit);
 
   React.useEffect(() => {
-    if (!prefillScope) return;
+    if (!prefillScope || !canRequestChange) return;
     setForm({ ...empty, title: `Pekerjaan tambahan: ${prefillScope}`, scope: prefillScope, reason: 'Pekerjaan di luar ruang lingkup acuan' });
     setOpen(true);
     onPrefillUsed();
-  }, [prefillScope]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [prefillScope, canRequestChange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const revisionAlert = project.alerts.find((a) => a.type === 'REVISION_LIMIT' && (a.status === 'NEW' || a.status === 'ACKNOWLEDGED'));
   const save = async (submit: boolean) => {
@@ -293,9 +297,10 @@ export function ChangeRequestsTab({ project, run, prefillScope, onPrefillUsed }:
       <Panel
         title="Permintaan perubahan"
         description="Catat perubahan pekerjaan, biaya, revisi, atau tenggat. Acuan proyek baru berubah setelah disetujui pimpinan dan klien."
-        action={!open && <button type="button" onClick={() => setOpen(true)} className={btn.secondary}>Buat permintaan</button>}
+        action={canRequestChange && !open && <button type="button" onClick={() => setOpen(true)} className={btn.secondary}>Buat permintaan</button>}
       >
-        {revisionAlert && !open && (
+        {!canRequestChange && <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Permintaan perubahan memerlukan nilai kesepakatan, tenggat, dan batas revisi yang sudah disetujui. Lengkapi dulu ketiganya di acuan proyek.</p>}
+        {canRequestChange && revisionAlert && !open && (
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-950">
             <Bot className="h-4 w-4" />
             <span className="flex-1">CLARA menemukan: {revisionAlert.title}. CLARA dapat menyiapkan permintaan perubahan dengan nilai sesuai tarif kontrak.</span>
@@ -304,7 +309,7 @@ export function ChangeRequestsTab({ project, run, prefillScope, onPrefillUsed }:
             </button>
           </div>
         )}
-        {open && (
+        {canRequestChange && open && (
           <form onSubmit={(e) => { e.preventDefault(); void save(true); }} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div><label htmlFor="cr-title" className={labelClass}>Judul perubahan</label><input id="cr-title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} /></div>
