@@ -11,12 +11,12 @@
 **Goal:** Menyiapkan struktur frontend CLARA agar mudah dikembangkan dan diintegrasikan.
 
 ### Checklist
-- [ ] Setup project React + Vite
-- [ ] Setup Tailwind CSS
-- [ ] Setup React Router
-- [ ] Buat struktur folder `pages`, `components`, `services`, `hooks`, `types`
-- [ ] Setup API client / Axios
-- [ ] Buat environment variable untuk backend URL
+- [x] Setup project React + Vite
+- [x] Setup Tailwind CSS
+- [x] Setup React Router
+- [x] Buat struktur folder `pages`, `components`, `services`, `hooks`, `types`
+- [x] Setup API client / Axios
+- [x] Buat environment variable untuk backend URL
 
 ### Done When
 Frontend dapat dijalankan dan routing dasar bekerja.
@@ -28,11 +28,11 @@ Frontend dapat dijalankan dan routing dasar bekerja.
 **Goal:** Membuat layout utama aplikasi CLARA.
 
 ### Checklist
-- [ ] Sidebar navigation
-- [ ] Header/topbar
-- [ ] Responsive layout
-- [ ] Navigation state aktif
-- [ ] Menu utama:
+- [x] Sidebar navigation
+- [x] Header/topbar
+- [x] Responsive layout
+- [x] Navigation state aktif
+- [x] Menu utama:
   - Dashboard
   - Projects
   - Contract & RAB
@@ -62,11 +62,11 @@ User dapat berpindah antarhalaman tanpa reload.
 - Jumlah alert
 
 ### Checklist
-- [ ] Summary cards
-- [ ] Project health section
-- [ ] Priority alerts
-- [ ] Progress indicator
-- [ ] Link ke detail project
+- [x] Summary cards
+- [x] Project health section
+- [x] Priority alerts
+- [x] Progress indicator
+- [x] Link ke detail project
 
 ### Done When
 Owner dapat memahami kondisi project dari satu layar.
@@ -78,13 +78,13 @@ Owner dapat memahami kondisi project dari satu layar.
 **Goal:** Menampilkan semua project yang sedang dikelola.
 
 ### Checklist
-- [ ] Project list
-- [ ] Project status
-- [ ] Contract value
-- [ ] Progress
-- [ ] Alert indicator
-- [ ] Button `Open Project`
-- [ ] Button `Create Project`
+- [x] Project list
+- [x] Project status
+- [x] Contract value
+- [x] Progress
+- [x] Alert indicator
+- [x] Button `Open Project`
+- [x] Button `Create Project`
 
 ### Done When
 User dapat melihat dan membuka project tertentu.
@@ -99,12 +99,12 @@ User dapat melihat dan membuka project tertentu.
 `Create Project → Upload Contract → Upload RAB → AI Extraction → Confirmation → Baseline`
 
 ### Checklist
-- [ ] Project name
-- [ ] Client name
-- [ ] Contract upload
-- [ ] RAB upload
-- [ ] Upload status
-- [ ] Continue button
+- [x] Project name
+- [x] Client name
+- [x] Contract upload
+- [x] RAB upload
+- [x] Upload status
+- [x] Continue button
 
 ### Done When
 User dapat memulai project dan mengirim dokumen ke backend.
@@ -116,12 +116,12 @@ User dapat memulai project dan mengirim dokumen ke backend.
 **Goal:** Menampilkan proses dan hasil ekstraksi Contract + RAB.
 
 ### Checklist
-- [ ] Processing/loading state
-- [ ] Error state
-- [ ] Contract extraction result
-- [ ] RAB extraction result
-- [ ] Group hasil berdasarkan kategori
-- [ ] Tampilkan source/evidence jika tersedia
+- [x] Processing/loading state
+- [x] Error state
+- [x] Contract extraction result
+- [x] RAB extraction result
+- [x] Group hasil berdasarkan kategori
+- [x] Tampilkan source/evidence jika tersedia
 
 ### Data contoh
 - Contract value
@@ -142,12 +142,12 @@ Hasil ekstraksi AI mudah dibaca user.
 **Goal:** Memastikan AI tidak langsung dianggap benar.
 
 ### Checklist
-- [ ] Semua hasil extraction dapat direview
-- [ ] Field penting dapat diedit
-- [ ] Tampilkan Agreement Baseline
-- [ ] Tampilkan Plan Baseline
-- [ ] Warning sebelum baseline dikunci
-- [ ] Button `Confirm & Lock Baseline`
+- [x] Semua hasil extraction dapat direview
+- [x] Field penting dapat diedit
+- [x] Tampilkan Agreement Baseline
+- [x] Tampilkan Plan Baseline
+- [x] Warning sebelum baseline dikunci
+- [x] Button `Confirm & Lock Baseline`
 
 ### Done When
 Baseline hanya aktif setelah dikonfirmasi user.
@@ -167,12 +167,12 @@ Baseline hanya aktif setelah dikonfirmasi user.
 - Alerts
 
 ### Checklist
-- [ ] Project header
-- [ ] Status
-- [ ] Client
-- [ ] Contract value
-- [ ] Active baseline version
-- [ ] Tab navigation
+- [x] Project header
+- [x] Status
+- [x] Client
+- [x] Contract value
+- [x] Active baseline version
+- [x] Tab navigation
 
 ### Done When
 Semua informasi project dapat diakses dari satu halaman.
@@ -184,12 +184,12 @@ Semua informasi project dapat diakses dari satu halaman.
 **Goal:** Memungkinkan update project berbasis event, bukan input harian.
 
 ### Checklist
-- [ ] Progress update
-- [ ] Milestone status
-- [ ] Revision count
-- [ ] Add project event
-- [ ] Add task/scope item
-- [ ] Event history / timeline
+- [x] Progress update
+- [x] Milestone status
+- [x] Revision count
+- [x] Add project event
+- [x] Add task/scope item
+- [x] Event history / timeline
 
 ### Event contoh
 - Milestone completed
@@ -212,11 +212,11 @@ PM dapat memperbarui kondisi project hanya saat ada event penting.
 - `APPROVED CHANGE`
 
 ### Checklist
-- [ ] Contract scope list
-- [ ] Actual scope/task list
-- [ ] Match indicator
-- [ ] Possible deviation indicator
-- [ ] Evidence button
+- [x] Contract scope list
+- [x] Actual scope/task list
+- [x] Match indicator
+- [x] Possible deviation indicator
+- [x] Evidence button
 
 ### Done When
 User dapat melihat task mana yang sesuai atau berpotensi keluar scope.
@@ -228,14 +228,14 @@ User dapat melihat task mana yang sesuai atau berpotensi keluar scope.
 **Goal:** Menampilkan planned cost, actual cost, billing, dan payment.
 
 ### Checklist
-- [ ] Planned Cost
-- [ ] Actual Cost
-- [ ] Cost breakdown
-- [ ] Add actual cost form
-- [ ] Invoice list
-- [ ] Add/upload invoice
-- [ ] Invoice status
-- [ ] Payment status
+- [x] Planned Cost
+- [x] Actual Cost
+- [x] Cost breakdown
+- [x] Add actual cost form
+- [x] Invoice list
+- [x] Add/upload invoice
+- [x] Invoice status
+- [x] Payment status
 
 ### Done When
 Finance dapat memperbarui data finansial project.
@@ -254,10 +254,10 @@ Finance dapat memperbarui data finansial project.
 - Unbilled Value
 
 ### Checklist
-- [ ] Value summary
-- [ ] Milestone billing table
-- [ ] Billing mismatch indicator
-- [ ] Completed but unbilled indicator
+- [x] Value summary
+- [x] Milestone billing table
+- [x] Billing mismatch indicator
+- [x] Completed but unbilled indicator
 
 ### Done When
 User dapat melihat gap antara hak tagih dengan invoice aktual.
@@ -269,17 +269,17 @@ User dapat melihat gap antara hak tagih dengan invoice aktual.
 **Goal:** Mendukung perubahan resmi project dan baseline versioning.
 
 ### Checklist
-- [ ] Create Change Request
-- [ ] Additional scope
-- [ ] Additional value
-- [ ] Deadline extension
-- [ ] Reason/notes
-- [ ] Status:
+- [x] Create Change Request
+- [x] Additional scope
+- [x] Additional value
+- [x] Deadline extension
+- [x] Reason/notes
+- [x] Status:
   - DRAFT
   - PENDING
   - APPROVED
   - REJECTED
-- [ ] Baseline version history
+- [x] Baseline version history
 
 ### Done When
 Approved Change Request dapat terlihat sebagai Baseline V2/V3.
@@ -298,14 +298,14 @@ Approved Change Request dapat terlihat sebagai Baseline V2/V3.
 - Deadline Risk
 
 ### Checklist
-- [ ] Alert list
-- [ ] Severity/status
-- [ ] Rp impact
-- [ ] `Show Evidence`
-- [ ] Contract evidence
-- [ ] Project evidence
-- [ ] Finance evidence
-- [ ] Human review action
+- [x] Alert list
+- [x] Severity/status
+- [x] Rp impact
+- [x] `Show Evidence`
+- [x] Contract evidence
+- [x] Project evidence
+- [x] Finance evidence
+- [x] Human review action
 
 ### Done When
 User dapat mengetahui alasan CLARA menghasilkan sebuah alert.
@@ -317,17 +317,17 @@ User dapat mengetahui alasan CLARA menghasilkan sebuah alert.
 **Goal:** Menyatukan seluruh frontend dengan backend dan menyiapkan demo hackathon.
 
 ### Checklist
-- [ ] Integrasikan API real
-- [ ] Loading state semua request
-- [ ] Empty state
-- [ ] Error handling
-- [ ] Success feedback
-- [ ] Responsive check
-- [ ] Demo dataset
-- [ ] Demo project siap pakai
-- [ ] Fallback mock data jika backend gagal
-- [ ] Final UI polish
-- [ ] Pastikan alur demo berjalan:
+- [x] Integrasikan API real
+- [x] Loading state semua request
+- [x] Empty state
+- [x] Error handling
+- [x] Success feedback
+- [x] Responsive check
+- [x] Demo dataset
+- [x] Demo project siap pakai
+- [x] Fallback mock data jika backend gagal
+- [x] Final UI polish
+- [x] Pastikan alur demo berjalan:
   `Upload → Extract → Confirm → Monitor → Detect → Evidence`
 
 ### Done When
