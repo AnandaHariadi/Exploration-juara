@@ -62,7 +62,7 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
         </div>
       </div>
       {!locked && (
-        <label className={`${btn.secondary} mt-3 w-full cursor-pointer sm:w-auto`}>
+        <label className={`${btn.secondary} relative mt-3 w-full cursor-pointer sm:w-auto`}>
           {uploading === kind ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
           {uploading === kind ? 'Mengunggah…' : doc ? 'Ganti berkas' : 'Pilih berkas'}
           <input
