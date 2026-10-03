@@ -38,7 +38,7 @@ const kindLabel: Record<EvidenceItem['kind'], string> = {
 };
 
 export function impactText(alert: Alert) {
-  if (alert.impactKind === 'UNPRICED' || alert.impactKind === 'SCHEDULE' || alert.impactKind === 'NONE') return alert.impactLabel;
+  if (alert.impactKind === 'UNPRICED' || alert.impactKind === 'SCHEDULE' || alert.impactKind === 'NONE' || alert.rupiahImpact === 0) return alert.impactLabel;
   return formatRupiah(alert.rupiahImpact);
 }
 
