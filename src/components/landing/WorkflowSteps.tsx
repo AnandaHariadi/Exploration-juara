@@ -48,31 +48,31 @@ interface PartnerItem {
 const partners: PartnerItem[] = [
   {
     id: 1,
-    name: "Instansi Mitra 01",
+    name: "UPN Veteran Jawa Timur",
     category: "Lembaga Akademik & Riset",
-    logo: "/images/partners/partner_1.svg", // GANTI LOGO 1 DI SINI
-    alt: "Logo Mitra Instansi 1",
+    logo: "/images/partners/logo_upnvjt.png",
+    alt: "Logo UPN Veteran Jawa Timur",
   },
   {
     id: 2,
-    name: "Instansi Mitra 02",
+    name: "Technopark UPNVJT",
     category: "Pusat Inkubasi Bisnis",
-    logo: "/images/partners/partner_2.svg", // GANTI LOGO 2 DI SINI
-    alt: "Logo Mitra Instansi 2",
+    logo: "/images/partners/partner_2.svg",
+    alt: "Logo Pusat Inkubasi Bisnis",
   },
   {
     id: 3,
     name: "Media Partner 03",
     category: "Portal Finansial Nasional",
-    logo: "/images/partners/partner_3.svg", // GANTI LOGO 3 DI SINI
-    alt: "Logo Media Partner 3",
+    logo: "/images/partners/partner_3.svg",
+    alt: "Logo Media Partner",
   },
   {
     id: 4,
     name: "Instansi Mitra 04",
     category: "Asosiasi Industri & Kreatif",
-    logo: "/images/partners/partner_4.svg", // GANTI LOGO 4 DI SINI
-    alt: "Logo Mitra Instansi 4",
+    logo: "/images/partners/partner_4.svg",
+    alt: "Logo Asosiasi Industri",
   },
 ];
 
@@ -182,7 +182,7 @@ export function WorkflowSteps() {
                     alt={partner.alt}
                     width={220}
                     height={70}
-                    className="max-h-full max-w-[85%] w-auto object-contain opacity-75 group-hover:opacity-100 filter grayscale group-hover:grayscale-0 transition-all duration-300"
+                    className="max-h-full max-w-[85%] w-auto object-contain opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
                   />
                 </div>
 
