@@ -6,7 +6,7 @@ import { ArrowRight, Calculator, CheckCircle2, ExternalLink, FileText, Flag, Git
 import type { Alert, EvidenceItem } from '@/types';
 import { SeverityBadge } from '@/components/shared/Badge';
 import { InsightBadge, btn, inputClass } from '@/components/shared/ui';
-import { formatDate, formatRupiah } from '@/lib/utils';
+import { formatDate, formatRupiah, isOpenAlert } from '@/lib/utils';
 import { dataClient, documentUrl } from '@/services/dataClient';
 
 interface EvidenceDrawerProps {
@@ -188,7 +188,7 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, 
             </div>
           )}
 
-          {resolving && alert.status !== 'RESOLVED' && (
+          {resolving && isOpenAlert(alert) && (
             <div>
               <label htmlFor="resolve-note" className="block text-sm font-semibold text-zinc-800">Catatan penyelesaian</label>
               <textarea id="resolve-note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Contoh: Disepakati sebagai pengecualian dengan klien pada rapat 12 Okt." className={inputClass} />
@@ -205,7 +205,7 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, 
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />{busy ? 'Menyimpan…' : 'Tandai sudah dibaca'}
               </button>
             )}
-            {alert.status !== 'RESOLVED' && (resolving ? (
+            {isOpenAlert(alert) && (resolving ? (
               <button type="button" disabled={busy || !note.trim()} onClick={() => void act(() => dataClient.resolveAlert(alert.id, note.trim()))} className={btn.success}>
                 {busy ? 'Menyimpan…' : 'Simpan & selesaikan'}
               </button>
