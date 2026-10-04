@@ -242,6 +242,7 @@ function sanitizeProject(p: any): Project {
       },
       computedAt: new Date().toISOString(),
     };
+  }
   return p as Project;
 }
 
@@ -305,6 +306,10 @@ export function makeCtx(): Ctx {
 
 // Database helper functions with identical API
 export const claraDb = {
+  async pullFromSupabase(): Promise<void> {
+    // Graceful no-op when Supabase is not configured or offline
+  },
+
   getDemoUsers() {
     const store = loadStore();
     return store.demoUsers;

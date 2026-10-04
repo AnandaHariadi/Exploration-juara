@@ -3,13 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowRight, FilePlus2, FolderKanban } from 'lucide-react';
-import type { UserPersonaId } from '@/types';
+import type { Alert, UserPersonaId } from '@/types';
 import { dataClient } from '@/services/dataClient';
 import { useActivePersona, useDashboardSummary, useProjects } from '@/hooks/useClaraData';
 import { formatCompactRupiah, formatRupiah, isOpenAlert } from '@/lib/utils';
 import { baselineAvailability } from '@/lib/baseline';
 import { StatusBadge } from '@/components/shared/Badge';
-import { impactText } from '@/components/alerts/EvidenceDrawer';
+import { EvidenceDrawer, impactText } from '@/components/alerts/EvidenceDrawer';
 import { btn, Metric, NoticeBar, Panel, useNotice } from '@/components/shared/ui';
 
 const roleIntro: Record<UserPersonaId, { title: string; description: string; action: string; href: string }> = {
@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const { personaId } = useActivePersona();
   const { notice, run, clear } = useNotice();
   const [busy, setBusy] = React.useState<string | null>(null);
+  const [selectedAlert, setSelectedAlert] = React.useState<Alert | null>(null);
   const role = roleIntro[personaId];
 
   const openAlerts = projects.flatMap((p) => p.alerts.filter(isOpenAlert));
@@ -218,6 +219,7 @@ export default function DashboardPage() {
           {readyToBill.length > 0 && billingPanel}
         </>
       )}
+      <EvidenceDrawer alert={selectedAlert} onClose={() => setSelectedAlert(null)} />
     </div>
   );
 }
