@@ -113,7 +113,12 @@ export const dataClient = {
   getActivePersona: async () => (await request<{ activePersonaId: UserPersonaId }>('/api/demo/session')).activePersonaId,
 
   // Project setup
-  createProject: (input: { name: string; client: string; useSample?: boolean }) => mutation(() => send<Project>('POST', '/api/projects', input)),
+  previewRab: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<{ itemCount: number; total: number; warnings: string[] }>('/api/rab/preview', { method: 'POST', body: form });
+  },
+  createProject: (input: { name: string; client: string; useSample?: boolean; sampleBasis?: 'AGREEMENT' | 'BUDGET' | 'BOTH' }) => mutation(() => send<Project>('POST', '/api/projects', input)),
   updateProject: (id: string, input: { name?: string; client?: string }) => mutation(() => send<Project>('PATCH', `/api/projects/${id}`, input)),
   deleteProject: (id: string) => mutation(() => send<{ id: string }>('DELETE', `/api/projects/${id}`)),
   uploadDocument: (projectId: string, kind: DocumentKind, file: File) =>

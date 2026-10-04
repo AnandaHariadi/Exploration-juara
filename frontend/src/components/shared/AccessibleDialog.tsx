@@ -8,6 +8,8 @@ export function AccessibleDialog({ titleId, onClose, children }: { titleId: stri
   closeRef.current = onClose;
   React.useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const first = dialog.current?.querySelector<HTMLElement>('input, select, textarea, button');
     first?.focus();
     function onKeyDown(event: KeyboardEvent) {
@@ -19,7 +21,7 @@ export function AccessibleDialog({ titleId, onClose, children }: { titleId: stri
       else if (!event.shiftKey && document.activeElement === controls[controls.length - 1]) { event.preventDefault(); controls[0].focus(); }
     }
     document.addEventListener('keydown', onKeyDown);
-    return () => { document.removeEventListener('keydown', onKeyDown); previous?.focus(); };
+    return () => { document.removeEventListener('keydown', onKeyDown); document.body.style.overflow = previousOverflow; previous?.focus(); };
   }, []);
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div ref={dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} className="max-h-[90vh] w-full overflow-y-auto">{children}</div></div>;
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-3 sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div ref={dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl">{children}</div></div>;
 }

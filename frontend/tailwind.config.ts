@@ -21,6 +21,7 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-sans)", "'Plus Jakarta Sans'", "system-ui", "-apple-system", "sans-serif"],
         heading: ["var(--font-montserrat)", "'Montserrat'", "'Plus Jakarta Sans'", "sans-serif"],
+        mono: ["var(--font-sans)", "'Plus Jakarta Sans'", "system-ui", "-apple-system", "sans-serif"],
       },
       keyframes: {
         "marquee-left": {

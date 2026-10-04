@@ -6,6 +6,12 @@ import { USER_PERSONAS } from '../types/index';
 import { actorFor, randomId, type Ctx } from './domain';
 import { notFound } from './api';
 import { reconcile } from './engine';
+import {
+  isSupabaseConfigured,
+  syncProjectToSupabase,
+  deleteProjectFromSupabase,
+  syncSeedToSupabase,
+} from './supabase';
 
 // Ensure data folder exists
 const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
@@ -236,7 +242,6 @@ function sanitizeProject(p: any): Project {
       },
       computedAt: new Date().toISOString(),
     };
-  }
   return p as Project;
 }
 
@@ -315,7 +320,6 @@ export const claraDb = {
     store.activePersona = personaId;
     saveStore(store);
   },
-
   getProjects(): Project[] {
     const store = loadStore();
     return store.projects || [];
@@ -365,6 +369,9 @@ export const claraDb = {
     const store = loadStore();
     store.projects = store.projects.filter((p) => p.id !== id);
     saveStore(store);
+    if (isSupabaseConfigured()) {
+      void deleteProjectFromSupabase(id);
+    }
   },
 
   findAlertProject(alertId: string): Project {

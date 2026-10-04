@@ -22,6 +22,7 @@ import type {
 } from '@/types';
 import { EMPTY_TERMS, USER_PERSONAS } from '@/types';
 import { addDays, allocateMilestoneValues, emptyMetrics, formatDay, idr, isIsoDate } from './engine';
+import { baselineAvailability, candidateAvailability } from './baseline';
 import { badRequest, conflict, HttpError, int, MAX_RUPIAH, notFound, oneOf, str } from './api';
 
 export interface Ctx {
@@ -118,7 +119,9 @@ export const DOCUMENT_KIND_LABEL: Record<DocumentKind, string> = {
  */
 export function addDocument(project: Project, ctx: Ctx, doc: Omit<ProjectDocument, 'id' | 'uploadedAt' | 'uploadedBy' | 'status'> & { status?: ProjectDocument['status'] }, id = ctx.nextId('DOC')): ProjectDocument {
   const hasBaseline = project.baselines.length > 0;
-  if (hasBaseline && (doc.kind === 'CONTRACT' || doc.kind === 'RAB')) throw conflict('Acuan proyek sudah disetujui. Unggah adendum, lalu ajukan permintaan perubahan.', 'BASELINE_LOCKED');
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  const available = active ? baselineAvailability(active) : null;
+  if ((doc.kind === 'CONTRACT' && available?.agreement) || (doc.kind === 'RAB' && available?.budget)) throw conflict('Jenis acuan ini sudah disetujui. Gunakan permintaan perubahan untuk mengubahnya.', 'BASELINE_LOCKED');
   if (!hasBaseline && (doc.kind === 'INVOICE' || doc.kind === 'ADDENDUM' || doc.kind === 'CLIENT_APPROVAL')) throw conflict('Setujui acuan proyek terlebih dahulu sebelum mengunggah invoice, adendum, atau bukti persetujuan.', 'BASELINE_REQUIRED');
   if (!hasBaseline && doc.kind === 'CONTRACT' && project.extraction?.status === 'PROCESSING') throw conflict('Analisis dokumen sedang berjalan. Tunggu hingga selesai.', 'EXTRACTION_IN_PROGRESS');
   const record: ProjectDocument = { ...doc, status: doc.status ?? 'UPLOADED', statusAt: ctx.now, id, uploadedAt: ctx.now, uploadedBy: ctx.actor.label };
@@ -162,27 +165,81 @@ export function recordInvoiceFromDocument(project: Project, documentId: string, 
 
 export const latestDocument = (project: Project, kind: ProjectDocument['kind']) => [...project.documents].reverse().find((d) => d.kind === kind);
 
+/** Draft for adding the missing document while keeping approved fields intact. */
+export function supplementCandidate(project: Project, ctx: Ctx): ExtractionCandidate {
+  const active = requireBaseline(project);
+  const available = baselineAvailability(active);
+  if (available.agreement && available.budget) throw conflict('Kedua acuan sudah tersedia. Gunakan permintaan perubahan.', 'BASELINE_COMPLETE');
+  const agreement = project.agreementBaseline;
+  return {
+    status: 'READY', source: 'MANUAL', startedAt: ctx.now, completedAt: ctx.now, confidence: null,
+    contract: {
+      contractNumber: available.agreement ? agreement.contractNumber : '',
+      title: available.agreement ? agreement.title : project.name,
+      clientName: available.agreement ? agreement.clientName : project.client,
+      contractValue: available.contractValue ? active.contractValue : null,
+      startDate: available.startDate ? active.startDate : null,
+      deadline: available.deadline ? active.deadline : null,
+      revisionLimit: available.revisionLimit ? active.revisionLimit : null,
+      paymentTerms: available.agreement ? active.paymentTerms : '',
+      scope: available.scope ? active.scopeItems.filter((item) => item.origin === 'BASELINE').map((item) => item.title) : [],
+      obligations: available.agreement ? agreement.clausesSummary.filter((clause) => clause.title === 'Kewajiban').map((clause) => clause.description) : [],
+      penalties: available.agreement ? agreement.clausesSummary.filter((clause) => clause.title === 'Denda').map((clause) => clause.description) : [],
+    },
+    milestones: available.billing ? active.milestones.map((milestone) => ({ id: milestone.id, title: milestone.title, percentage: milestone.percentage, trigger: milestone.trigger || milestone.title, targetDate: milestone.targetDate || null, source: milestone.source })) : [],
+    rab: available.budget ? { items: active.rabItems.map((item) => ({ id: item.id, category: item.category, description: item.description, plannedAmount: item.plannedAmount })), total: active.plannedCost, sourceFile: project.planBaseline.sourceFile, warnings: [] } : { items: [], total: null, warnings: [] },
+    sources: available.agreement ? { ...agreement.sources } : {},
+    terms: available.agreement ? { ...EMPTY_TERMS, ...agreement.terms } : { ...EMPTY_TERMS },
+    risks: [], warnings: [], editedFields: [],
+  };
+}
+
 // ---------------------------------------------------------------- candidate
 
 export function validateCandidate(c: ExtractionCandidate): string[] {
   const errors: string[] = [];
   const k = c.contract;
-  if (!Number.isSafeInteger(k.contractValue) || (k.contractValue ?? 0) <= 0 || (k.contractValue ?? 0) > MAX_RUPIAH) errors.push('Nilai kontrak harus berupa bilangan bulat rupiah lebih dari 0.');
-  if (!Number.isSafeInteger(c.rab.total) || (c.rab.total ?? 0) <= 0) errors.push('Rencana biaya (RAB) belum tersedia. Unggah RAB CSV atau isi item RAB.');
-  if (!isIsoDate(k.startDate)) errors.push('Tanggal mulai belum valid.');
-  if (!isIsoDate(k.deadline)) errors.push('Tenggat belum valid.');
+  const available = candidateAvailability(c);
+  if (!available.agreement && !available.budget) errors.push('Isi kesepakatan atau minimal satu item RAB sebelum menyetujui acuan.');
+  if (k.contractValue !== null && k.contractValue !== undefined && (!Number.isSafeInteger(k.contractValue) || k.contractValue <= 0 || k.contractValue > MAX_RUPIAH)) errors.push('Nilai kontrak harus berupa bilangan bulat rupiah lebih dari 0.');
+  if (c.rab.items.length > 0) {
+    const sum = c.rab.items.reduce((total, item) => total + item.plannedAmount, 0);
+    if (!Number.isSafeInteger(sum) || sum <= 0 || sum > MAX_RUPIAH || c.rab.items.some((item) => !Number.isSafeInteger(item.plannedAmount) || item.plannedAmount <= 0)) errors.push('Item RAB harus berisi nominal rupiah bulat lebih dari 0.');
+    if (sum !== c.rab.total) errors.push('Total RAB harus sama dengan jumlah seluruh item.');
+  } else if (c.rab.total !== null && c.rab.total !== undefined) {
+    errors.push('Total RAB harus memiliki rincian item.');
+  }
+  if (k.startDate && !isIsoDate(k.startDate)) errors.push('Tanggal mulai belum valid.');
+  if (k.deadline && !isIsoDate(k.deadline)) errors.push('Tenggat belum valid.');
   if (isIsoDate(k.startDate) && isIsoDate(k.deadline) && k.startDate > k.deadline) errors.push('Tanggal mulai tidak boleh setelah tenggat.');
-  if (!Number.isInteger(k.revisionLimit) || (k.revisionLimit ?? -1) < 0 || (k.revisionLimit ?? 0) > 1000) errors.push('Batas revisi harus bilangan bulat 0 atau lebih.');
-  if (c.milestones.length === 0) errors.push('Tambahkan minimal satu tahap pembayaran (milestone).');
+  if (k.revisionLimit !== null && k.revisionLimit !== undefined && (!Number.isInteger(k.revisionLimit) || k.revisionLimit < 0 || k.revisionLimit > 1000)) errors.push('Batas revisi harus bilangan bulat 0 atau lebih.');
+  if (c.milestones.length > 0 && !available.contractValue) errors.push('Tahap pembayaran memerlukan nilai kesepakatan yang terkonfirmasi.');
   c.milestones.forEach((m, i) => {
     if (!m.title.trim()) errors.push(`Tahap ${i + 1}: nama wajib diisi.`);
+    if (!m.trigger.trim()) errors.push(`Tahap ${i + 1}: syarat tagih wajib diisi agar hak tagih dapat dihitung.`);
     if (typeof m.percentage !== 'number' || !(m.percentage > 0 && m.percentage <= 100)) errors.push(`Tahap ${i + 1}: persentase harus di antara 0 dan 100.`);
     if (m.targetDate && !isIsoDate(m.targetDate)) errors.push(`Tahap ${i + 1}: tanggal target tidak valid.`);
   });
   const sum = c.milestones.reduce((s, m) => s + (m.percentage ?? 0), 0);
   if (c.milestones.length > 0 && Math.abs(sum - 100) > 0.01) errors.push(`Total persentase tahap pembayaran ${sum.toLocaleString('id-ID')}%, harus 100%.`);
-  if (k.scope.filter((s) => s.trim()).length === 0) errors.push('Ruang lingkup pekerjaan wajib diisi minimal satu.');
   return errors;
+}
+
+/** During supplementation, only the newly added side is editable and validated. */
+export function validateProjectCandidate(project: Project): string[] {
+  const candidate = project.extraction;
+  if (!candidate) return [];
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  if (!active) return validateCandidate(candidate);
+  const approved = baselineAvailability(active);
+  if (approved.agreement && approved.budget) return ['Kedua acuan sudah disetujui.'];
+  if (approved.agreement) return validateCandidate({
+    ...candidate,
+    contract: { ...candidate.contract, contractNumber: '', contractValue: null, startDate: null, deadline: null, revisionLimit: null, paymentTerms: '', scope: [], obligations: [], penalties: [] },
+    milestones: [],
+    terms: { ...EMPTY_TERMS },
+  });
+  return validateCandidate({ ...candidate, rab: { items: [], total: null, warnings: [] } });
 }
 
 function parseMilestones(raw: unknown): CandidateMilestone[] {
@@ -233,7 +290,11 @@ const nullableDate = (body: Record<string, unknown>, key: string, label: string)
 
 /** Human corrections to the candidate. Only fields present in the patch change. */
 export function updateCandidate(project: Project, patch: Record<string, unknown>) {
-  if (project.baselines.length > 0) throw conflict('Acuan proyek sudah disetujui. Gunakan permintaan perubahan.', 'BASELINE_LOCKED');
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  const approved = active ? baselineAvailability(active) : null;
+  if (approved?.agreement && approved.budget) throw conflict('Kedua acuan sudah disetujui. Gunakan permintaan perubahan.', 'BASELINE_LOCKED');
+  if (approved?.agreement && ('contract' in patch || 'milestones' in patch || 'terms' in patch)) throw conflict('Isi kesepakatan yang sudah disetujui tidak dapat diubah saat menambahkan RAB.', 'AGREEMENT_LOCKED');
+  if (approved?.budget && 'rabItems' in patch) throw conflict('RAB yang sudah disetujui tidak dapat diubah saat menambahkan kesepakatan.', 'BUDGET_LOCKED');
   const c = project.extraction;
   if (!c || c.status !== 'READY') throw conflict('Belum ada hasil analisis yang dapat ditinjau.', 'NO_CANDIDATE');
   const edited = new Set(c.editedFields);
@@ -289,22 +350,37 @@ export function updateCandidate(project: Project, patch: Record<string, unknown>
   if ('rabItems' in patch) {
     const items = parseRabItems(patch.rabItems);
     edited.add('rab');
-    c.rab = { ...c.rab, items, total: items.reduce((s, i) => s + i.plannedAmount, 0) };
+    c.rab = { ...c.rab, items, total: items.length ? items.reduce((s, i) => s + i.plannedAmount, 0) : null };
   }
   c.editedFields = [...edited];
 }
 
 export function confirmBaseline(project: Project, ctx: Ctx): BaselineVersion {
-  if (project.baselines.length > 0) throw conflict('Acuan V1 sudah disetujui. Perubahan berikutnya melalui permintaan perubahan.', 'BASELINE_EXISTS');
+  const previous = project.baselines.find((version) => version.status === 'ACTIVE');
+  const approved = previous ? baselineAvailability(previous) : null;
+  if (approved?.agreement && approved.budget) throw conflict('Kedua acuan sudah disetujui. Perubahan berikutnya melalui permintaan perubahan.', 'BASELINE_EXISTS');
   const c = project.extraction;
   if (!c || c.status !== 'READY') throw conflict('Belum ada hasil analisis yang siap disetujui.', 'NO_CANDIDATE');
-  const errors = validateCandidate(c);
+  const errors = validateProjectCandidate(project);
   if (errors.length) throw badRequest(errors.join(' '), 'CANDIDATE_INVALID');
 
   const k = c.contract;
-  const contractValue = k.contractValue as number;
-  const values = allocateMilestoneValues(contractValue, c.milestones.map((m) => m.percentage as number));
-  const milestones: Milestone[] = c.milestones.map((m, i) => ({
+  const proposed = candidateAvailability(c);
+  if (approved?.agreement && !proposed.budget) throw badRequest('Tambahkan RAB sebelum membuat versi acuan baru.', 'BUDGET_REQUIRED');
+  if (approved?.budget && !proposed.agreement) throw badRequest('Tambahkan ketentuan kesepakatan sebelum membuat versi acuan baru.', 'AGREEMENT_REQUIRED');
+  const availability = approved ? {
+    agreement: approved.agreement || proposed.agreement,
+    budget: approved.budget || proposed.budget,
+    contractValue: approved.agreement ? approved.contractValue : proposed.contractValue,
+    startDate: approved.agreement ? approved.startDate : proposed.startDate,
+    deadline: approved.agreement ? approved.deadline : proposed.deadline,
+    revisionLimit: approved.agreement ? approved.revisionLimit : proposed.revisionLimit,
+    scope: approved.agreement ? approved.scope : proposed.scope,
+    billing: approved.agreement ? approved.billing : proposed.billing,
+  } : proposed;
+  const contractValue = approved?.agreement ? previous!.contractValue : availability.contractValue ? k.contractValue as number : 0;
+  const values = c.milestones.length ? allocateMilestoneValues(contractValue, c.milestones.map((m) => m.percentage as number)) : [];
+  const newMilestones: Milestone[] = c.milestones.map((m, i) => ({
     id: m.id,
     title: m.title.trim(),
     percentage: m.percentage as number,
@@ -316,7 +392,7 @@ export function confirmBaseline(project: Project, ctx: Ctx): BaselineVersion {
     billingStatus: 'UNBILLED',
     source: m.source,
   }));
-  const scopeItems: ScopeItem[] = k.scope.filter((s) => s.trim()).map((title, i) => ({
+  const newScopeItems: ScopeItem[] = k.scope.filter((s) => s.trim()).map((title, i) => ({
     id: `SCP-${i + 1}`,
     title: title.trim(),
     description: c.source === 'MANUAL' ? 'Diisi manual saat membuat acuan.' : 'Dari ruang lingkup kontrak.',
@@ -325,31 +401,40 @@ export function confirmBaseline(project: Project, ctx: Ctx): BaselineVersion {
     origin: 'BASELINE',
     contractClauseRef: c.sources.scope?.page ? `hal. ${c.sources.scope.page}` : undefined,
   }));
-  const rabItems = c.rab.items.map((item) => ({ ...item, actualAmount: 0 }));
-  const sourceDetail = c.source === 'AI' ? `Analisis AI (${c.extractionMeta?.engine ?? 'CLARA AI'}) ditinjau pengguna` : c.source === 'SAMPLE' ? 'Data contoh ditinjau pengguna' : 'Input manual pengguna';
+  // Keep the approved snapshot in V2. Runtime milestone/scope statuses stay on agreementBaseline.
+  const milestones = approved?.agreement ? structuredClone(previous!.milestones) : newMilestones;
+  const scopeItems = approved?.agreement ? structuredClone(previous!.scopeItems) : newScopeItems;
+  const rabItems = approved?.budget ? structuredClone(previous!.rabItems) : c.rab.items.map((item) => ({ ...item, actualAmount: 0 }));
+  const sourceDetail = previous
+    ? `${approved!.agreement ? 'RAB' : 'Kesepakatan'} ditambahkan dan ditinjau ${ctx.actor.name}; ${previous.label} tetap dalam riwayat`
+    : c.source === 'AI' ? `Analisis AI (${c.extractionMeta?.engine ?? 'CLARA AI'}) ditinjau pengguna` : c.source === 'SAMPLE' ? 'Data contoh ditinjau pengguna' : 'Input manual pengguna';
+  const nextNumber = previous ? previous.version + 1 : 1;
+  const label = `V${nextNumber}`;
 
   const version: BaselineVersion = {
     id: ctx.nextId('BLV'),
-    version: 1,
-    label: 'V1',
+    version: nextNumber,
+    label,
     status: 'ACTIVE',
+    availability,
     contractValue,
-    plannedCost: c.rab.total as number,
-    startDate: k.startDate as string,
-    deadline: k.deadline as string,
-    revisionLimit: k.revisionLimit as number,
-    paymentTerms: k.paymentTerms,
+    plannedCost: approved?.budget ? previous!.plannedCost : availability.budget ? c.rab.total as number : 0,
+    startDate: approved?.agreement ? previous!.startDate : k.startDate ?? '',
+    deadline: approved?.agreement ? previous!.deadline : k.deadline ?? '',
+    revisionLimit: approved?.agreement ? previous!.revisionLimit : k.revisionLimit ?? 0,
+    paymentTerms: approved?.agreement ? previous!.paymentTerms : k.paymentTerms,
     milestones: structuredClone(milestones),
     scopeItems: structuredClone(scopeItems),
     rabItems,
-    terms: { ...EMPTY_TERMS, ...c.terms },
+    terms: approved?.agreement ? structuredClone(previous!.terms) : { ...EMPTY_TERMS, ...c.terms },
     source: 'EXTRACTION_CONFIRMED',
     sourceDetail,
     createdAt: ctx.now,
     createdBy: ctx.actor.label,
   };
+  if (previous) previous.status = 'ARCHIVED';
   project.baselines.push(version);
-  project.agreementBaseline = {
+  if (!approved?.agreement) project.agreementBaseline = {
     contractNumber: k.contractNumber,
     title: k.title || project.name,
     clientName: k.clientName || project.client,
@@ -367,23 +452,28 @@ export function confirmBaseline(project: Project, ctx: Ctx): BaselineVersion {
     sources: c.sources,
     terms: { ...EMPTY_TERMS, ...c.terms },
   };
-  for (const doc of project.documents) {
-    // The human confirmed the baseline from these documents (whatever path produced the candidate).
-    if (doc.kind === 'CONTRACT' || doc.kind === 'RAB') {
+  const contractDoc = c.extractionMeta?.documentId
+    ? project.documents.find((doc) => doc.id === c.extractionMeta?.documentId)
+    : latestDocument(project, 'CONTRACT');
+  const rabDoc = c.rab.sourceFile
+    ? [...project.documents].reverse().find((doc) => doc.kind === 'RAB' && doc.fileName === c.rab.sourceFile)
+    : undefined;
+  for (const doc of [!approved?.agreement && availability.agreement ? contractDoc : undefined, !approved?.budget && availability.budget ? rabDoc : undefined]) {
+    if (doc && doc.status !== 'REJECTED' && doc.status !== 'FAILED' && doc.status !== 'PROCESSING') {
       doc.status = 'APPROVED';
       doc.statusAt = ctx.now;
     }
   }
-  project.planBaseline = { totalPlannedCost: version.plannedCost, items: rabItems, contingencyBudget: 0, sourceFile: c.rab.sourceFile };
+  if (!approved?.budget) project.planBaseline = { totalPlannedCost: version.plannedCost, items: rabItems, contingencyBudget: 0, sourceFile: c.rab.sourceFile };
   c.status = 'CONFIRMED';
   pushEvent(
     project,
     ctx,
     'BASELINE_CONFIRMED',
-    'Acuan proyek V1 disetujui',
-    `Nilai kontrak ${idr(contractValue)}, RAB ${idr(version.plannedCost)}, tenggat ${formatDay(version.deadline)}, ${version.revisionLimit} revisi. Sumber: ${sourceDetail}.`,
+    `Acuan proyek ${label} disetujui`,
+    `${availability.contractValue ? `Nilai kesepakatan ${idr(contractValue)}` : 'Nilai kesepakatan belum tersedia'}, ${availability.budget ? `RAB ${idr(version.plannedCost)}` : 'RAB belum tersedia'}. Sumber: ${sourceDetail}.`,
   );
-  console.log(`[BASELINE] project=${project.id} V1 confirmed by ${ctx.actor.name}`);
+  console.log(`[BASELINE] project=${project.id} ${label} confirmed by ${ctx.actor.name}`);
   return version;
 }
 
@@ -392,7 +482,7 @@ export function confirmBaseline(project: Project, ctx: Ctx): BaselineVersion {
 const EVENT_TYPES = ['PROGRESS_UPDATED', 'MILESTONE_COMPLETED', 'REVISION_LOGGED', 'SCOPE_ADDED'] as const;
 
 export function addMonitoringEvent(project: Project, body: Record<string, unknown>, ctx: Ctx): ProjectEvent {
-  requireBaseline(project);
+  const available = baselineAvailability(requireBaseline(project));
   const type = oneOf(body, 'type', EVENT_TYPES);
   const date = body.date ? String(body.date) : today(ctx);
   if (!isIsoDate(date)) throw badRequest('Tanggal kegiatan harus berformat YYYY-MM-DD.');
@@ -410,6 +500,7 @@ export function addMonitoringEvent(project: Project, body: Record<string, unknow
   }
 
   if (type === 'MILESTONE_COMPLETED') {
+    if (!available.billing) throw conflict('Tahap siap tagih memerlukan nilai dan syarat pembayaran dalam acuan.', 'BILLING_TERMS_REQUIRED');
     const milestoneId = str(body, 'milestoneId', { required: true, label: 'Tahap pekerjaan' });
     const milestone = project.agreementBaseline.milestones.find((m) => m.id === milestoneId);
     if (!milestone) throw notFound('Tahap pekerjaan tidak ditemukan pada acuan aktif.');
@@ -427,6 +518,7 @@ export function addMonitoringEvent(project: Project, body: Record<string, unknow
   }
 
   // SCOPE_ADDED: a task that may be outside the contracted scope.
+  if (!available.scope) throw conflict('Perbandingan pekerjaan tambahan memerlukan ruang lingkup yang telah disetujui.', 'SCOPE_BASELINE_REQUIRED');
   if (!title) throw badRequest('Nama pekerjaan tambahan wajib diisi.');
   const existing = project.agreementBaseline.scopeItems.find((s) => s.title.toLowerCase() === title.toLowerCase());
   if (existing) throw conflict(`"${title}" sudah ada di ruang lingkup (${existing.status === 'NEEDS_REVIEW' ? 'menunggu tinjauan' : 'tercatat'}).`, 'SCOPE_EXISTS');
@@ -446,7 +538,7 @@ export function addMonitoringEvent(project: Project, body: Record<string, unknow
 }
 
 export function reviewScope(project: Project, scopeId: string, body: Record<string, unknown>, ctx: Ctx) {
-  requireBaseline(project);
+  if (!baselineAvailability(requireBaseline(project)).scope) throw conflict('Ruang lingkup belum menjadi acuan proyek.', 'SCOPE_BASELINE_REQUIRED');
   const decision = oneOf(body, 'decision', ['MATCH'] as const);
   const scope = project.agreementBaseline.scopeItems.find((s) => s.id === scopeId);
   if (!scope) throw notFound('Pekerjaan tidak ditemukan.');
@@ -481,7 +573,7 @@ export function addCost(project: Project, body: Record<string, unknown>, ctx: Ct
 }
 
 export function createInvoice(project: Project, body: Record<string, unknown>, ctx: Ctx) {
-  requireBaseline(project);
+  if (!baselineAvailability(requireBaseline(project)).billing) throw conflict('Hak tagih memerlukan nilai dan syarat pembayaran dalam acuan.', 'BILLING_TERMS_REQUIRED');
   const milestoneId = str(body, 'milestoneId', { required: true, label: 'Tahap pekerjaan' });
   const milestone = project.agreementBaseline.milestones.find((m) => m.id === milestoneId);
   if (!milestone) throw notFound('Tahap pekerjaan tidak ditemukan pada acuan aktif.');
@@ -535,6 +627,8 @@ export function recordPayment(project: Project, body: Record<string, unknown>, c
 
 export function createChangeRequest(project: Project, body: Record<string, unknown>, ctx: Ctx): ChangeRequest {
   const active = requireBaseline(project);
+  const available = baselineAvailability(active);
+  if (!available.contractValue || !available.deadline || !available.revisionLimit) throw conflict('Permintaan perubahan memerlukan nilai kesepakatan, tenggat, dan batas revisi yang telah disetujui.', 'AGREEMENT_TERMS_REQUIRED');
   const title = str(body, 'title', { required: true, max: 200, label: 'Judul perubahan' });
   const rawScope = body.additionalScope;
   const additionalScope = (Array.isArray(rawScope) ? rawScope.map(String) : typeof rawScope === 'string' ? rawScope.split(',') : [])
@@ -701,6 +795,8 @@ export function recordClientApproval(project: Project, crId: string, body: Recor
 /** Only an official (client-approved) change creates a new baseline version. The previous version is archived, never edited. */
 function applyApprovedChange(project: Project, cr: ChangeRequest, ctx: Ctx): BaselineVersion {
   const previous = requireBaseline(project);
+  const available = baselineAvailability(previous);
+  if (!available.contractValue || !available.deadline || !available.revisionLimit) throw conflict('Perubahan resmi memerlukan nilai kesepakatan, tenggat, dan batas revisi yang telah disetujui.', 'AGREEMENT_TERMS_REQUIRED');
   const nextNumber = Math.max(...project.baselines.map((b) => b.version)) + 1;
   const label = `V${nextNumber}`;
   const agreement = project.agreementBaseline;
@@ -750,6 +846,7 @@ function applyApprovedChange(project: Project, cr: ChangeRequest, ctx: Ctx): Bas
     version: nextNumber,
     label,
     status: 'ACTIVE',
+    availability: { ...available },
     contractValue,
     plannedCost: previous.plannedCost,
     startDate: previous.startDate,

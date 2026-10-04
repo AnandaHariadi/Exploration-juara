@@ -3,19 +3,20 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowRight, FilePlus2, FolderKanban } from 'lucide-react';
-import type { Alert, UserPersonaId } from '@/types';
+import type { UserPersonaId } from '@/types';
 import { dataClient } from '@/services/dataClient';
 import { useActivePersona, useDashboardSummary, useProjects } from '@/hooks/useClaraData';
 import { formatCompactRupiah, formatRupiah, isOpenAlert } from '@/lib/utils';
+import { baselineAvailability } from '@/lib/baseline';
 import { StatusBadge } from '@/components/shared/Badge';
-import { EvidenceDrawer, impactText } from '@/components/alerts/EvidenceDrawer';
-import { btn, InsightBadge, Metric, NoticeBar, Panel, useNotice } from '@/components/shared/ui';
+import { impactText } from '@/components/alerts/EvidenceDrawer';
+import { btn, Metric, NoticeBar, Panel, useNotice } from '@/components/shared/ui';
 
 const roleIntro: Record<UserPersonaId, { title: string; description: string; action: string; href: string }> = {
-  BUDI: { title: 'Eksekusi proyek', description: 'Proyek yang perlu disiapkan, progres, revisi, dan perubahan yang harus ditindaklanjuti.', action: 'Buat proyek', href: '/projects/new' },
-  SITI: { title: 'Tagihan dan biaya', description: 'Hak tagih yang belum ditagih, biaya terhadap RAB, dan pembayaran masuk.', action: 'Buka keuangan', href: '/finance' },
-  HENDRA: { title: 'Kondisi portofolio', description: 'Nilai yang dipertaruhkan, proyek yang perlu perhatian, dan bukti setiap peringatan.', action: 'Tinjau peringatan', href: '/alerts' },
-  ADMIN: { title: 'Ringkasan seluruh sistem demo', description: 'Semua proyek, peringatan, dan data demo. Atur ulang data dari menu samping.', action: 'Lihat proyek', href: '/projects' },
+  BUDI: { title: 'Pekerjaan proyek', description: 'Lihat proyek yang menunggu acuan dan tugas yang perlu Anda kerjakan.', action: 'Buat proyek', href: '/projects/new' },
+  SITI: { title: 'Keuangan proyek', description: 'Periksa biaya, tagihan, pembayaran, dan perubahan yang menunggu tinjauan.', action: 'Buka keuangan', href: '/finance' },
+  HENDRA: { title: 'Keputusan proyek', description: 'Tinjau permintaan perubahan dan peringatan sebelum mengambil keputusan.', action: 'Tinjau peringatan', href: '/alerts' },
+  ADMIN: { title: 'Semua proyek', description: 'Lihat tugas, angka, dan kondisi setiap proyek dalam data demo.', action: 'Lihat proyek', href: '/projects' },
 };
 
 export default function DashboardPage() {
@@ -23,17 +24,22 @@ export default function DashboardPage() {
   const { projects } = useProjects();
   const { personaId } = useActivePersona();
   const { notice, run, clear } = useNotice();
-  const [selectedAlert, setSelectedAlert] = React.useState<Alert | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
   const role = roleIntro[personaId];
 
   const openAlerts = projects.flatMap((p) => p.alerts.filter(isOpenAlert));
+  const availabilityFor = (project: (typeof projects)[number]) => {
+    const active = project.baselines.find((version) => version.status === 'ACTIVE');
+    return active ? baselineAvailability(active) : null;
+  };
+  const projectById = new Map(projects.map((project) => [project.id, project]));
   const readyToBill = projects.flatMap((p) =>
-    p.agreementBaseline.milestones
+    (availabilityFor(p)?.billing ? p.agreementBaseline.milestones : [])
       .filter((m) => m.status === 'COMPLETED' && (m.billedAmount ?? 0) < m.value)
       .map((m) => ({ project: p, milestone: m, remaining: m.value - (m.billedAmount ?? 0) })),
   );
   const needsSetup = projects.filter((p) => !p.metrics.hasBaseline);
+  const needsSupplement = projects.filter((p) => { const available = availabilityFor(p); return available && (!available.agreement || !available.budget); });
 
   // Persona work queue: CLARA surfaces what each role must act on.
   type Task = { key: string; title: string; detail: string; href: string };
@@ -41,7 +47,8 @@ export default function DashboardPage() {
   const crs = projects.flatMap((p) => (p.changeRequests ?? []).map((c) => ({ p, c })));
   const finAlerts = openAlerts.filter((a) => ['FINANCIAL_ANOMALY', 'BILLING_VARIANCE', 'BUDGET_VARIANCE', 'POTENTIAL_IRREGULARITY'].includes(a.type));
   if (personaId === 'BUDI' || personaId === 'ADMIN') {
-    for (const { p, c } of crs.filter(({ c }) => ['DRAFT', 'REJECTED', 'CLIENT_REJECTED'].includes(c.status))) tasks.push({ key: `cr-${c.id}`, title: `${c.status === 'DRAFT' ? 'Lengkapi & ajukan' : 'Revisi & ajukan ulang'} ${c.crNumber}`, detail: `${p.name} · ${c.title}${c.origin === 'AI_DRAFT' ? ' · disiapkan CLARA' : ''}`, href: `/projects/${p.id}?tab=change-requests` });
+    for (const p of needsSupplement) tasks.push({ key: `acuan-${p.id}`, title: `Lengkapi ${availabilityFor(p)?.agreement ? 'RAB' : 'kesepakatan'}`, detail: `${p.name} · acuan ${p.baselineVersion} tetap aktif`, href: `/projects/${p.id}?tab=baseline` });
+    for (const { p, c } of crs.filter(({ c }) => ['DRAFT', 'REJECTED', 'CLIENT_REJECTED'].includes(c.status))) tasks.push({ key: `cr-${c.id}`, title: `${c.status === 'DRAFT' ? 'Lengkapi dan ajukan' : 'Perbaiki dan ajukan ulang'} ${c.crNumber}`, detail: `${p.name} · ${c.title}${c.origin === 'AI_DRAFT' ? ' · disiapkan CLARA' : ''}`, href: `/projects/${p.id}?tab=change-requests` });
     for (const { p, c } of crs.filter(({ c }) => c.status === 'INTERNAL_APPROVED')) tasks.push({ key: `cl-${c.id}`, title: `Catat bukti persetujuan klien ${c.crNumber}`, detail: `${p.name} · sudah disetujui internal`, href: `/projects/${p.id}?tab=change-requests` });
     for (const p of projects) for (const d of (p.documents ?? []).filter((d) => d.status === 'NEEDS_REVIEW' || d.status === 'FAILED')) if (p.metrics?.hasBaseline) tasks.push({ key: `doc-${d.id}`, title: `${d.status === 'FAILED' ? 'Analisis gagal' : 'Tinjau hasil analisis'}: ${d.fileName}`, detail: p.name, href: `/projects/${p.id}?tab=documents` });
     for (const a of openAlerts.filter((a) => ['REVISION_LIMIT', 'SCOPE_VARIANCE', 'DEADLINE_RISK'].includes(a.type))) tasks.push({ key: `al-${a.id}`, title: a.title, detail: `${a.projectName} · CLARA dapat menyiapkan permintaan perubahan`, href: `/projects/${a.projectId}?tab=alerts` });
@@ -57,22 +64,16 @@ export default function DashboardPage() {
 
   const s = summary;
   const metrics = s && (
-    <section aria-label="Angka portofolio" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-      <Metric label="Nilai kontrak" value={formatCompactRupiah(s.contractValue)} detail={`${s.activeProjectCount} proyek dengan acuan aktif`} />
-      <Metric label="Rencana biaya (RAB)" value={formatCompactRupiah(s.plannedCost)} detail={`Laba rencana ${formatCompactRupiah(s.contractValue - s.plannedCost)}`} />
-      <Metric label="Biaya aktual" value={formatCompactRupiah(s.actualCost)} detail={s.budgetUtilization === null ? 'RAB belum ada' : `${s.budgetUtilization.toLocaleString('id-ID')}% dari RAB`} tone={s.actualCost > s.plannedCost ? 'bad' : 'default'} />
-      <Metric label="Progres rata-rata" value={s.averageProgress === null ? '-' : `${s.averageProgress}%`} detail="Dari proyek dengan acuan aktif" />
-      <Metric label="Peringatan terbuka" value={String(s.openAlerts)} detail={`${s.newAlerts} baru belum dibaca`} tone={s.openAlerts ? 'bad' : 'good'} />
-      <Metric label="Siap ditagih" value={formatCompactRupiah(s.billableValue)} detail="Syarat tagih terpenuhi" />
-      <Metric label="Sudah ditagih" value={formatCompactRupiah(s.billedValue)} detail="Invoice tercatat" />
-      <Metric label="Sudah dibayar" value={formatCompactRupiah(s.paidValue)} detail={`Piutang ${formatCompactRupiah(s.billedValue - s.paidValue)}`} tone="good" />
-      <Metric label="Belum ditagih" value={formatCompactRupiah(s.unbilledValue)} detail="Hak tagih tanpa invoice — bukan kerugian" tone={s.unbilledValue ? 'warn' : 'default'} />
-      <Metric label="Proyek" value={String(s.projectCount)} detail={`${needsSetup.length} menunggu acuan`} />
+    <section aria-label="Angka seluruh proyek" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <Metric label="Proyek" value={String(s.projectCount)} detail={`${s.activeProjectCount} berjalan · ${needsSetup.length} menunggu acuan · ${needsSupplement.length} perlu dilengkapi`} />
+      <Metric label="Nilai kesepakatan" value={formatCompactRupiah(s.contractValue)} detail={`Dari ${projects.filter((p) => availabilityFor(p)?.contractValue).length} proyek dengan acuan nilai`} />
+      <Metric label="Biaya tercatat" value={formatCompactRupiah(s.actualCost)} detail={s.plannedCost > 0 ? `Dari rencana biaya ${formatCompactRupiah(s.plannedCost)}` : 'Rencana biaya belum ada'} tone={s.plannedCost > 0 && s.actualCost > s.plannedCost ? 'bad' : 'default'} />
+      <Metric label="Belum dibuat tagihan" value={formatCompactRupiah(s.unbilledValue)} detail={`Dari hak tagih ${formatCompactRupiah(s.billableValue)}; ${formatCompactRupiah(s.billedValue)} sudah ditagih`} tone={s.unbilledValue ? 'warn' : 'default'} />
     </section>
   );
 
   const billingPanel = (
-    <Panel title="Siap ditagih, belum ada tagihan" description="Tahap selesai yang belum ditagih penuh" action={<Link href="/finance" className="text-sm font-semibold text-red-700 hover:underline">Keuangan →</Link>}>
+    <Panel title="Tahap selesai yang belum ditagih" description="Nilai tahap yang memenuhi syarat dan belum dibuat tagihannya." action={<Link href="/finance" className="text-sm font-semibold text-red-700 hover:underline">Keuangan →</Link>}>
       {readyToBill.length === 0 ? (
         <p className="rounded-xl bg-zinc-50 p-5 text-sm text-zinc-600">Tidak ada tahap selesai yang menunggu tagihan.</p>
       ) : (
@@ -99,25 +100,28 @@ export default function DashboardPage() {
   );
 
   const projectsPanel = (
-    <Panel title="Proyek" description="Status, versi acuan, dan nilai yang perlu ditindaklanjuti" action={<Link href="/projects" className="text-sm font-semibold text-red-700 hover:underline">Semua proyek →</Link>}>
+    <Panel title="Daftar proyek" description="Pilih nama proyek untuk membuka rincian dan mencatat kegiatan." action={<Link href="/projects" className="text-sm font-semibold text-red-700 hover:underline">Semua proyek →</Link>}>
       {s && s.projects.length === 0 ? (
         <div className="rounded-xl bg-zinc-50 p-8 text-center"><FolderKanban className="mx-auto mb-3 text-zinc-400" /><p className="text-sm font-semibold text-zinc-800">Belum ada proyek</p><Link href="/projects/new" className="mt-3 inline-block text-sm font-semibold text-red-700">Buat proyek →</Link></div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead><tr className="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-500"><th className="py-2 pr-3">Proyek</th><th className="py-2 pr-3">Status</th><th className="py-2 pr-3">Acuan</th><th className="py-2 pr-3">Progres</th><th className="py-2 pr-3">Nilai kontrak</th><th className="py-2 pr-3">Belum ditagih</th><th className="py-2">Peringatan</th></tr></thead>
-            <tbody className="divide-y divide-zinc-100">
-              {s?.projects.map((p) => (
-                <tr key={p.id} className="hover:bg-zinc-50">
-                  <td className="py-2.5 pr-3"><Link href={`/projects/${p.id}`} className="font-semibold text-zinc-900 hover:text-red-700">{p.name}</Link><p className="text-xs text-zinc-500">{p.client}</p></td>
-                  <td className="py-2.5 pr-3"><StatusBadge status={p.status} /></td>
-                  <td className="py-2.5 pr-3 font-mono text-xs">{p.baselineVersion}</td>
-                  <td className="py-2.5 pr-3">{p.baselineVersion === '-' ? '-' : `${p.progress}%`}</td>
-                  <td className="py-2.5 pr-3">{p.baselineVersion === '-' ? <Link href={`/projects/${p.id}`} className="text-xs font-semibold text-red-700">Siapkan acuan →</Link> : formatCompactRupiah(p.contractValue)}</td>
-                  <td className={`py-2.5 pr-3 ${p.unbilledValue ? 'font-semibold text-amber-800' : ''}`}>{formatCompactRupiah(p.unbilledValue)}</td>
-                  <td className={`py-2.5 ${p.openAlerts ? 'font-semibold text-red-700' : ''}`}>{p.openAlerts}</td>
+        <div className="overflow-x-auto rounded-xl border border-zinc-200">
+          <table className="w-full min-w-[820px] border-collapse text-left text-sm">
+            <thead className="bg-zinc-50"><tr className="text-zinc-700"><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Proyek</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Status dan acuan</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Progres</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Nilai kontrak</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Belum ditagih</th><th scope="col" className="border-b border-zinc-200 px-4 py-3 text-right font-semibold">Peringatan</th></tr></thead>
+            <tbody>
+              {s?.projects.map((p) => {
+                const project = projectById.get(p.id);
+                const available = project ? availabilityFor(project) : null;
+                const hasProgress = project?.events.some((event) => event.type === 'PROGRESS_UPDATED');
+                return (
+                <tr key={p.id} className="hover:bg-zinc-50 [&:not(:last-child)>td]:border-b [&>td]:border-zinc-200">
+                  <td className="border-r px-4 py-3"><Link href={`/projects/${p.id}`} className="font-semibold text-zinc-900 underline-offset-2 hover:text-red-700 hover:underline">{p.name}</Link><p className="mt-1 text-sm text-zinc-500">{p.client}</p></td>
+                  <td className="border-r px-4 py-3"><StatusBadge status={p.status} /><span className="ml-2 text-sm text-zinc-600">{p.baselineVersion === '-' ? 'Acuan belum disetujui' : `Acuan ${p.baselineVersion}`}</span></td>
+                  <td className="border-r px-4 py-3 text-right tabular-nums">{hasProgress ? `${p.progress}%` : 'Belum dicatat'}</td>
+                  <td className="border-r px-4 py-3 text-right tabular-nums">{available?.contractValue ? formatCompactRupiah(p.contractValue) : 'Belum ada acuan'}</td>
+                  <td className={`border-r px-4 py-3 text-right tabular-nums ${p.unbilledValue ? 'font-semibold text-amber-800' : ''}`}>{available?.billing ? formatCompactRupiah(p.unbilledValue) : 'Syarat tagih belum ada'}</td>
+                  <td className={`px-4 py-3 text-right tabular-nums ${p.openAlerts ? 'font-semibold text-red-700' : ''}`}>{p.openAlerts}</td>
                 </tr>
-              ))}
+              ); })}
             </tbody>
           </table>
         </div>
@@ -169,13 +173,23 @@ export default function DashboardPage() {
         <Link href={role.href} className={`${btn.primary} self-start`}><FilePlus2 className="h-4 w-4" />{role.action}</Link>
       </div>
 
+      <details className="rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-sm shadow-sm">
+        <summary className="cursor-pointer font-semibold text-zinc-900">Baru mencoba CLARA? Lihat alur demo</summary>
+        <div className="mt-4 space-y-3 border-t border-zinc-200 pt-4 text-zinc-700">
+          <p>Mulai sebagai <strong>Budi</strong> lewat <Link href="/projects/new" className="font-semibold text-red-700 hover:underline">Proyek baru</Link>. Pilih kesepakatan saja, RAB saja, atau keduanya. Pakai berkas contoh agar hasilnya berlabel demo.</p>
+          <p>Periksa hasil baca lalu setujui acuan. Catat progres atau biaya; buka peringatan untuk melihat bukti dan angka yang dihitung sistem.</p>
+          <p>Untuk mencoba persetujuan perubahan: <strong>Budi mengajukan → Siti memeriksa biaya → Hendra memutuskan → Budi mencatat persetujuan klien</strong>. Ganti pengguna lewat profil di kanan atas. Pilihan peran berlaku di browser ini.</p>
+          <Link href="/panduan-demo" className="inline-flex items-center gap-1 font-semibold text-red-700 hover:underline">Baca panduan lengkap <ArrowRight className="h-4 w-4" /></Link>
+        </div>
+      </details>
+
       {error && (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           <span>Gagal memuat ringkasan: {error}</span>
           <button type="button" onClick={() => void refreshSummary()} className={btn.secondary}>Coba lagi</button>
         </div>
       )}
-      {loading && !s ? <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-sm text-zinc-500">Memuat ringkasan…</div> : (
+      {!s ? (loading ? <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-sm text-zinc-500">Memuat ringkasan…</div> : null) : (
         <>
           {personaId === 'BUDI' && needsSetup.length > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-950">
@@ -183,13 +197,15 @@ export default function DashboardPage() {
               <Link href={`/projects/${needsSetup[0].id}`} className={btn.primary}>Siapkan acuan <ArrowRight className="h-4 w-4" /></Link>
             </div>
           )}
-          <Panel title="Perlu tindakan Anda" description={`Disusun CLARA untuk ${personaId === 'BUDI' ? 'pengelola proyek' : personaId === 'SITI' ? 'keuangan' : personaId === 'HENDRA' ? 'pimpinan' : 'admin'} — Anda tidak perlu mencari masalahnya sendiri.`}>
-            {tasks.length === 0 ? <p className="rounded-xl bg-zinc-50 p-4 text-sm text-zinc-600">Tidak ada tindakan yang menunggu Anda.</p> : (
-              <ul className="space-y-2">
-                {tasks.slice(0, 8).map((t) => (
-                  <li key={t.key}><Link href={t.href} className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 p-3 hover:border-red-300"><span><strong className="block text-sm text-zinc-900">{t.title}</strong><span className="text-xs text-zinc-500">{t.detail}</span></span><ArrowRight className="h-4 w-4 shrink-0 text-zinc-400" /></Link></li>
-                ))}
-              </ul>
+          {metrics}
+          <Panel title="Tugas yang menunggu Anda" description={tasks.length ? 'Buka tugas untuk melihat data dan menentukan tindakan berikutnya.' : 'Belum ada tugas yang perlu Anda kerjakan.'} action={<Link href="/alerts" className="text-sm font-semibold text-red-700 hover:underline">{s?.openAlerts ?? 0} peringatan terbuka →</Link>}>
+            {tasks.length > 0 && (
+              <div className="overflow-x-auto rounded-xl border border-zinc-200">
+                <table className="w-full min-w-[680px] border-collapse text-left text-sm">
+                  <thead className="bg-zinc-50"><tr><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Tugas</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Keterangan</th><th scope="col" className="border-b border-zinc-200 px-4 py-3 font-semibold">Buka</th></tr></thead>
+                  <tbody>{tasks.slice(0, 8).map((t) => <tr key={t.key} className="hover:bg-zinc-50 [&:not(:last-child)>td]:border-b [&>td]:border-zinc-200"><td className="border-r px-4 py-3 font-semibold text-zinc-900">{t.title}</td><td className="border-r px-4 py-3 text-zinc-600">{t.detail}</td><td className="px-4 py-3"><Link href={t.href} className="font-semibold text-red-700 hover:underline">Lihat tugas →</Link></td></tr>)}</tbody>
+                </table>
+              </div>
             )}
             {personaId === 'HENDRA' && decisions.length > 0 && (
               <div className="mt-4 border-t border-zinc-100 pt-3">
@@ -198,18 +214,10 @@ export default function DashboardPage() {
               </div>
             )}
           </Panel>
-          {metrics}
-          {personaId === 'SITI' ? (
-            <div className="grid gap-5 xl:grid-cols-2">{billingPanel}{alertsPanel}</div>
-          ) : personaId === 'HENDRA' ? (
-            <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr]">{alertsPanel}{billingPanel}</div>
-          ) : (
-            <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">{projectsPanel}{alertsPanel}</div>
-          )}
-          {personaId === 'BUDI' || personaId === 'ADMIN' ? billingPanel : projectsPanel}
+          {projectsPanel}
+          {readyToBill.length > 0 && billingPanel}
         </>
       )}
-      <EvidenceDrawer alert={selectedAlert} onClose={() => setSelectedAlert(null)} />
     </div>
   );
 }

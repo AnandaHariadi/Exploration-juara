@@ -3,128 +3,109 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
 import type { Alert, Project } from '@/types';
-import { formatCompactRupiah, formatDate, formatRupiah } from '@/lib/utils';
+import { formatDate, formatRupiah } from '@/lib/utils';
+import { baselineAvailability } from '@/lib/baseline';
 import { InsightBadge, Panel } from '@/components/shared/ui';
-
-function Column({ title, subtitle, rows }: { title: string; subtitle: string; rows: { label: string; value: React.ReactNode; note?: string; tone?: 'warn' | 'bad' | 'good' }[] }) {
-  const tones = { warn: 'text-amber-700', bad: 'text-red-700', good: 'text-emerald-700' };
-  return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4">
-      <p className="text-xs font-bold uppercase tracking-wider text-red-700">{title}</p>
-      <p className="text-xs text-zinc-500">{subtitle}</p>
-      <dl className="mt-3 space-y-2.5">
-        {rows.map((row) => (
-          <div key={row.label}>
-            <dt className="text-xs text-zinc-500">{row.label}</dt>
-            <dd className={`text-base font-bold ${row.tone ? tones[row.tone] : 'text-zinc-950'}`}>{row.value}</dd>
-            {row.note && <dd className="text-[11px] text-zinc-500">{row.note}</dd>}
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
-}
 
 export function OverviewTab({ project, onOpenAlert }: { project: Project; onOpenAlert: (alert: Alert) => void }) {
   const m = project.metrics;
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  const available = active ? baselineAvailability(active) : null;
+  const hasCost = project.actualCosts.length > 0;
+  const comparison = [
+    {
+      label: 'Biaya proyek',
+      reference: available?.budget ? formatRupiah(m.plannedCost) : 'RAB belum menjadi acuan',
+      current: hasCost ? formatRupiah(m.actualCost) : 'Biaya belum dicatat',
+      result: !available?.budget ? 'Belum dapat dibandingkan' : !hasCost ? 'Menunggu catatan biaya' : m.budgetVariance > 0 ? `Melebihi rencana ${formatRupiah(m.budgetVariance)}` : `Sisa rencana ${formatRupiah(Math.max(0, -m.budgetVariance))}`,
+      note: 'RAB dibanding biaya yang sudah dicatat.',
+    },
+    {
+      label: 'Revisi',
+      reference: available?.revisionLimit ? `${m.includedRevisions} revisi termasuk` : 'Batas revisi belum ada',
+      current: `${m.actualRevisions} revisi dicatat`,
+      result: !available?.revisionLimit ? 'Belum dapat dibandingkan' : m.revisionVariance > 0 ? `${m.revisionVariance} di luar kesepakatan` : 'Masih dalam batas',
+      note: 'Tambahan revisi dapat diajukan sebagai perubahan.',
+    },
+    {
+      label: 'Tenggat',
+      reference: available?.deadline && m.deadline ? formatDate(m.deadline) : 'Tenggat belum ada',
+      current: m.projectedFinish ? formatDate(m.projectedFinish) : 'Perkiraan belum dicatat',
+      result: m.deadlineVarianceDays === null ? 'Belum bisa dibandingkan' : m.deadlineVarianceDays > 0 ? `Lewat ${m.deadlineVarianceDays} hari` : 'Sesuai tenggat',
+      note: 'Perkiraan selesai dicatat di Pemantauan.',
+    },
+    {
+      label: 'Tagihan',
+      reference: available?.billing ? `Hak tagih ${formatRupiah(m.billableValue)}` : 'Syarat tagih belum ada',
+      current: project.invoices.length ? `Ditagih ${formatRupiah(m.billedValue)}` : 'Tagihan belum dicatat',
+      result: !available?.billing ? 'Hak tagih belum dapat dihitung' : m.unbilledValue > 0 ? `Belum ditagih ${formatRupiah(m.unbilledValue)}` : m.billableValue > 0 ? 'Semua hak tagih sudah dicatat' : 'Belum ada tahap siap tagih',
+      note: 'Hak tagih muncul saat syarat tahap terpenuhi.',
+    },
+    {
+      label: 'Pembayaran',
+      reference: `Tagihan ${formatRupiah(m.billedValue)}`,
+      current: `Dibayar ${formatRupiah(m.paidValue)}`,
+      result: m.billedValue > m.paidValue ? `Belum dibayar ${formatRupiah(m.billedValue - m.paidValue)}` : m.billedValue > 0 ? 'Semua tagihan tercatat lunas' : 'Belum ada tagihan tercatat',
+      note: 'Pembayaran dicatat di Keuangan.',
+    },
+  ];
+
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Column
-          title="Sepakat"
-          subtitle={`Acuan ${m.baselineVersion}`}
-          rows={[
-            { label: 'Nilai kontrak', value: formatRupiah(m.contractValue) },
-            { label: 'Tenggat', value: formatDate(m.deadline ?? '') },
-            { label: 'Batas revisi', value: `${m.includedRevisions} revisi` },
-          ]}
-        />
-        <Column
-          title="Rencana"
-          subtitle="RAB acuan aktif"
-          rows={[
-            { label: 'Rencana biaya (RAB)', value: formatRupiah(m.plannedCost) },
-            { label: 'Laba rencana', value: m.plannedProfit === null ? 'Tidak tersedia' : formatRupiah(m.plannedProfit), note: 'Nilai kontrak − RAB' },
-          ]}
-        />
-        <Column
-          title="Aktual"
-          subtitle="Data yang dicatat"
-          rows={[
-            { label: 'Progres pekerjaan', value: `${m.progress}%` },
-            {
-              label: 'Biaya aktual',
-              value: `${formatCompactRupiah(m.actualCost)} / ${formatCompactRupiah(m.plannedCost)}`,
-              note: m.budgetUtilization === null ? 'Pemakaian anggaran tidak tersedia' : `${m.budgetUtilization.toLocaleString('id-ID')}% anggaran terpakai · selisih ${m.budgetVariance >= 0 ? '+' : ''}${formatCompactRupiah(m.budgetVariance)}`,
-              tone: m.budgetVariance > 0 ? 'bad' : m.budgetUtilization !== null && m.budgetUtilization > m.progress + 10 ? 'warn' : undefined,
-            },
-            { label: 'Revisi', value: `${m.actualRevisions} dari ${m.includedRevisions}`, tone: m.revisionVariance > 0 ? 'bad' : undefined, note: m.revisionVariance > 0 ? `+${m.revisionVariance} di luar acuan` : undefined },
-          ]}
-        />
-        <Column
-          title="Terealisasi"
-          subtitle="Tagihan & kas"
-          rows={[
-            { label: 'Siap ditagih', value: formatRupiah(m.billableValue) },
-            { label: 'Sudah ditagih', value: formatRupiah(m.billedValue) },
-            { label: 'Belum ditagih', value: formatRupiah(m.unbilledValue), tone: m.unbilledValue > 0 ? 'warn' : undefined, note: m.unbilledValue > 0 ? 'Hak tagih tanpa invoice — bukan kerugian' : undefined },
-            { label: 'Sudah dibayar', value: formatRupiah(m.paidValue), tone: 'good' },
-            { label: 'Profit aktual', value: m.actualProfit === null ? 'Belum tersedia' : formatRupiah(m.actualProfit), note: m.actualProfitNote },
-          ]}
-        />
-      </div>
-
-      <Panel title="Rekonsiliasi" description={`Dihitung ulang otomatis setiap ada perubahan data · terakhir ${formatDate(m.computedAt)}`}>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-500">
-                <th className="py-2 pr-3">Pemeriksaan</th>
-                <th className="py-2 pr-3">Acuan</th>
-                <th className="py-2 pr-3">Aktual</th>
-                <th className="py-2 pr-3">Selisih</th>
-                <th className="py-2 pr-3">Status</th>
-                <th className="py-2 text-right">Bukti</th>
+      <Panel title="Acuan dan kondisi sekarang" description={`Acuan ${m.baselineVersion} dibandingkan dengan catatan proyek. Buka bagian terkait untuk memperbarui data.`}>
+        <div className="overflow-x-auto rounded-xl border border-zinc-200">
+          <table className="w-full min-w-[880px] border-collapse text-left text-sm">
+            <thead className="bg-zinc-50"><tr>
+              <th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Yang diperiksa</th>
+              <th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Acuan</th>
+              <th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Tercatat sekarang</th>
+              <th scope="col" className="border-b border-zinc-200 px-4 py-3 font-semibold">Hasil</th>
+            </tr></thead>
+            <tbody>{comparison.map((row) => (
+              <tr key={row.label} className="hover:bg-zinc-50 [&:not(:last-child)>td]:border-b [&>td]:border-zinc-200">
+                <td className="border-r px-4 py-3"><strong className="text-zinc-950">{row.label}</strong><span className="mt-1 block text-sm text-zinc-500">{row.note}</span></td>
+                <td className="border-r px-4 py-3 tabular-nums">{row.reference}</td>
+                <td className="border-r px-4 py-3 tabular-nums">{row.current}</td>
+                <td className="px-4 py-3 font-semibold text-zinc-900">{row.result}</td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {project.reconciliation.map((check) => {
-                const alert = project.alerts.find((a) => a.id === check.alertId);
-                return (
-                  <tr key={check.key}>
-                    <td className="py-3 pr-3"><span className="font-semibold text-zinc-900">{check.label}</span><p className="text-xs text-zinc-500">{check.explanation}</p></td>
-                    <td className="py-3 pr-3 text-zinc-700">{check.expected}</td>
-                    <td className="py-3 pr-3 text-zinc-700">{check.actual}</td>
-                    <td className="py-3 pr-3 font-semibold text-zinc-900">{check.difference}</td>
-                    <td className="py-3 pr-3"><InsightBadge status={check.status} /></td>
-                    <td className="py-3 text-right">{alert && <button type="button" onClick={() => onOpenAlert(alert)} className="text-xs font-semibold text-red-700 hover:underline">Lihat bukti</button>}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
+            ))}</tbody>
           </table>
         </div>
       </Panel>
 
-      <Panel title="Riwayat kegiatan" description="Semua perubahan data proyek, terbaru di atas.">
-        {project.events.length === 0 ? (
-          <p className="text-sm text-zinc-500">Belum ada kegiatan.</p>
-        ) : (
-          <ol className="space-y-2">
-            {project.events.slice(0, 15).map((evt) => (
-              <li key={evt.id} className="flex items-start gap-3 rounded-xl border border-zinc-100 bg-zinc-50 p-3 text-sm">
-                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <strong className="font-semibold text-zinc-900">{evt.title}</strong>
-                    <span className="text-xs text-zinc-500">{formatDate(evt.date)}</span>
-                  </div>
-                  {evt.description && <p className="mt-0.5 text-zinc-600">{evt.description}</p>}
-                  <span className="text-xs text-zinc-500">{evt.author}</span>
-                </div>
-              </li>
-            ))}
-          </ol>
+      <Panel title="Hasil pemeriksaan" description={`Diperbarui saat data proyek berubah · terakhir ${formatDate(m.computedAt)}`}>
+        <div className="overflow-x-auto rounded-xl border border-zinc-200">
+          <table className="w-full min-w-[920px] border-collapse text-left text-sm">
+            <thead className="bg-zinc-50"><tr>
+              {['Pemeriksaan', 'Acuan', 'Tercatat', 'Selisih', 'Status', 'Bukti'].map((heading, index) => <th key={heading} scope="col" className={`border-b border-zinc-200 px-4 py-3 font-semibold ${index < 5 ? 'border-r' : ''}`}>{heading}</th>)}
+            </tr></thead>
+            <tbody>{project.reconciliation.map((check) => {
+              const alert = project.alerts.find((a) => a.id === check.alertId);
+              return <tr key={check.key} className="hover:bg-zinc-50 [&:not(:last-child)>td]:border-b [&>td]:border-zinc-200">
+                <td className="border-r px-4 py-3"><strong className="text-zinc-900">{check.label}</strong><span className="mt-1 block text-sm text-zinc-500">{check.explanation}</span></td>
+                <td className="border-r px-4 py-3">{check.expected}</td>
+                <td className="border-r px-4 py-3">{check.actual}</td>
+                <td className="border-r px-4 py-3 font-semibold">{check.difference}</td>
+                <td className="border-r px-4 py-3"><InsightBadge status={check.status} /></td>
+                <td className="px-4 py-3">{alert && <button type="button" onClick={() => onOpenAlert(alert)} className="font-semibold text-red-700 hover:underline">Lihat bukti</button>}</td>
+              </tr>;
+            })}{project.reconciliation.length === 0 && <tr><td colSpan={6} className="px-4 py-5 text-zinc-600">Belum ada pemeriksaan yang memiliki acuan. Lengkapi kesepakatan atau RAB di tab Acuan proyek.</td></tr>}</tbody>
+          </table>
+        </div>
+      </Panel>
+
+      <Panel title="Riwayat kegiatan" description="Catatan terbaru ditampilkan lebih dulu.">
+        {project.events.length === 0 ? <p className="text-sm text-zinc-500">Belum ada kegiatan.</p> : (
+          <ol className="space-y-2">{project.events.slice(0, 15).map((evt) => (
+            <li key={evt.id} className="flex items-start gap-3 rounded-xl border border-zinc-200 p-3 text-sm">
+              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline justify-between gap-2"><strong className="text-zinc-900">{evt.title}</strong><span className="text-zinc-500">{formatDate(evt.date)}</span></div>
+                {evt.description && <p className="mt-1 text-zinc-600">{evt.description}</p>}
+                <span className="text-zinc-500">{evt.author}</span>
+              </div>
+            </li>
+          ))}</ol>
         )}
       </Panel>
     </div>

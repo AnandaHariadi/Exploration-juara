@@ -2,9 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Plus, Search, FolderGit2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Plus, Search, FolderGit2 } from 'lucide-react';
 import { useProjects } from '@/hooks/useClaraData';
 import { formatCompactRupiah, formatDate, isOpenAlert } from '@/lib/utils';
+import { baselineAvailability } from '@/lib/baseline';
 import { StatusBadge } from '@/components/shared/Badge';
 
 export default function ProjectsPage() {
@@ -29,7 +30,7 @@ export default function ProjectsPage() {
         <div>
           <h1 className="font-heading text-2xl font-bold text-zinc-950 tracking-tight">Daftar proyek</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Lihat nilai kontrak, biaya, progres, dan tagihan setiap proyek.
+            Pilih proyek untuk membuka dokumen, pemantauan, keuangan, dan perubahan.
           </p>
         </div>
         <Link
@@ -98,102 +99,45 @@ export default function ProjectsPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredProjects.map((project) => {
-          const activeAlerts = (project.alerts || []).filter(isOpenAlert);
-          const hasRisk = project.status === 'AT_RISK' || activeAlerts.length > 0;
-
-          return (
-            <div
-              key={project.id}
-              className={`bg-white rounded-2xl border transition-all flex flex-col justify-between hover:shadow-lg ${
-                hasRisk ? 'border-rose-200 shadow-sm' : 'border-slate-200 shadow-sm'
-              }`}
-            >
-              <div className="p-6 space-y-4">
-                {/* Header Card */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="truncate">
-                    <span className="text-xs font-mono text-slate-400 font-semibold">{project.id}</span>
-                    <h3 className="text-base font-bold text-slate-900 truncate mt-0.5" title={project.name}>
-                      {project.name}
-                    </h3>
-                    <p className="text-xs text-slate-500 truncate mt-0.5">{project.client}</p>
-                  </div>
-                  <StatusBadge status={project.status} />
-                </div>
-
-                {!project.metrics.hasBaseline ? (
-                  <div className="rounded-xl border border-orange-200 bg-orange-50 p-3 text-xs text-orange-900">
-                    Acuan proyek belum disetujui. {project.documents.length} dokumen terlampir{project.extraction?.status === 'READY' ? ' · hasil analisis menunggu tinjauan' : ''}.
-                  </div>
-                ) : (<>
-                {/* Financial Summary */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <span className="text-slate-400 text-xs uppercase font-semibold">Nilai Kontrak</span>
-                    <p className="font-bold text-slate-800">{formatCompactRupiah(project.contractValue)}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 text-xs uppercase font-semibold">Biaya tercatat</span>
-                    <p className={`font-bold ${project.actualCost > project.plannedCost ? 'text-rose-600' : 'text-slate-800'}`}>
-                      {formatCompactRupiah(project.actualCost)}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 text-xs uppercase font-semibold">Belum ditagih</span>
-                    <p className={`font-semibold ${project.metrics.unbilledValue ? 'text-amber-700' : 'text-slate-800'}`}>{formatCompactRupiah(project.metrics.unbilledValue)}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 text-xs uppercase font-semibold">Versi acuan</span>
-                    <p className="font-semibold text-red-600 font-mono">{project.baselineVersion}</p>
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div>
-                  <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                    <span>Progres pekerjaan</span>
-                    <span className="font-bold text-slate-800">{project.progress}%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        hasRisk ? 'bg-gradient-to-r from-orange-500 to-rose-500' : 'bg-red-600'
-                      }`}
-                      style={{ width: `${project.progress}%` }}
-                    />
-                  </div>
-                </div>
-                </>)}
-
-                {/* Alerts indicator if any */}
-                {activeAlerts.length > 0 && (
-                  <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-100 flex items-center gap-2 text-xs text-rose-800">
-                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span className="truncate font-medium">
-                      {activeAlerts.length} Peringatan: {activeAlerts[0].title}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Footer */}
-              <div className="p-4 px-6 bg-slate-50/70 border-t border-slate-100 rounded-b-2xl flex items-center justify-between">
-                <span className="text-xs text-slate-400">
-                  {project.metrics.hasBaseline ? `Tenggat: ${formatDate(project.endDate)}` : 'Draf'}
-                </span>
-                <Link
-                  href={`/projects/${project.id}`}
-                  className="flex items-center gap-1.5 text-xs font-bold text-red-600 hover:text-red-700 group transition-colors"
-                >
-                  <span>{project.metrics.hasBaseline ? 'Buka proyek' : 'Siapkan acuan'}</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </div>
-            </div>
-          );
-        })}
+        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
+          <table className="w-full min-w-[1040px] border-collapse text-left text-sm">
+            <caption className="sr-only">Daftar proyek sesuai pencarian dan filter</caption>
+            <thead className="bg-zinc-50"><tr>
+              <th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Proyek</th>
+              <th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 font-semibold">Status dan acuan</th>
+              <th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Progres</th>
+              <th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Nilai kontrak</th>
+              <th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Biaya tercatat</th>
+              <th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Belum ditagih</th>
+              <th scope="col" className="border-b border-r border-zinc-200 px-4 py-3 text-right font-semibold">Peringatan</th>
+              <th scope="col" className="border-b border-zinc-200 px-4 py-3 font-semibold">Buka</th>
+            </tr></thead>
+            <tbody className="divide-y divide-zinc-200">
+              {filteredProjects.map((project) => {
+                const alertCount = project.alerts.filter(isOpenAlert).length;
+                const hasBaseline = project.metrics.hasBaseline;
+                const active = project.baselines.find((version) => version.status === 'ACTIVE');
+                const available = active ? baselineAvailability(active) : null;
+                const hasProgress = project.events.some((event) => event.type === 'PROGRESS_UPDATED');
+                return (
+                  <tr key={project.id} className="hover:bg-zinc-50">
+                    <td className="border-r border-zinc-200 px-4 py-3">
+                      <Link href={`/projects/${project.id}`} className="font-semibold text-zinc-900 hover:text-red-700 hover:underline">{project.name}</Link>
+                      <span className="mt-1 block text-zinc-500">{project.client} / {project.id}</span>
+                      {available?.deadline && <span className="mt-1 block text-zinc-500">Tenggat {formatDate(project.endDate)}</span>}
+                    </td>
+                    <td className="border-r border-zinc-200 px-4 py-3"><StatusBadge status={project.status} /><span className="mt-1 block text-zinc-600">{hasBaseline ? `Acuan ${project.baselineVersion}` : 'Acuan belum disetujui'}</span></td>
+                    <td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{hasProgress ? `${project.progress}%` : 'Belum dicatat'}</td>
+                    <td className="border-r border-zinc-200 px-4 py-3 text-right tabular-nums">{available?.contractValue ? formatCompactRupiah(project.contractValue) : 'Belum ada acuan'}</td>
+                    <td className={`border-r border-zinc-200 px-4 py-3 text-right tabular-nums ${hasBaseline && project.plannedCost > 0 && project.actualCost > project.plannedCost ? 'font-semibold text-red-700' : ''}`}>{hasBaseline ? formatCompactRupiah(project.actualCost) : '-'}</td>
+                    <td className={`border-r border-zinc-200 px-4 py-3 text-right tabular-nums ${hasBaseline && project.metrics.unbilledValue > 0 ? 'font-semibold text-amber-800' : ''}`}>{available?.billing ? formatCompactRupiah(project.metrics.unbilledValue) : 'Syarat tagih belum ada'}</td>
+                    <td className={`border-r border-zinc-200 px-4 py-3 text-right tabular-nums ${alertCount > 0 ? 'font-semibold text-red-700' : ''}`}>{alertCount}</td>
+                    <td className="px-4 py-3"><Link href={`/projects/${project.id}${hasBaseline && (!available?.agreement || !available?.budget) ? '?tab=baseline' : ''}`} className="font-semibold text-red-700 hover:underline">{hasBaseline ? available?.agreement && available?.budget ? 'Buka proyek' : 'Lengkapi acuan' : 'Siapkan acuan'}</Link></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

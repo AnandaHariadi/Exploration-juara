@@ -3,12 +3,15 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest } from 'next/server';
 import { claraDb, makeCtx } from '@/lib/db';
-import { ok, readJson, route, str } from '@/lib/api';
+import { ok, oneOf, readJson, route, str } from '@/lib/api';
 import { addDocument, newProject, randomId } from '@/lib/domain';
 import { readSample, saveDocumentFile, SAMPLE_CONTRACT_FILE, SAMPLE_RAB_FILE } from '@/lib/files';
 import { analyzeInBackground } from '@/lib/guardian';
 
-export const GET = route('GET /api/projects', async () => ok(claraDb.getProjects()));
+export const GET = route('GET /api/projects', async () => {
+  await claraDb.pullFromSupabase();
+  return ok(claraDb.getProjects());
+});
 
 /** Create a DRAFT project. Baseline values never come from the client; they come from a confirmed candidate. */
 export const POST = route('POST /api/projects', async (req: NextRequest) => {
@@ -18,12 +21,17 @@ export const POST = route('POST /api/projects', async (req: NextRequest) => {
   const ctx = makeCtx();
   const project = newProject(randomId('PRJ'), name, client, ctx);
   if (body.useSample === true) {
-    const contract = readSample(SAMPLE_CONTRACT_FILE);
-    const rab = readSample(SAMPLE_RAB_FILE);
-    const c = addDocument(project, ctx, { kind: 'CONTRACT', fileName: SAMPLE_CONTRACT_FILE, mimeType: 'application/pdf', size: contract.length, isSample: true });
-    const r = addDocument(project, ctx, { kind: 'RAB', fileName: SAMPLE_RAB_FILE, mimeType: 'text/csv', size: rab.length, isSample: true });
-    saveDocumentFile(project.id, c.id, contract);
-    saveDocumentFile(project.id, r.id, rab);
+    const sampleBasis = oneOf(body, 'sampleBasis', ['AGREEMENT', 'BUDGET', 'BOTH'] as const, 'BOTH');
+    if (sampleBasis !== 'BUDGET') {
+      const contract = readSample(SAMPLE_CONTRACT_FILE);
+      const doc = addDocument(project, ctx, { kind: 'CONTRACT', fileName: SAMPLE_CONTRACT_FILE, mimeType: 'application/pdf', size: contract.length, isSample: true });
+      saveDocumentFile(project.id, doc.id, contract);
+    }
+    if (sampleBasis !== 'AGREEMENT') {
+      const rab = readSample(SAMPLE_RAB_FILE);
+      const doc = addDocument(project, ctx, { kind: 'RAB', fileName: SAMPLE_RAB_FILE, mimeType: 'text/csv', size: rab.length, isSample: true });
+      saveDocumentFile(project.id, doc.id, rab);
+    }
   }
   const created = claraDb.createProject(project);
   console.log(`[PROJECT] created ${created.id} by ${ctx.actor.name}`);

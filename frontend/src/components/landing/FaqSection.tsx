@@ -42,6 +42,18 @@ const faqs: FaqItem[] = [
     number: "05",
     question: "Bagaimana jika ada addendum atau perubahan kontrak di tengah jalan?",
     answer: "CLARA menyediakan fitur Change Request & Baseline Versioning. Setiap addendum atau perubahan resmi yang disetujui akan menaikkan versi baseline proyek (menjadi Baseline V2, V3, dst.) secara transparan dengan jejak audit lengkap, sehingga riwayat perubahan nilai kontrak dan alokasi RAB tetap terdokumentasi akuntabel."
+  },
+  {
+    id: "q6",
+    number: "06",
+    question: "Bagaimana sistem kuota proyek CLARA bekerja dan kapan kuota terpotong?",
+    answer: "CLARA tidak menggunakan sistem langganan bulanan yang hangus jika tidak terpakai. Kami menggunakan model investasi berbasis kuota proyek terkonfirmasi. Anda bebas mengunggah, mengekstrak via AI, dan merevisi draf kontrak berkali-kali secara gratis. Kuota baru terpotong 1 (misal: dari 20 menjadi 19) HANYA ketika Anda menyetujui dan mengunci Baseline V1 resmi (Human Confirms). Setelah aktif, kuota tersebut mengawal proyek Anda sampai tuntas dan seluruh hak tagih lunas, tanpa batas hari."
+  },
+  {
+    id: "q7",
+    number: "07",
+    question: "Apakah akun UMKM mendapatkan fitur yang sama dengan akun Industri/Korporasi?",
+    answer: "Ya, 100% fitur analitik dan kecerdasan kontrak terbuka untuk semua tingkatan akun! Pengguna UMKM maupun Industri mendapatkan akses penuh ke AI Vision OCR, engine deterministik 4 pilar, deteksi kebocoran kas, dan Adendum Studio. Perbedaannya terletak pada tata kelola: Mode UMKM dirancang 'Solo Boss' dengan kendali instan tanpa birokrasi, sedangkan Mode Industri dilengkapi alur persetujuan bertingkat (PM -> Finance -> Direktur) dengan jejak audit kepatuhan korporat."
   }
 ];
 

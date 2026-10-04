@@ -75,7 +75,7 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') closeRef.current();
       if (event.key !== 'Tab' || !dialog.current) return;
-      const controls = [...dialog.current.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], textarea')];
+      const controls = [...dialog.current.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])')];
       if (!controls.length) return;
       if (event.shiftKey && document.activeElement === controls[0]) {
         event.preventDefault();
@@ -91,6 +91,13 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, 
       previousFocus?.focus();
     };
   }, [alert?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  React.useEffect(() => {
+    if (!alert) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [alert?.id]);
 
   if (!alert) return null;
 
@@ -140,9 +147,9 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, 
   const statusLabel = alert.status === 'NEW' ? 'Baru' : alert.status === 'ACKNOWLEDGED' ? 'Sudah dibaca · belum selesai' : 'Selesai';
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-zinc-950/50" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="evidence-title" className="flex h-full w-full max-w-xl flex-col overflow-y-auto border-l border-zinc-200 bg-white shadow-2xl">
-        <div className="flex items-start justify-between gap-3 border-b border-zinc-200 bg-zinc-50 p-5 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-3 sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="evidence-title" className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-zinc-200 bg-zinc-50 p-4 sm:p-6">
           <div className="flex items-start gap-3">
             <div className="mt-1 rounded-xl bg-red-100 p-2.5 text-red-600"><ShieldAlert className="h-5 w-5" /></div>
             <div>
@@ -161,7 +168,7 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, 
           </button>
         </div>
 
-        <div className="space-y-6 p-5 sm:p-6">
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-4 sm:p-6">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-red-100 bg-red-50/60 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-red-700">Nilai terkait</p>
@@ -270,7 +277,7 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, 
           )}
         </div>
 
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 bg-zinc-50 p-5">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-zinc-200 bg-zinc-50 p-4 sm:p-5">
           <button type="button" onClick={onClose} className={btn.ghost}>Tutup</button>
           <div className="flex flex-wrap items-center gap-2">
             {error && <span role="alert" className="w-full text-xs font-medium text-red-700 sm:w-auto">{error}</span>}

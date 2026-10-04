@@ -5,6 +5,7 @@
 import type {
   Alert,
   AlertType,
+  BaselineAvailability,
   BillingStatus,
   EvidenceItem,
   InsightStatus,
@@ -16,6 +17,7 @@ import type {
   ReconciliationCheck,
   SourceRef,
 } from '@/types';
+import { baselineAvailability } from './baseline';
 
 const ALERT_TYPES: AlertType[] = ['BUDGET_VARIANCE', 'SCOPE_VARIANCE', 'BILLING_VARIANCE', 'REVISION_LIMIT', 'DEADLINE_RISK', 'CONTRACT_RISK', 'FINANCIAL_ANOMALY', 'DOCUMENT_INCONSISTENCY', 'POTENTIAL_IRREGULARITY'];
 
@@ -176,6 +178,7 @@ export function reconcile(input: Project, now: string): Project {
 
   if (active) {
     const agreement = project.agreementBaseline;
+    const available = baselineAvailability(active);
     metrics.hasBaseline = true;
     metrics.baselineVersion = active.label;
     metrics.contractValue = active.contractValue;
@@ -186,7 +189,7 @@ export function reconcile(input: Project, now: string): Project {
 
     // Billing entitlement per milestone from the active baseline.
     let unbilled = 0;
-    for (const milestone of agreement.milestones) {
+    for (const milestone of available.billing ? agreement.milestones : []) {
       const invoices = validInvoices.filter((inv) => inv.milestoneId === milestone.id);
       const billed = invoices.reduce((sum, inv) => sum + inv.amount, 0);
       const paid = invoices.reduce((sum, inv) => sum + (paidByInvoice.get(inv.id) ?? 0), 0);
@@ -205,30 +208,33 @@ export function reconcile(input: Project, now: string): Project {
     metrics.unbilledValue = unbilled;
 
     // Budget.
-    metrics.budgetVariance = metrics.actualCost - metrics.plannedCost;
-    metrics.budgetUtilization = metrics.plannedCost > 0 ? Math.round((metrics.actualCost / metrics.plannedCost) * 1000) / 10 : null;
-    metrics.plannedProfit = metrics.plannedCost > 0 ? metrics.contractValue - metrics.plannedCost : null;
+    metrics.budgetVariance = available.budget ? metrics.actualCost - metrics.plannedCost : 0;
+    metrics.budgetUtilization = available.budget && metrics.plannedCost > 0 ? Math.round((metrics.actualCost / metrics.plannedCost) * 1000) / 10 : null;
+    metrics.plannedProfit = available.budget && available.contractValue ? metrics.contractValue - metrics.plannedCost : null;
     const allMilestonesDone = agreement.milestones.length > 0 && agreement.milestones.every((m) => m.status === 'COMPLETED');
-    if (metrics.progress >= 100 && allMilestonesDone) {
+    if (available.billing && project.actualCosts.length > 0 && metrics.progress >= 100 && allMilestonesDone) {
       metrics.actualProfit = metrics.billableValue - metrics.actualCost;
-      metrics.actualProfitNote = 'Pendapatan diakui (semua tahap selesai) dikurangi biaya aktual tercatat.';
+      metrics.actualProfitNote = 'Nilai tahap selesai dikurangi biaya yang tercatat; periksa kelengkapan biaya sebelum memakai angka ini sebagai laba akhir.';
     } else {
-      metrics.actualProfitNote = `Profit aktual belum tersedia — data biaya belum lengkap (progres ${metrics.progress}%).`;
+      metrics.actualProfitNote = !available.billing
+        ? 'Belum dapat dihitung: nilai dan syarat pembayaran belum menjadi acuan.'
+        : project.actualCosts.length === 0
+          ? 'Belum dapat dihitung: biaya aktual belum dicatat.'
+          : `Profit aktual belum tersedia — pekerjaan atau tahap pembayaran belum selesai (progres ${metrics.progress}%).`;
     }
 
-    metrics.revisionVariance = Math.max(0, metrics.actualRevisions - metrics.includedRevisions);
-    if (metrics.projectedFinish && metrics.deadline) metrics.deadlineVarianceDays = daysBetween(metrics.deadline, metrics.projectedFinish);
+    metrics.revisionVariance = available.revisionLimit ? Math.max(0, metrics.actualRevisions - metrics.includedRevisions) : 0;
+    if (available.deadline && metrics.projectedFinish && metrics.deadline) metrics.deadlineVarianceDays = daysBetween(metrics.deadline, metrics.projectedFinish);
 
-    const budget = budgetAlert(project, metrics, latestProgress);
+    const budget = available.budget ? budgetAlert(project, metrics, latestProgress) : null;
     if (budget) drafts.push(budget);
     if (metrics.revisionVariance > 0) drafts.push(revisionAlert(project, metrics, revisionEvents));
-    for (const scope of agreement.scopeItems.filter((s) => s.status === 'NEEDS_REVIEW')) {
+    for (const scope of (available.scope ? agreement.scopeItems : []).filter((s) => s.status === 'NEEDS_REVIEW')) {
       drafts.push(scopeAlert(project, scope.id, scope.title, scope.description, events.find((e) => e.id === scope.eventId)));
     }
     if (metrics.deadlineVarianceDays !== null && metrics.deadlineVarianceDays > 0) drafts.push(deadlineAlert(project, metrics, latestProjection!));
-    drafts.push(...documentAlerts(project, metrics));
-
-    checks.push(...buildChecks(project, metrics, drafts));
+    drafts.push(...documentAlerts(project, metrics, available));
+    checks.push(...buildChecks(project, metrics, drafts, available, Boolean(latestProgress)));
   }
 
   project.alerts = mergeAlerts(project, drafts, now);
@@ -243,7 +249,7 @@ export function reconcile(input: Project, now: string): Project {
   // Status follows data, never the other way around.
   let status: ProjectStatus;
   if (!active) status = project.extraction?.status === 'READY' ? 'BASELINE_PENDING' : 'DRAFT';
-  else if (metrics.progress >= 100 && project.agreementBaseline.milestones.every((m) => m.billingStatus === 'PAID')) status = 'COMPLETED';
+  else if (baselineAvailability(active).billing && metrics.progress >= 100 && project.agreementBaseline.milestones.every((m) => m.billingStatus === 'PAID')) status = 'COMPLETED';
   else if (open.some((a) => a.severity === 'HIGH' || a.severity === 'CRITICAL')) status = 'AT_RISK';
   else status = 'ACTIVE';
   project.status = status;
@@ -329,8 +335,9 @@ function billingAlert(project: Project, milestone: Milestone, billed: number, ga
 
 function budgetAlert(project: Project, m: ProjectMetrics, latestProgress?: ProjectEvent): AlertDraft | null {
   if (m.plannedCost <= 0 || m.budgetUtilization === null) return null;
+  const agreementAvailable = project.baselines.some((version) => version.status === 'ACTIVE' && baselineAvailability(version).agreement);
   const over = m.actualCost > m.plannedCost;
-  const ahead = m.budgetUtilization >= BUDGET_WARNING_UTILIZATION && m.budgetUtilization > m.progress + BUDGET_WARNING_GAP;
+  const ahead = Boolean(latestProgress) && m.budgetUtilization >= BUDGET_WARNING_UTILIZATION && m.budgetUtilization > m.progress + BUDGET_WARNING_GAP;
   if (!over && !ahead) return null;
   const evidence: EvidenceItem[] = [
     {
@@ -347,14 +354,14 @@ function budgetAlert(project: Project, m: ProjectMetrics, latestProgress?: Proje
       source: 'Data biaya aktual',
       verified: true,
     },
-    {
-      kind: 'EVENT',
+    ...(latestProgress ? [{
+      kind: 'EVENT' as const,
       title: `Progres pekerjaan ${m.progress}%`,
-      detail: latestProgress ? `${latestProgress.title}` : 'Belum ada pembaruan progres.',
-      source: latestProgress ? `Kegiatan ${formatDay(latestProgress.date)} · ${latestProgress.author}` : 'Data progres',
-      refId: latestProgress?.id,
+      detail: latestProgress.title,
+      source: `Kegiatan ${formatDay(latestProgress.date)} · ${latestProgress.author}`,
+      refId: latestProgress.id,
       verified: true,
-    },
+    }] : []),
     {
       kind: 'CALCULATION',
       title: 'Perhitungan',
@@ -376,7 +383,9 @@ function budgetAlert(project: Project, m: ProjectMetrics, latestProgress?: Proje
       basis: 'VERIFIED_CALCULATION',
       impactLabel: 'Di atas rencana biaya',
       evidence,
-      recommendedAction: 'Tinjau pos biaya yang melebihi RAB dan putuskan apakah perlu revisi anggaran atau perubahan kontrak.',
+      recommendedAction: agreementAvailable
+        ? 'Tinjau pos biaya yang melebihi RAB dan putuskan apakah perlu revisi anggaran atau perubahan kesepakatan.'
+        : 'Tinjau pos biaya yang melebihi RAB dan putuskan apakah rencana biaya perlu diperbarui.',
       actionTab: 'finance',
       fingerprint: `over:${m.actualCost}:${m.plannedCost}`,
     };
@@ -411,7 +420,7 @@ function revisionAlert(project: Project, m: ProjectMetrics, revisionEvents: Proj
     severity: 'MEDIUM',
     classification: 'VERIFIED_DEVIATION',
     title: `${m.revisionVariance} revisi di luar acuan ${project.baselineVersion}`,
-    description: `Acuan ${project.baselineVersion} mencakup ${m.includedRevisions} revisi; tercatat ${m.actualRevisions} revisi. Nilai revisi tambahan belum ditentukan oleh kontrak dan perlu ditinjau.`,
+    description: `Acuan ${project.baselineVersion} mencakup ${m.includedRevisions} revisi; tercatat ${m.actualRevisions} revisi. Periksa ketentuan dan nilai revisi tambahan sebelum mengambil keputusan.`,
     rupiahImpact: revisionExposure(project, m.revisionVariance),
     impactKind: revisionExposure(project, m.revisionVariance) > 0 ? 'EXPOSURE' : 'UNPRICED',
     impactLabel: revisionExposure(project, m.revisionVariance) > 0 ? `Nilai revisi tambahan menurut tarif kontrak (${m.revisionVariance} × ${idr(project.agreementBaseline.terms!.revisionUnitPrice!)}) — belum ditagih` : 'Nilai belum ditentukan',
@@ -433,7 +442,7 @@ function revisionAlert(project: Project, m: ProjectMetrics, revisionEvents: Proj
         verified: true,
       },
     ],
-    recommendedAction: 'Ajukan permintaan perubahan untuk revisi tambahan, atau catat sebagai pengecualian yang disengaja.',
+    recommendedAction: 'Tinjau revisi tambahan bersama pihak terkait dan catat keputusan serta bukti persetujuannya.',
     actionTab: 'change-requests',
     fingerprint: `${m.actualRevisions}:${m.includedRevisions}`,
   };
@@ -468,7 +477,7 @@ function scopeAlert(project: Project, scopeId: string, title: string, descriptio
         verified: true,
       },
     ],
-    recommendedAction: 'Tandai sesuai kontrak bila memang termasuk, atau ajukan permintaan perubahan bila pekerjaan tambahan.',
+    recommendedAction: 'Tinjau apakah pekerjaan ini termasuk ruang lingkup yang disetujui; catat perubahan bila memang tambahan.',
     actionTab: 'monitoring',
     fingerprint: scopeId,
   };
@@ -479,7 +488,7 @@ function deadlineAlert(project: Project, m: ProjectMetrics, projection: ProjectE
   const days = m.deadlineVarianceDays ?? 0;
   let exposure = 0;
   let exposureNote = '';
-  if (terms?.penaltyPerDayPercent) {
+  if (m.contractValue > 0 && terms?.penaltyPerDayPercent) {
     const raw = Math.round((m.contractValue * terms.penaltyPerDayPercent * days) / 100);
     const cap = terms.penaltyCapPercent ? Math.round((m.contractValue * terms.penaltyCapPercent) / 100) : null;
     exposure = cap !== null ? Math.min(raw, cap) : raw;
@@ -515,7 +524,7 @@ function deadlineAlert(project: Project, m: ProjectMetrics, projection: ProjectE
       },
       ...(exposureNote ? [contractEvidence(project, 'Ketentuan denda keterlambatan', `Denda ${terms!.penaltyPerDayPercent}% per hari, maksimal ${terms!.penaltyCapPercent ?? '-'}%.`, project.agreementBaseline.sources?.penalty)] : []),
     ],
-    recommendedAction: 'Tinjau jadwal bersama klien; ajukan perpanjangan waktu melalui permintaan perubahan bila disepakati.',
+    recommendedAction: 'Tinjau jadwal bersama pihak terkait dan catat persetujuan bila tenggat perlu diubah.',
     actionTab: 'change-requests',
     fingerprint: `${m.projectedFinish}:${m.deadline}`,
   };
@@ -552,7 +561,7 @@ function docLabel(doc: { fileName: string }, source?: SourceRef) {
  * Cross-document checks. AI only extracted the numbers; every difference here
  * is computed deterministically against the active baseline and records.
  */
-function documentAlerts(project: Project, m: ProjectMetrics): AlertDraft[] {
+function documentAlerts(project: Project, m: ProjectMetrics, available: BaselineAvailability): AlertDraft[] {
   const out: AlertDraft[] = [];
   const terms = project.agreementBaseline.terms;
   const version = project.baselineVersion;
@@ -578,7 +587,7 @@ function documentAlerts(project: Project, m: ProjectMetrics): AlertDraft[] {
       inv.matchedMilestoneId = milestone?.id;
 
       // a) Hourly rate vs confirmed contract rate.
-      if (terms?.hourlyRate) {
+      if (available.agreement && terms?.hourlyRate) {
         const hourly = inv.lineItems.filter((l) => l.unit && /jam|hour/i.test(l.unit) && l.unitPrice !== null && l.quantity !== null && l.unitPrice !== terms.hourlyRate);
         if (hourly.length) {
           const diff = hourly.reduce((s, l) => s + (l.unitPrice! - terms.hourlyRate!) * l.quantity!, 0);
@@ -637,7 +646,7 @@ function documentAlerts(project: Project, m: ProjectMetrics): AlertDraft[] {
       }
 
       // c) Revisions charged vs revisions allowed by the active baseline.
-      if (inv.revisionsCharged !== null && inv.revisionsCharged > m.includedRevisions) {
+      if (available.revisionLimit && inv.revisionsCharged !== null && inv.revisionsCharged > m.includedRevisions) {
         const extra = inv.revisionsCharged - m.includedRevisions;
         out.push({
           id: `ALT-${project.id}-REVDOC-${doc.id}`,
@@ -688,7 +697,7 @@ function documentAlerts(project: Project, m: ProjectMetrics): AlertDraft[] {
       }
 
       // e) Entitlement for the matched milestone.
-      if (milestone && inv.total !== null && !inv.recordedInvoiceId) {
+      if (available.billing && milestone && inv.total !== null && !inv.recordedInvoiceId) {
         const remaining = milestone.value - (milestone.billedAmount ?? 0);
         if (milestone.status !== 'COMPLETED') {
           out.push({
@@ -731,11 +740,11 @@ function documentAlerts(project: Project, m: ProjectMetrics): AlertDraft[] {
     }
 
     // Addendum (or later contract version) vs the active baseline.
-    if ((doc.kind === 'ADDENDUM' || (doc.kind === 'CONTRACT' && doc.status !== 'APPROVED')) && a.contract && new Date(doc.uploadedAt) >= new Date(project.baselines[0].createdAt)) {
+    if (available.agreement && (doc.kind === 'ADDENDUM' || (doc.kind === 'CONTRACT' && doc.status !== 'APPROVED')) && a.contract && new Date(doc.uploadedAt) >= new Date(project.baselines[0].createdAt)) {
       const diffs: string[] = [];
-      if (a.contract.contractValue !== null && a.contract.contractValue !== active.contractValue) diffs.push(`nilai kontrak ${idr(a.contract.contractValue)} (acuan ${idr(active.contractValue)})`);
-      if (a.contract.deadline && a.contract.deadline !== active.deadline) diffs.push(`tenggat ${formatDay(a.contract.deadline)} (acuan ${formatDay(active.deadline)})`);
-      if (a.contract.revisionLimit !== null && a.contract.revisionLimit !== active.revisionLimit) diffs.push(`batas revisi ${a.contract.revisionLimit} (acuan ${active.revisionLimit})`);
+      if (available.contractValue && a.contract.contractValue !== null && a.contract.contractValue !== active.contractValue) diffs.push(`nilai kontrak ${idr(a.contract.contractValue)} (acuan ${idr(active.contractValue)})`);
+      if (available.deadline && a.contract.deadline && a.contract.deadline !== active.deadline) diffs.push(`tenggat ${formatDay(a.contract.deadline)} (acuan ${formatDay(active.deadline)})`);
+      if (available.revisionLimit && a.contract.revisionLimit !== null && a.contract.revisionLimit !== active.revisionLimit) diffs.push(`batas revisi ${a.contract.revisionLimit} (acuan ${active.revisionLimit})`);
       if (diffs.length) {
         out.push({
           id: `ALT-${project.id}-ADDM-${doc.id}`,
@@ -746,10 +755,10 @@ function documentAlerts(project: Project, m: ProjectMetrics): AlertDraft[] {
           sourceDocumentId: doc.id,
           title: `${doc.fileName} berbeda dengan acuan aktif ${version}`,
           description: `Dokumen menyatakan ${diffs.join('; ')}. Perubahan belum menjadi acuan resmi sampai permintaan perubahan disetujui internal dan klien.`,
-          rupiahImpact: a.contract.contractValue !== null ? Math.abs(a.contract.contractValue - active.contractValue) : 0,
-          impactKind: a.contract.contractValue !== null && a.contract.contractValue !== active.contractValue ? 'EXPOSURE' : 'NONE',
-          impactLabel: 'Perubahan nilai belum disahkan',
-          evidence: [docEvidence(`Isi ${doc.fileName}`, a.summary, a.sources?.contractValue ?? a.sources?.deadline), { kind: 'BASELINE', title: `Acuan aktif ${version}`, detail: `${idr(active.contractValue)} · tenggat ${formatDay(active.deadline)} · ${active.revisionLimit} revisi`, source: `Acuan ${version}`, verified: true }],
+          rupiahImpact: available.contractValue && a.contract.contractValue !== null ? Math.abs(a.contract.contractValue - active.contractValue) : 0,
+          impactKind: available.contractValue && a.contract.contractValue !== null && a.contract.contractValue !== active.contractValue ? 'EXPOSURE' : 'NONE',
+          impactLabel: available.contractValue && a.contract.contractValue !== null && a.contract.contractValue !== active.contractValue ? 'Perubahan nilai belum disahkan' : 'Perubahan ketentuan belum disahkan',
+          evidence: [docEvidence(`Isi ${doc.fileName}`, a.summary, a.sources?.contractValue ?? a.sources?.deadline), { kind: 'BASELINE', title: `Acuan aktif ${version}`, detail: [available.contractValue ? idr(active.contractValue) : null, available.deadline ? `tenggat ${formatDay(active.deadline)}` : null, available.revisionLimit ? `${active.revisionLimit} revisi` : null].filter(Boolean).join(' · '), source: `Acuan ${version}`, verified: true }],
           recommendedAction: 'Ajukan permintaan perubahan sesuai dokumen ini, atau tandai dokumen ditolak bila tidak berlaku.',
           actionTab: 'change-requests',
           fingerprint: diffs.join('|'),
@@ -783,31 +792,33 @@ function documentAlerts(project: Project, m: ProjectMetrics): AlertDraft[] {
   return out;
 }
 
-function buildChecks(project: Project, m: ProjectMetrics, drafts: AlertDraft[]): ReconciliationCheck[] {
+function buildChecks(project: Project, m: ProjectMetrics, drafts: AlertDraft[], available: BaselineAvailability, hasProgress: boolean): ReconciliationCheck[] {
   const byType = (type: AlertType) => drafts.filter((d) => d.type === type);
   const status = (type: AlertType): InsightStatus => byType(type)[0]?.classification ?? 'MATCH';
   const version = project.baselineVersion;
   const checks: ReconciliationCheck[] = [];
 
-  checks.push({
+  if (available.budget) checks.push({
     key: 'budget',
     type: 'BUDGET_VARIANCE',
     label: 'Rencana biaya vs biaya aktual',
-    status: status('BUDGET_VARIANCE'),
+    status: project.actualCosts.length === 0 && !byType('BUDGET_VARIANCE').length ? 'NEEDS_REVIEW' : status('BUDGET_VARIANCE'),
     expected: `RAB ${idr(m.plannedCost)}`,
-    actual: `Aktual ${idr(m.actualCost)}${m.budgetUtilization !== null ? ` (${m.budgetUtilization.toLocaleString('id-ID')}%)` : ''}`,
-    difference: `${m.budgetVariance >= 0 ? '+' : ''}${idr(m.budgetVariance)}`,
+    actual: project.actualCosts.length ? `Aktual ${idr(m.actualCost)}${m.budgetUtilization !== null ? ` (${m.budgetUtilization.toLocaleString('id-ID')}%)` : ''}` : 'Biaya aktual belum dicatat',
+    difference: project.actualCosts.length ? `${m.budgetVariance >= 0 ? '+' : ''}${idr(m.budgetVariance)}` : 'Belum dapat dinilai',
     explanation:
-      m.budgetUtilization === null
-        ? 'Pemakaian anggaran tidak tersedia karena rencana biaya 0.'
+      project.actualCosts.length === 0
+        ? 'Biaya aktual belum dicatat; belum dapat menilai pemakaian anggaran.'
         : m.budgetVariance > 0
           ? 'Biaya aktual di atas rencana.'
-          : `Biaya aktual di bawah atau sama dengan rencana; progres ${m.progress}%.`,
+          : hasProgress
+            ? `Biaya aktual di bawah atau sama dengan rencana; progres tercatat ${m.progress}%.`
+            : 'Biaya aktual di bawah atau sama dengan rencana; progres belum dicatat.',
     alertId: byType('BUDGET_VARIANCE')[0]?.id,
   });
 
   const billing = byType('BILLING_VARIANCE');
-  checks.push({
+  if (available.billing) checks.push({
     key: 'billing',
     type: 'BILLING_VARIANCE',
     label: 'Hak tagih vs tagihan',
@@ -815,11 +826,11 @@ function buildChecks(project: Project, m: ProjectMetrics, drafts: AlertDraft[]):
     expected: `Siap ditagih ${idr(m.billableValue)}`,
     actual: `Sudah ditagih ${idr(m.billedValue)}`,
     difference: `Belum ditagih ${idr(m.unbilledValue)}`,
-    explanation: billing.length ? `${billing.length} tahap selesai belum ditagih penuh.` : 'Semua tahap yang memenuhi syarat sudah ditagih.',
+    explanation: billing.length ? `${billing.length} tahap selesai belum ditagih penuh.` : m.billableValue === 0 ? 'Belum ada tahap yang tercatat selesai dan siap ditagih.' : 'Semua tahap yang siap ditagih sudah ditagih.',
     alertId: billing[0]?.id,
   });
 
-  checks.push({
+  if (available.revisionLimit) checks.push({
     key: 'revision',
     type: 'REVISION_LIMIT',
     label: 'Batas revisi',
@@ -832,7 +843,7 @@ function buildChecks(project: Project, m: ProjectMetrics, drafts: AlertDraft[]):
   });
 
   const scope = byType('SCOPE_VARIANCE');
-  checks.push({
+  if (available.scope) checks.push({
     key: 'scope',
     type: 'SCOPE_VARIANCE',
     label: 'Ruang lingkup',
@@ -840,15 +851,15 @@ function buildChecks(project: Project, m: ProjectMetrics, drafts: AlertDraft[]):
     expected: `${project.agreementBaseline.scopeItems.filter((s) => s.status !== 'NEEDS_REVIEW').length} pekerjaan dalam acuan`,
     actual: `${scope.length} pekerjaan perlu ditinjau`,
     difference: scope.length ? `${scope.length} kemungkinan selisih` : '0',
-    explanation: scope.length ? 'Ada pekerjaan yang belum ditemukan di ruang lingkup acuan.' : 'Tidak ada pekerjaan di luar ruang lingkup yang tercatat.',
+    explanation: scope.length ? 'Ada pekerjaan yang belum ditemukan di ruang lingkup acuan.' : 'Belum ada pekerjaan tambahan di luar acuan yang tercatat.',
     alertId: scope[0]?.id,
   });
 
-  checks.push({
+  if (available.deadline) checks.push({
     key: 'deadline',
     type: 'DEADLINE_RISK',
     label: 'Tenggat',
-    status: status('DEADLINE_RISK'),
+    status: m.projectedFinish ? status('DEADLINE_RISK') : 'NEEDS_REVIEW',
     expected: `Tenggat ${formatDay(m.deadline)}`,
     actual: m.projectedFinish ? `Perkiraan selesai ${formatDay(m.projectedFinish)}` : 'Perkiraan selesai belum dicatat',
     difference: m.deadlineVarianceDays === null ? '-' : `${m.deadlineVarianceDays > 0 ? '+' : ''}${m.deadlineVarianceDays} hari`,
@@ -861,18 +872,19 @@ function buildChecks(project: Project, m: ProjectMetrics, drafts: AlertDraft[]):
     alertId: byType('DEADLINE_RISK')[0]?.id,
   });
 
-  const docTypes: AlertType[] = ['FINANCIAL_ANOMALY', 'DOCUMENT_INCONSISTENCY', 'POTENTIAL_IRREGULARITY'];
+  const docTypes: AlertType[] = ['FINANCIAL_ANOMALY', 'DOCUMENT_INCONSISTENCY', 'POTENTIAL_IRREGULARITY', 'CONTRACT_RISK'];
   const docIssues = drafts.filter((d) => docTypes.includes(d.type));
-  const analyzed = project.documents.filter((d) => d.analysis && d.kind !== 'RAB').length;
-  checks.push({
+  const analyzed = project.documents.filter((d) => d.analysis && d.kind !== 'RAB' && d.status !== 'REJECTED' && d.status !== 'FAILED').length;
+  const comparable = project.documents.some((d) => d.analysis && d.status !== 'REJECTED' && d.status !== 'FAILED' && (d.kind === 'INVOICE' || d.kind === 'ADDENDUM' || d.kind === 'CONTRACT' && d.status !== 'APPROVED'));
+  if (analyzed > 0) checks.push({
     key: 'documents',
     type: 'DOCUMENT_INCONSISTENCY',
     label: 'Konsistensi dokumen',
-    status: docIssues.some((d) => d.classification === 'VERIFIED_DEVIATION') ? 'VERIFIED_DEVIATION' : docIssues[0]?.classification ?? 'MATCH',
-    expected: `Sesuai acuan ${version}`,
+    status: docIssues.some((d) => d.classification === 'VERIFIED_DEVIATION') ? 'VERIFIED_DEVIATION' : docIssues[0]?.classification ?? (comparable ? 'MATCH' : 'NEEDS_REVIEW'),
+    expected: `Isi dokumen dan acuan ${version} yang tersedia`,
     actual: `${analyzed} dokumen dianalisis`,
     difference: docIssues.length ? `${docIssues.length} temuan` : '0',
-    explanation: docIssues.length ? 'Ada invoice/adendum yang tidak cocok dengan acuan atau catatan proyek.' : 'Invoice dan dokumen pendukung cocok dengan acuan aktif.',
+    explanation: docIssues.length ? 'Ada temuan pada dokumen yang dianalisis; periksa bukti dan acuan yang tersedia.' : comparable ? 'Tidak ada selisih terdeteksi pada dokumen pembanding yang dianalisis.' : 'Acuan telah dianalisis; belum ada dokumen pelaksanaan untuk dibandingkan.',
     alertId: docIssues[0]?.id,
   });
   return checks;

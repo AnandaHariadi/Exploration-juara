@@ -6,6 +6,7 @@ import type { CandidateMilestone, CandidateRabItem, ExtractionCandidate, Project
 import { dataClient, documentUrl } from '@/services/dataClient';
 import { useAiHealth } from '@/hooks/useClaraData';
 import { formatRupiah } from '@/lib/utils';
+import { baselineAvailability, candidateAvailability } from '@/lib/baseline';
 import { DocumentStatusBadge } from '@/components/shared/labels';
 import { btn, inputClass, labelClass, Panel, SourceQuote } from '@/components/shared/ui';
 
@@ -18,10 +19,13 @@ const sourceLabel: Record<ExtractionCandidate['source'], string> = {
 };
 
 function Steps({ project }: { project: Project }) {
-  const hasContract = project.documents.some((d) => d.kind === 'CONTRACT');
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  const available = active ? baselineAvailability(active) : null;
+  const neededKind = available?.agreement ? 'RAB' : available?.budget ? 'CONTRACT' : null;
+  const hasDocument = project.documents.some((d) => d.kind === neededKind || (!neededKind && (d.kind === 'CONTRACT' || d.kind === 'RAB')));
   const status = project.extraction?.status;
-  const current = !hasContract ? 0 : status === 'READY' ? 2 : 1;
-  const steps = ['Dokumen', 'Analisis', 'Tinjau & koreksi', 'Setujui acuan V1'];
+  const current = !hasDocument ? 0 : status === 'READY' ? 2 : 1;
+  const steps = ['Dokumen', 'Analisis', 'Tinjau & koreksi', `Setujui acuan V${active ? active.version + 1 : 1}`];
   return (
     <ol aria-label="Tahapan menyiapkan acuan proyek" className="flex flex-wrap gap-2 text-sm">
       {steps.map((label, i) => (
@@ -34,6 +38,8 @@ function Steps({ project }: { project: Project }) {
 }
 
 function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; locked: boolean }) {
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  const available = active ? baselineAvailability(active) : null;
   const [uploading, setUploading] = React.useState<'CONTRACT' | 'RAB' | 'SAMPLE' | null>(null);
   const contract = [...project.documents].reverse().find((d) => d.kind === 'CONTRACT');
   const rab = [...project.documents].reverse().find((d) => d.kind === 'RAB');
@@ -41,7 +47,9 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
   const upload = async (kind: 'CONTRACT' | 'RAB', file?: File) => {
     if (!file) return;
     setUploading(kind);
-    await run(() => dataClient.uploadDocument(project.id, kind, file), `${kind === 'CONTRACT' ? 'Kontrak' : 'RAB'} ${file.name} diunggah. CLARA mulai menganalisis otomatis.`);
+    await run(() => dataClient.uploadDocument(project.id, kind, file), kind === 'CONTRACT'
+      ? `Kontrak ${file.name} diunggah. CLARA mulai menganalisis otomatis.`
+      : `RAB ${file.name} diunggah. Jumlah biaya dibaca oleh sistem.`);
     setUploading(null);
   };
 
@@ -59,10 +67,10 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
           ) : (
             <p className="mt-0.5 text-sm text-zinc-500">Belum diunggah.</p>
           )}
-          <p className="mt-1 text-xs text-zinc-500">{kind === 'CONTRACT' ? 'PDF, JPG, PNG, WebP · maks. 10 MB' : 'CSV dengan kolom kategori, deskripsi, jumlah · maks. 2 MB. XLSX: simpan sebagai CSV.'}</p>
+          <p className="mt-1 text-xs text-zinc-500">{kind === 'CONTRACT' ? 'PDF, JPG, PNG, WebP · maks. 10 MB' : 'CSV, XLSX, XLS · kolom uraian/kegiatan dan jumlah biaya · maks. 5 MB'}</p>
         </div>
       </div>
-      {!locked && (
+      {!locked && (kind === 'CONTRACT' ? !available?.agreement : !available?.budget) && (
         <label className={`${btn.secondary} relative mt-3 w-full cursor-pointer sm:w-auto`}>
           {uploading === kind ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
           {uploading === kind ? 'Mengunggah…' : doc ? 'Ganti berkas' : 'Pilih berkas'}
@@ -70,7 +78,7 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
             type="file"
             className="sr-only"
             disabled={uploading !== null}
-            accept={kind === 'CONTRACT' ? '.pdf,.png,.jpg,.jpeg,.webp' : '.csv'}
+            accept={kind === 'CONTRACT' ? '.pdf,.png,.jpg,.jpeg,.webp' : '.csv,.xlsx,.xls'}
             onChange={(e) => {
               void upload(kind, e.target.files?.[0]);
               e.target.value = '';
@@ -84,7 +92,7 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
   return (
     <Panel
       title="1 · Dokumen proyek"
-      description="Begitu diunggah, kontrak otomatis dibaca AI. RAB dibaca langsung oleh sistem (tanpa AI) agar angka rencana biaya persis seperti di berkas."
+      description={available?.agreement ? 'Tambahkan RAB yang belum ada. Angka dibaca langsung dari berkas dan menunggu persetujuan Anda.' : available?.budget ? 'Tambahkan kesepakatan yang belum ada. AI membaca isi dokumen, lalu Anda meninjau hasilnya.' : 'Kontrak dibaca AI. RAB dibaca langsung oleh sistem agar angka rencana biaya sesuai berkas.'}
       action={
         <a href="/api/demo/samples/rab" className={btn.ghost}>
           <Download className="h-4 w-4" />Contoh RAB CSV
@@ -95,7 +103,7 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
         {row('CONTRACT', contract)}
         {row('RAB', rab)}
       </div>
-      {!contract && !locked && (
+      {!active && !contract && !rab && !locked && (
         <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-orange-50 p-4 text-sm text-orange-950">
           <span className="flex-1">Belum punya berkas? Gunakan kontrak & RAB contoh yang diberi label demo.</span>
           <button
@@ -118,10 +126,14 @@ function DocumentsPanel({ project, run, locked }: { project: Project; run: Run; 
 
 function AnalysisPanel({ project, run }: { project: Project; run: Run }) {
   const { health, loading: healthLoading, refreshHealth } = useAiHealth();
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  const needsAgreement = !active || !baselineAvailability(active).agreement;
   const [pending, setPending] = React.useState<'AI' | 'SAMPLE' | 'MANUAL' | null>(null);
   const contract = [...project.documents].reverse().find((d) => d.kind === 'CONTRACT');
+  const rab = [...project.documents].reverse().find((d) => d.kind === 'RAB');
+  const rabOnly = !active && Boolean(rab) && !contract;
   const extraction = project.extraction;
-  const processing = pending !== null || extraction?.status === 'PROCESSING' || contract?.status === 'PROCESSING';
+  const processing = pending !== null || extraction?.status === 'PROCESSING' || contract?.status === 'PROCESSING' || rab?.status === 'PROCESSING';
   const neverAnalyzed = contract?.status === 'UPLOADED' && !extraction;
 
   const analyze = async (mode: 'AI' | 'SAMPLE' | 'MANUAL') => {
@@ -133,14 +145,14 @@ function AnalysisPanel({ project, run }: { project: Project; run: Run }) {
   };
 
   return (
-    <Panel title="2 · Analisis dokumen" description="CLARA menganalisis otomatis setiap kontrak yang diunggah. AI hanya membaca dan mengutip; angka bisnis dihitung sistem setelah Anda menyetujui acuan.">
-      <div className={`mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3 text-sm ${health?.available ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+    <Panel title="2 · Analisis dokumen" description={rabOnly ? 'RAB dibaca langsung oleh sistem. Periksa item dan totalnya di bawah; kesepakatan dapat ditambahkan setelah acuan V1.' : needsAgreement ? 'Kesepakatan dibaca AI. Anda memeriksa hasilnya sebelum menjadi acuan.' : 'RAB dibaca oleh sistem. Periksa setiap item dan jumlah sebelum menyetujui versi baru.'}>
+      {needsAgreement && !rabOnly && <div className={`mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3 text-sm ${health?.available ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
         <Bot className="h-4 w-4" />
         <span className="flex-1">{healthLoading ? 'Memeriksa layanan AI…' : health?.available ? `Layanan AI siap (${health.service ?? 'CLARA AI'}).` : `${health?.message ?? 'Layanan AI tidak tersedia.'} Anda tetap bisa memakai data contoh atau isian manual.`}</span>
         <button type="button" onClick={() => void refreshHealth()} className="inline-flex items-center gap-1 text-xs font-semibold underline">
           <RefreshCw className="h-3 w-3" />Periksa ulang
         </button>
-      </div>
+      </div>}
 
       {processing && (
         <div role="status" className="mb-4 flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700">
@@ -158,25 +170,32 @@ function AnalysisPanel({ project, run }: { project: Project; run: Run }) {
       )}
 
       <div className="flex flex-wrap gap-3">
-        <button type="button" disabled={processing || !contract} onClick={() => void analyze('AI')} className={btn.primary}>
+        {needsAgreement && contract && <button type="button" disabled={processing} onClick={() => void analyze('AI')} className={btn.primary}>
           <Bot className="h-4 w-4" />{extraction?.status === 'FAILED' && extraction.source === 'AI' ? 'Coba analisis AI lagi' : neverAnalyzed ? 'Mulai analisis AI' : extraction?.status === 'READY' ? 'Analisis ulang dengan AI' : 'Analisis dengan AI'}
-        </button>
-        {contract?.isSample && (
+        </button>}
+        {!active && contract?.isSample && (
           <button type="button" disabled={processing} onClick={() => void analyze('SAMPLE')} className={btn.secondary}>
             Muat data contoh (tanpa AI)
           </button>
         )}
-        <button type="button" disabled={processing} onClick={() => void analyze('MANUAL')} className={btn.ghost}>
+        {!rabOnly && <button type="button" disabled={processing} onClick={() => void analyze('MANUAL')} className={btn.ghost}>
           Isi manual
-        </button>
+        </button>}
       </div>
-      {!contract && <p className="mt-2 text-xs text-zinc-500">Unggah kontrak terlebih dahulu untuk analisis AI.</p>}
+      {needsAgreement && !contract && !rabOnly && <p className="mt-2 text-xs text-zinc-500">Unggah kesepakatan terlebih dahulu untuk analisis AI.</p>}
     </Panel>
   );
 }
 
 function ReviewPanel({ project, run }: { project: Project; run: Run }) {
   const c = project.extraction as ExtractionCandidate;
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  const approved = active ? baselineAvailability(active) : null;
+  const hasContractDocument = project.documents.some((doc) => doc.kind === 'CONTRACT');
+  const hasRabDocument = project.documents.some((doc) => doc.kind === 'RAB');
+  const showAgreementFields = !approved?.agreement && (hasContractDocument || !hasRabDocument || c.rab.items.length === 0 || candidateAvailability(c).agreement);
+  const showBudgetFields = !approved?.budget && (hasRabDocument || !hasContractDocument || c.rab.items.length > 0);
+  const nextLabel = active ? `V${active.version + 1}` : 'V1';
   const [form, setForm] = React.useState(() => ({
     contractNumber: c.contract.contractNumber,
     title: c.contract.title,
@@ -199,7 +218,7 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
   const contractValue = Number(form.contractValue) || 0;
 
   const patch = () => ({
-    contract: {
+    ...(showAgreementFields ? { contract: {
       contractNumber: form.contractNumber,
       title: form.title,
       clientName: form.clientName,
@@ -211,8 +230,8 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
       scope: form.scope.split('\n').map((s) => s.trim()).filter(Boolean),
     },
     milestones: milestones.map((m) => ({ ...m, percentage: m.percentage === null || (m.percentage as unknown) === '' ? null : Number(m.percentage) })),
-    rabItems: rabItems.map((i) => ({ ...i, plannedAmount: Number(i.plannedAmount) })),
-    terms: Object.fromEntries(Object.entries(terms).map(([k, v]) => [k, v === '' ? null : Number(v)])),
+    terms: Object.fromEntries(Object.entries(terms).map(([k, v]) => [k, v === '' ? null : Number(v)])) } : {}),
+    ...(showBudgetFields ? { rabItems: rabItems.map((i) => ({ ...i, plannedAmount: Number(i.plannedAmount) })) } : {}),
   });
 
   const save = async (confirmAfter: boolean) => {
@@ -222,8 +241,8 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
     if (saved) {
       setErrors(saved.validation);
       if (confirmAfter && saved.validation.length === 0) {
-        if (window.confirm('Setujui data ini sebagai acuan proyek V1? Setelah disetujui, perubahan hanya melalui permintaan perubahan.')) {
-          await run(() => dataClient.confirmBaseline(project.id), 'Acuan proyek V1 disetujui. Pemantauan aktif.');
+        if (window.confirm(`Setujui data ini sebagai acuan proyek ${nextLabel}? Acuan sebelumnya tetap tersimpan.`)) {
+          await run(() => dataClient.confirmBaseline(project.id), `Acuan proyek ${nextLabel} disetujui. Pemantauan diperbarui.`);
         }
       }
     }
@@ -246,7 +265,7 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
     <Panel
       title="3 · Tinjau dan koreksi"
       description="Belum aktif. Hanya data yang Anda setujui yang menjadi acuan proyek."
-      action={<span className={`rounded-full px-3 py-1 text-xs font-semibold ${c.source === 'AI' ? 'bg-indigo-50 text-indigo-700' : c.source === 'SAMPLE' ? 'bg-orange-50 text-orange-800' : 'bg-zinc-100 text-zinc-700'}`}>{sourceLabel[c.source]}</span>}
+      action={<span className={`rounded-full px-3 py-1 text-xs font-semibold ${c.source === 'AI' ? 'bg-indigo-50 text-indigo-700' : c.source === 'SAMPLE' ? 'bg-orange-50 text-orange-800' : 'bg-zinc-100 text-zinc-700'}`}>{c.source === 'MANUAL' && hasRabDocument && !hasContractDocument ? 'RAB dibaca sistem · tinjau angka' : sourceLabel[c.source]}</span>}
     >
       <div className="mb-5 flex flex-wrap gap-x-6 gap-y-1 text-xs text-zinc-500">
         {c.extractionMeta && <span>Mesin: {c.extractionMeta.engine}</span>}
@@ -260,6 +279,8 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
         </ul>
       )}
 
+      {!showAgreementFields && !approved?.agreement && <p className="mb-4 rounded-xl bg-zinc-50 p-3 text-sm text-zinc-600">Kesepakatan belum ada. Anda dapat menambahkannya setelah RAB disetujui sebagai acuan V1.</p>}
+      {showAgreementFields && <>
       <div className="grid gap-5 md:grid-cols-2">
         {field('title', 'Judul pekerjaan')}
         {field('clientName', 'Klien')}
@@ -303,7 +324,7 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
 
       <fieldset className="mt-6">
         <legend className={labelClass}>Termin pembayaran & syarat tagih</legend>
-        <p className={`mt-1 text-xs ${Math.abs(pctSum - 100) < 0.01 ? 'text-emerald-700' : 'text-amber-700'}`}>Total {pctSum.toLocaleString('id-ID')}% (harus 100%)</p>
+        <p className={`mt-1 text-xs ${milestones.length === 0 || Math.abs(pctSum - 100) < 0.01 ? 'text-emerald-700' : 'text-amber-700'}`}>{milestones.length ? `Total ${pctSum.toLocaleString('id-ID')}% (harus 100%)` : 'Belum ada tahap pembayaran; hak tagih belum dapat dihitung.'}</p>
         <div className="mt-3 space-y-3">
           {milestones.map((m, i) => (
             <div key={i} className="rounded-xl border border-zinc-200 p-3">
@@ -338,7 +359,10 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
         </div>
       </fieldset>
 
-      <fieldset className="mt-6">
+      </>}
+
+      {!showBudgetFields && !approved?.budget && <p className="mt-5 rounded-xl bg-zinc-50 p-3 text-sm text-zinc-600">RAB belum ada. Anda dapat menambahkannya setelah kesepakatan disetujui sebagai acuan V1.</p>}
+      {showBudgetFields && <fieldset className="mt-6">
         <legend className={labelClass}>Rencana biaya (RAB){c.rab.sourceFile ? ` · dari ${c.rab.sourceFile}` : ''}</legend>
         <p className="mt-1 text-xs text-zinc-500">Total {formatRupiah(rabTotal)}{contractValue > 0 && rabTotal > 0 ? ` · laba rencana ${formatRupiah(contractValue - rabTotal)}` : ''}</p>
         {c.rab.warnings.length > 0 && <ul className="mt-2 space-y-1 text-xs text-amber-800">{c.rab.warnings.map((w) => <li key={w}>• {w}</li>)}</ul>}
@@ -357,9 +381,9 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
             <Plus className="h-4 w-4" />Tambah item RAB
           </button>
         </div>
-      </fieldset>
+      </fieldset>}
 
-      {c.risks.length > 0 && (
+      {!approved?.agreement && c.risks.length > 0 && (
         <div className="mt-6">
           <h3 className={labelClass}>Klausul yang perlu diperhatikan</h3>
           <ul className="mt-2 space-y-2">
@@ -383,7 +407,7 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
       <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-zinc-100 pt-5">
         <button type="button" disabled={saving !== null} onClick={() => void save(false)} className={btn.secondary}>{saving === 'save' ? 'Menyimpan…' : 'Simpan koreksi'}</button>
         <button type="button" disabled={saving !== null} onClick={() => void save(true)} className={btn.success}>
-          <ShieldCheck className="h-4 w-4" />{saving === 'confirm' ? 'Memproses…' : '4 · Setujui sebagai acuan V1'}
+          <ShieldCheck className="h-4 w-4" />{saving === 'confirm' ? 'Memproses…' : `4 · Setujui sebagai acuan ${nextLabel}`}
         </button>
       </div>
     </Panel>
@@ -392,14 +416,17 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
 
 export function BaselineSetup({ project, run }: { project: Project; run: Run }) {
   const ready = project.extraction?.status === 'READY';
+  const active = project.baselines.find((version) => version.status === 'ACTIVE');
+  const available = active ? baselineAvailability(active) : null;
+  const analyzingDocument = project.documents.some((doc) => (doc.kind === 'CONTRACT' || doc.kind === 'RAB') && doc.status === 'PROCESSING');
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h2 className="font-heading text-lg font-bold text-zinc-950">Siapkan acuan proyek</h2>
-        <p className="mt-1 text-sm text-zinc-600">Kontrak + RAB → analisis → tinjauan manusia → acuan V1. Pemantauan, rekonsiliasi, dan peringatan aktif setelah acuan disetujui.</p>
+        <h2 className="font-heading text-lg font-bold text-zinc-950">{active ? `Lengkapi acuan proyek untuk V${active.version + 1}` : 'Siapkan acuan proyek'}</h2>
+        <p className="mt-1 text-sm text-zinc-600">{active ? `Acuan ${active.label} tetap berlaku selama Anda meninjau ${available?.agreement ? 'RAB' : 'kesepakatan'} baru. Setelah disetujui, versi lama disimpan dalam riwayat.` : 'Unggah kesepakatan, RAB, atau keduanya. Tinjau data yang tersedia lalu setujui acuan V1. Hanya parameter yang punya acuan dapat dipantau.'}</p>
         <div className="mt-4"><Steps project={project} /></div>
       </div>
-      <DocumentsPanel project={project} run={run} locked={project.extraction?.status === 'PROCESSING'} />
+      <DocumentsPanel project={project} run={run} locked={project.extraction?.status === 'PROCESSING' || analyzingDocument} />
       <AnalysisPanel project={project} run={run} />
       {ready && <ReviewPanel key={`${project.extraction?.completedAt}-${project.extraction?.source}`} project={project} run={run} />}
     </div>

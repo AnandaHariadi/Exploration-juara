@@ -4,24 +4,28 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, AlertTriangle, Bot, ChevronLeft, ChevronRight, FileText, FolderKanban, Home, LayoutDashboard, ReceiptText, RotateCcw, X } from 'lucide-react';
+import { Activity, AlertTriangle, BookOpen, Bot, ChevronLeft, ChevronRight, FileSignature, FileText, FolderKanban, Home, LayoutDashboard, ReceiptText, RotateCcw, X } from 'lucide-react';
 import { dataClient } from '@/services/dataClient';
 import { useAlerts } from '@/hooks/useClaraData';
 
 const navigationGroups = [
   { title: 'Utama', items: [
-    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'Proyek', href: '/projects', icon: FolderKanban },
-    { label: 'Pusat AI', href: '/ai-center', icon: Bot },
+    { label: 'Dashboard', description: 'Tugas dan ringkasan', href: '/dashboard', icon: LayoutDashboard },
+    { label: 'Proyek', description: 'Acuan dan rincian', href: '/projects', icon: FolderKanban },
   ] },
-  { title: 'Monitoring', items: [
-    { label: 'Pemantauan', href: '/monitoring', icon: Activity },
-    { label: 'Keuangan', href: '/finance', icon: ReceiptText },
-    { label: 'Permintaan perubahan', href: '/change-requests', icon: FileText },
-    { label: 'Peringatan', href: '/alerts', icon: AlertTriangle },
+  { title: 'Kegiatan proyek', items: [
+    { label: 'Pemantauan', description: 'Progres dan pekerjaan', href: '/monitoring', icon: Activity },
+    { label: 'Keuangan', description: 'Biaya dan tagihan', href: '/finance', icon: ReceiptText },
+    { label: 'Perubahan', description: 'Ajukan dan putuskan', href: '/change-requests', icon: FileText },
+  ] },
+  { title: 'Tinjauan dan dokumen', items: [
+    { label: 'Dokumen & AI', description: 'Analisis berkas', href: '/ai-center', icon: Bot },
+    { label: 'Peringatan', description: 'Temuan dan bukti', href: '/alerts', icon: AlertTriangle },
+    { label: 'Studio dokumen', description: 'Tinjau draf', href: '/studio', icon: FileSignature },
   ] },
   { title: 'Lainnya', items: [
-    { label: 'Halaman depan', href: '/', icon: Home },
+    { label: 'Panduan demo', description: 'Alur dari awal', href: '/panduan-demo', icon: BookOpen },
+    { label: 'Halaman depan', description: 'Tentang CLARA', href: '/', icon: Home },
   ] },
 ];
 
@@ -59,7 +63,7 @@ export function Sidebar({ desktopOpen, mobileOpen, onCloseMobile, onToggleDeskto
   }, [mobileOpen, onCloseMobile]);
 
   const resetDemo = async () => {
-    if (!window.confirm('Atur ulang data demo? Semua proyek, dokumen unggahan, dan perubahan kembali ke kondisi awal demo. Tindakan ini tidak bisa dibatalkan.')) return;
+    if (!window.confirm('Atur ulang data demo untuk semua pengunjung? Semua proyek, dokumen unggahan, dan perubahan kembali ke kondisi awal demo. Tindakan ini tidak bisa dibatalkan.')) return;
     setResetting(true);
     try {
       await dataClient.resetDemo();
@@ -99,22 +103,23 @@ export function Sidebar({ desktopOpen, mobileOpen, onCloseMobile, onToggleDeskto
         <button ref={mobileCloseButton} type="button" aria-label="Tutup sidebar" onClick={onCloseMobile} className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-600 hover:bg-zinc-100 lg:hidden"><X size={19} /></button>
         <button type="button" aria-label={desktopOpen ? 'Lipat sidebar' : 'Buka sidebar lengkap'} aria-controls="clara-sidebar" aria-expanded={desktopOpen} onClick={onToggleDesktop} className={`hidden h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 hover:bg-red-50 hover:text-red-600 hover:border-red-300 shadow-xs transition-colors lg:flex ${desktopOpen ? '' : 'absolute -right-3 top-6 shadow-sm z-10'}`}>{desktopOpen ? <ChevronLeft size={16} strokeWidth={2.5} /> : <ChevronRight size={16} strokeWidth={2.5} />}</button>
       </div>
-      <nav className="flex-1 overflow-y-auto px-3 py-5">
+      <nav className="flex-1 overflow-y-auto px-3 py-5 custom-scrollbar-slim">
         {navigationGroups.map((group) => <section key={group.title} aria-label={group.title} className="mb-6 last:mb-0">
           <h2 className={`mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-zinc-500 ${desktopOpen ? '' : 'lg:sr-only'}`}>{group.title}</h2>
           <div className="space-y-1">
-            {group.items.map(({ label, href, icon: Icon }) => {
+            {group.items.map(({ label, description, href, icon: Icon }) => {
               const active = pathname === href || (href === '/projects' && pathname.startsWith('/projects/'));
-              return <Link key={href} href={href} title={!desktopOpen ? label : undefined} aria-label={label} aria-current={active ? 'page' : undefined} onClick={onCloseMobile} className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors ${desktopOpen ? '' : 'lg:justify-center lg:px-0'} ${active ? 'bg-red-50 text-red-700' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950'}`}>
-                <Icon size={19} strokeWidth={2.25} aria-hidden="true" /><span className={`flex-1 ${desktopOpen ? '' : 'lg:hidden'}`}>{label}</span>{href === '/alerts' && newAlerts > 0 && <span className={`rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white ${desktopOpen ? '' : 'lg:hidden'}`}>{newAlerts}</span>}
+              return <Link key={href} href={href} title={!desktopOpen ? `${label}: ${description}` : undefined} aria-label={label} aria-current={active ? 'page' : undefined} onClick={onCloseMobile} className={`flex min-h-12 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${desktopOpen ? '' : 'lg:justify-center lg:px-0'} ${active ? 'bg-red-50 text-red-700' : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950'}`}>
+                <Icon size={19} strokeWidth={2.25} aria-hidden="true" className="shrink-0" />
+                <span className={`min-w-0 flex-1 ${desktopOpen ? '' : 'lg:hidden'}`}><span className="block leading-tight">{label}</span><span className="mt-0.5 block text-xs font-normal leading-tight text-zinc-500">{description}</span></span>
+                {href === '/alerts' && newAlerts > 0 && <span className={`rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white ${desktopOpen ? '' : 'lg:hidden'}`}>{newAlerts}</span>}
               </Link>;
             })}
           </div>
         </section>)}
       </nav>
       <div className={`border-t border-zinc-100 ${desktopOpen ? 'p-4' : 'p-4 lg:px-3'}`}>
-        <p className={`mb-3 rounded-xl bg-orange-50 p-3 text-xs leading-relaxed text-orange-900 ${desktopOpen ? '' : 'lg:hidden'}`}>Mode demo · Data tersimpan di database lokal.</p>
-        <button type="button" title={!desktopOpen ? 'Atur ulang data demo' : undefined} aria-label="Atur ulang data demo" disabled={resetting} onClick={resetDemo} className={`flex min-h-10 w-full items-center justify-center gap-2 rounded-lg text-xs font-medium text-zinc-600 hover:bg-zinc-100 disabled:opacity-50 ${desktopOpen ? '' : 'lg:px-0'}`}><RotateCcw size={16} /><span className={desktopOpen ? '' : 'lg:hidden'}>{resetting ? 'Mengatur ulang…' : 'Atur ulang data demo'}</span></button>
+                <button type="button" title={!desktopOpen ? 'Atur ulang data demo' : undefined} aria-label="Atur ulang data demo" disabled={resetting} onClick={resetDemo} className={`flex min-h-10 w-full items-center justify-center gap-2 rounded-lg text-xs font-medium text-zinc-600 hover:bg-zinc-100 disabled:opacity-50 ${desktopOpen ? '' : 'lg:px-0'}`}><RotateCcw size={16} /><span className={desktopOpen ? '' : 'lg:hidden'}>{resetting ? 'Mengatur ulang…' : 'Atur ulang data demo'}</span></button>
       </div>
     </aside>
   </>;

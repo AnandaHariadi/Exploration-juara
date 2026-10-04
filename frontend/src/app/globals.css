@@ -25,6 +25,102 @@ html {
   scroll-behavior: smooth;
 }
 
+@keyframes heroRibbonEnterLeft {
+  from { opacity: 0; transform: translate3d(-72px, -12px, 0) rotate(-5deg) scale(0.96); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) rotate(0) scale(1); }
+}
+
+@keyframes heroRibbonEnterRight {
+  from { opacity: 0; transform: translate3d(72px, -12px, 0) rotate(5deg) scale(0.96); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) rotate(0) scale(1); }
+}
+
+.hero-ribbon-enter-left {
+  transform-origin: top left;
+  animation: heroRibbonEnterLeft 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hero-ribbon-enter-right {
+  transform-origin: top right;
+  animation: heroRibbonEnterRight 1.1s cubic-bezier(0.16, 1, 0.3, 1) 100ms both;
+}
+
+@keyframes heroBrandEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -18px, 0) scale(0.95);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes heroArcEnter {
+  from {
+    opacity: 0;
+    transform: scaleX(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes heroTextEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.hero-brand-enter {
+  animation: heroBrandEnter 0.95s cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+  will-change: transform, opacity, filter;
+}
+
+.hero-arc-enter {
+  transform-origin: center;
+  animation: heroArcEnter 0.85s cubic-bezier(0.16, 1, 0.3, 1) 240ms both;
+  will-change: transform, opacity;
+}
+
+.hero-headline-enter {
+  animation: heroTextEnter 0.85s cubic-bezier(0.16, 1, 0.3, 1) 320ms both;
+  will-change: transform, opacity;
+}
+
+.hero-desc-enter {
+  animation: heroTextEnter 0.85s cubic-bezier(0.16, 1, 0.3, 1) 440ms both;
+  will-change: transform, opacity;
+}
+
+.hero-cta-enter {
+  animation: heroTextEnter 0.85s cubic-bezier(0.16, 1, 0.3, 1) 560ms both;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-ribbon-enter-left,
+  .hero-ribbon-enter-right,
+  .hero-brand-enter,
+  .hero-arc-enter,
+  .hero-headline-enter,
+  .hero-desc-enter,
+  .hero-cta-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+
 /* ========================================================================== */
 /* CONTINUOUS LUXURY KEYFRAMES & MICRO-ANIMATIONS                            */
 /* ========================================================================== */
@@ -237,3 +333,212 @@ html {
 }
 
 
+
+
+/* ========================================================================== */
+/* CUSTOM THIN & SLEEK SCROLLBARS                                             */
+/* ========================================================================== */
+/* Modern standards (Firefox) */
+html, body {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d4d8 transparent;
+}
+
+/* Global WebKit (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #d4d4d8;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #a1a1aa;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: #dc2626;
+}
+
+/* Sidebar & Embedded Slim Scrollbar (Extra Thin: 4px) */
+.custom-scrollbar-slim {
+  scrollbar-width: thin;
+  scrollbar-color: #e4e4e7 transparent;
+}
+
+.custom-scrollbar-slim::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar-slim::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar-slim::-webkit-scrollbar-thumb {
+  background-color: #e4e4e7;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.custom-scrollbar-slim::-webkit-scrollbar-thumb:hover {
+  background-color: #cbd5e1;
+}
+
+.custom-scrollbar-slim::-webkit-scrollbar-thumb:active {
+  background-color: #dc2626;
+}
+
+/* Hide Next.js dev indicator floating badge */
+nextjs-portal,
+[data-nextjs-toast],
+[data-nextjs-dev-indicator] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Enforce 2 fonts only: Montserrat (headings) & Plus Jakarta Sans (body/all text) */
+.font-mono, code, kbd, samp, pre {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+/* ==========================================================================
+   Dark mode (dashboard only). Aktif lewat html[data-clara-theme="dark"],
+   hanya berlaku di dalam wrapper .clara-app sehingga landing page tidak berubah.
+   Palet: latar #0b1220, sidebar #0a101c, kartu #0d1526, border #1e293b.
+   ========================================================================== */
+html[data-clara-theme="dark"] { color-scheme: dark; }
+
+html[data-clara-theme="dark"] .clara-app {
+  --d-bg: #0b1220;
+  --d-side: #0a101c;
+  --d-card: #0d1526;
+  --d-raise: #131d33;
+  --d-border: #1e293b;
+  --d-border-strong: #2a3850;
+  --d-text: #f8fafc;
+  --d-muted: #94a3b8;
+  background-color: var(--d-bg) !important;
+  color: var(--d-text);
+}
+
+/* Permukaan */
+html[data-clara-theme="dark"] .clara-app [class~="bg-white"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-[#f8f8f7]"] { background-color: var(--d-card) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="bg-zinc-50"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-zinc-50/80"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-zinc-50/90"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-slate-50"] { background-color: var(--d-raise) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="bg-zinc-100"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-zinc-100/90"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-slate-100"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-zinc-200"] { background-color: #1a263d !important; }
+html[data-clara-theme="dark"] .clara-app [class~="disabled:bg-zinc-100"]:disabled { background-color: #111a2e !important; }
+html[data-clara-theme="dark"] .clara-app header { background-color: var(--d-bg) !important; border-color: var(--d-border) !important; }
+html[data-clara-theme="dark"] .clara-app aside,
+html[data-clara-theme="dark"] .clara-app #clara-sidebar { background-color: var(--d-side) !important; border-color: var(--d-border) !important; }
+html[data-clara-theme="dark"] .clara-app input,
+html[data-clara-theme="dark"] .clara-app select,
+html[data-clara-theme="dark"] .clara-app textarea { background-color: var(--d-card); color: var(--d-text); border-color: var(--d-border-strong); }
+html[data-clara-theme="dark"] .clara-app table thead { background-color: var(--d-raise) !important; }
+
+/* Border dan pembagi */
+html[data-clara-theme="dark"] .clara-app [class~="border-zinc-100"],
+html[data-clara-theme="dark"] .clara-app [class~="border-zinc-200"],
+html[data-clara-theme="dark"] .clara-app [class~="border-zinc-200/90"],
+html[data-clara-theme="dark"] .clara-app [class~="border-slate-200"],
+html[data-clara-theme="dark"] .clara-app [class~="border-b-2"] { border-color: var(--d-border) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="border-zinc-300"],
+html[data-clara-theme="dark"] .clara-app [class~="border-slate-300"] { border-color: var(--d-border-strong) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="divide-zinc-100"] > :not([hidden]) ~ :not([hidden]),
+html[data-clara-theme="dark"] .clara-app [class~="divide-zinc-200"] > :not([hidden]) ~ :not([hidden]) { border-color: var(--d-border) !important; }
+
+/* Teks */
+html[data-clara-theme="dark"] .clara-app [class~="text-zinc-950"],
+html[data-clara-theme="dark"] .clara-app [class~="text-zinc-900"],
+html[data-clara-theme="dark"] .clara-app [class~="text-zinc-800"],
+html[data-clara-theme="dark"] .clara-app [class~="text-slate-900"],
+html[data-clara-theme="dark"] .clara-app [class~="text-slate-800"] { color: var(--d-text) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="text-zinc-700"],
+html[data-clara-theme="dark"] .clara-app [class~="text-zinc-600"],
+html[data-clara-theme="dark"] .clara-app [class~="text-slate-700"],
+html[data-clara-theme="dark"] .clara-app [class~="text-slate-600"] { color: #cbd5e1 !important; }
+html[data-clara-theme="dark"] .clara-app [class~="text-zinc-500"],
+html[data-clara-theme="dark"] .clara-app [class~="text-zinc-400"],
+html[data-clara-theme="dark"] .clara-app [class~="text-slate-500"],
+html[data-clara-theme="dark"] .clara-app [class~="text-slate-400"] { color: var(--d-muted) !important; }
+html[data-clara-theme="dark"] .clara-app input::placeholder,
+html[data-clara-theme="dark"] .clara-app textarea::placeholder { color: #64748b; }
+
+/* Hover netral */
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-zinc-50"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-zinc-50/80"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-slate-50/80"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-zinc-100"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-slate-200"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-zinc-200"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-zinc-200/60"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-zinc-200/70"]:hover { background-color: #17233b !important; }
+html[data-clara-theme="dark"] .clara-app [class~="hover:text-zinc-800"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:text-zinc-900"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:text-zinc-950"]:hover { color: var(--d-text) !important; }
+
+/* Badge status: latar pastel jadi gelap transparan, teks dibuat terang */
+html[data-clara-theme="dark"] .clara-app [class*="bg-red-50"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-red-100"] { background-color: rgba(220, 38, 38, 0.14) !important; }
+html[data-clara-theme="dark"] .clara-app [class*="bg-emerald-50"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-emerald-100"] { background-color: rgba(16, 185, 129, 0.14) !important; }
+html[data-clara-theme="dark"] .clara-app [class*="bg-amber-50"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-amber-100"] { background-color: rgba(245, 158, 11, 0.14) !important; }
+html[data-clara-theme="dark"] .clara-app [class*="bg-orange-50"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-orange-100"],
+html[data-clara-theme="dark"] .clara-app [class~="bg-orange-100/90"] { background-color: rgba(249, 115, 22, 0.14) !important; }
+html[data-clara-theme="dark"] .clara-app [class*="bg-indigo-50"] { background-color: rgba(99, 102, 241, 0.16) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="bg-blue-50"] { background-color: rgba(59, 130, 246, 0.16) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-red-50"]:hover,
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-orange-100"]:hover { background-color: rgba(220, 38, 38, 0.2) !important; }
+
+html[data-clara-theme="dark"] .clara-app [class~="text-red-700"],
+html[data-clara-theme="dark"] .clara-app [class~="text-red-800"],
+html[data-clara-theme="dark"] .clara-app [class~="text-red-900"] { color: #fca5a5 !important; }
+html[data-clara-theme="dark"] .clara-app [class~="text-emerald-700"],
+html[data-clara-theme="dark"] .clara-app [class~="text-emerald-800"],
+html[data-clara-theme="dark"] .clara-app [class~="text-emerald-900"] { color: #6ee7b7 !important; }
+html[data-clara-theme="dark"] .clara-app [class~="text-amber-700"],
+html[data-clara-theme="dark"] .clara-app [class~="text-amber-800"],
+html[data-clara-theme="dark"] .clara-app [class~="text-amber-900"],
+html[data-clara-theme="dark"] .clara-app [class~="text-amber-950"] { color: #fcd34d !important; }
+html[data-clara-theme="dark"] .clara-app [class~="text-orange-800"],
+html[data-clara-theme="dark"] .clara-app [class~="text-orange-900"],
+html[data-clara-theme="dark"] .clara-app [class~="text-orange-950"] { color: #fdba74 !important; }
+html[data-clara-theme="dark"] .clara-app [class~="text-indigo-700"],
+html[data-clara-theme="dark"] .clara-app [class~="text-indigo-950"] { color: #a5b4fc !important; }
+html[data-clara-theme="dark"] .clara-app [class~="text-blue-700"],
+html[data-clara-theme="dark"] .clara-app [class~="text-blue-800"] { color: #93c5fd !important; }
+
+html[data-clara-theme="dark"] .clara-app [class~="border-red-200"],
+html[data-clara-theme="dark"] .clara-app [class~="border-red-300"] { border-color: rgba(248, 113, 113, 0.35) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="border-emerald-200"],
+html[data-clara-theme="dark"] .clara-app [class~="border-emerald-300"] { border-color: rgba(52, 211, 153, 0.35) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="border-amber-200"],
+html[data-clara-theme="dark"] .clara-app [class~="border-amber-300"] { border-color: rgba(251, 191, 36, 0.35) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="border-orange-200"] { border-color: rgba(251, 146, 60, 0.35) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="border-indigo-200"] { border-color: rgba(129, 140, 248, 0.35) !important; }
+html[data-clara-theme="dark"] .clara-app [class~="border-blue-200"] { border-color: rgba(96, 165, 250, 0.35) !important; }
+
+/* Tombol gelap (bg-zinc-900) dibalik jadi terang agar tetap kontras */
+html[data-clara-theme="dark"] .clara-app [class~="bg-zinc-900"] { background-color: #e2e8f0 !important; color: #0b1220 !important; }
+html[data-clara-theme="dark"] .clara-app [class~="hover:bg-zinc-800"]:hover { background-color: #f1f5f9 !important; }
+
+/* Toggle tema (aksen merah) */
+.clara-theme-toggle { transition: background-color .15s ease, color .15s ease, border-color .15s ease; }
+html[data-clara-theme="dark"] .clara-theme-toggle { background-color: rgba(220, 38, 38, 0.16); color: #fca5a5; border-color: rgba(248, 113, 113, 0.4); }

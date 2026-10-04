@@ -19,7 +19,7 @@ export function WhatsAppMockup({ mode }: WhatsAppMockupProps) {
           </div>
           <div>
             <h4 className="font-semibold text-xs tracking-tight text-white">
-              {isCampus ? "Bendahara HIMATIFA (Alif)" : "Tim Partnership — Jagoan Hosting"}
+              {isCampus ? "Bendahara HIMATIFA (Alif)" : "Tim Partnership - Jagoan Hosting"}
             </h4>
             <p className="text-[10px] text-emerald-100 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />

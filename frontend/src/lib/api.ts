@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { DEMO_PERSONA_COOKIE, withDemoPersona } from './demoPersona';
 
 /** Business/validation failure with an HTTP status and a stable code. */
 export class HttpError extends Error {
@@ -27,7 +28,7 @@ type Handler<C> = (req: NextRequest, ctx: C) => Promise<Response>;
  * logged server-side and returned as a generic 500 without stack or secrets.
  */
 export function route<C>(name: string, handler: Handler<C>): Handler<C> {
-  return async (req, ctx) => {
+  return async (req, ctx) => withDemoPersona(req.cookies.get(DEMO_PERSONA_COOKIE)?.value, async () => {
     try {
       return await handler(req, ctx);
     } catch (error) {
@@ -35,7 +36,7 @@ export function route<C>(name: string, handler: Handler<C>): Handler<C> {
       console.error(`[API] ${name} failed:`, error instanceof Error ? error.message : error);
       return fail(500, 'INTERNAL_ERROR', 'Terjadi kesalahan di server. Coba lagi.');
     }
-  };
+  });
 }
 
 /** Parse a JSON body; malformed or non-object bodies are a 400. Empty body → {}. */
