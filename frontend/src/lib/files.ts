@@ -3,10 +3,14 @@
 
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
-const dataDir = path.join(process.cwd(), 'data');
-export const UPLOAD_DIR = path.join(dataDir, 'uploads');
-export const SAMPLES_DIR = path.join(dataDir, 'samples');
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const writeDataDir = isServerless ? path.join(os.tmpdir(), 'clara-data') : path.join(process.cwd(), 'data');
+const readDataDir = path.join(process.cwd(), 'data');
+
+export const UPLOAD_DIR = path.join(writeDataDir, 'uploads');
+export const SAMPLES_DIR = path.join(readDataDir, 'samples');
 
 export const SAMPLE_CONTRACT_FILE = 'Kontrak-PKS-ASL-2026-089.pdf';
 export const SAMPLE_RAB_FILE = 'RAB-ASL-2026-089.csv';
@@ -57,7 +61,9 @@ export function readSample(fileName: string): Buffer {
 }
 
 export function clearUploads(): void {
-  fs.rmSync(UPLOAD_DIR, { recursive: true, force: true });
+  if (fs.existsSync(UPLOAD_DIR)) {
+    fs.rmSync(UPLOAD_DIR, { recursive: true, force: true });
+  }
 }
 
 export function extensionOf(fileName: string): string {

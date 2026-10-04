@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import type { Alert, PortfolioSummary, Project, UserPersonaId } from '../types/index';
 import { USER_PERSONAS } from '../types/index';
 import { actorFor, randomId, type Ctx } from './domain';
@@ -7,12 +8,14 @@ import { notFound } from './api';
 import { reconcile } from './engine';
 
 // Ensure data folder exists
-const dataDir = path.join(process.cwd(), 'data');
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const dataDir = isServerless ? path.join(os.tmpdir(), 'clara-data') : path.join(process.cwd(), 'data');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
 const storePath = path.join(dataDir, 'clara_store.json');
+const bundledStorePath = path.join(process.cwd(), 'data', 'clara_store.json');
 
 /**
  * Standard project sample from PRD for consistent testing
@@ -265,6 +268,14 @@ function loadStore(): ClaraStoreData {
       if (Array.isArray(parsed.projects)) {
         parsed.projects = parsed.projects.map(sanitizeProject);
       }
+      return parsed;
+    } else if (isServerless && fs.existsSync(bundledStorePath)) {
+      const raw = fs.readFileSync(bundledStorePath, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed.projects)) {
+        parsed.projects = parsed.projects.map(sanitizeProject);
+      }
+      saveStore(parsed);
       return parsed;
     }
   } catch (err) {
