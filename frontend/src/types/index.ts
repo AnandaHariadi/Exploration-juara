@@ -418,6 +418,7 @@ export interface DocumentFinding {
   basis: FindingBasis;
   origin: 'AI' | 'GUARDRAIL' | 'ENGINE';
   source?: SourceRef;
+  legalBasis?: string;
 }
 
 export interface InvoiceAnalysis {
@@ -483,6 +484,7 @@ export interface CandidateRisk {
   severity: 'LOW' | 'MEDIUM' | 'HIGH';
   detail: string;
   source?: SourceRef;
+  legalBasis?: string;
 }
 
 /** Proposed baseline produced from documents. Never active until confirmed by a human. */

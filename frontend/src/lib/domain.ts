@@ -642,7 +642,7 @@ export function createChangeRequest(project: Project, body: Record<string, unkno
     throw badRequest('Isi minimal satu perubahan: pekerjaan, nilai, revisi, atau perpanjangan waktu.');
   }
   const submit = body.submit !== false;
-  if (submit) requireRole(ctx, ['BUDI', 'ADMIN'], 'Pengajuan perubahan dilakukan oleh pengelola proyek (Budi).');
+  requireRole(ctx, ['BUDI', 'ADMIN'], 'Permintaan perubahan dibuat oleh pengelola proyek (Budi).');
   const cr: ChangeRequest = {
     id: ctx.nextId('CR'),
     projectId: project.id,
@@ -767,12 +767,16 @@ export function recordClientApproval(project: Project, crId: string, body: Recor
   const cr = findCr(project, crId);
   if (cr.status === 'APPROVED') throw conflict('Perubahan ini sudah resmi. Persetujuan ulang dicegah.', 'ALREADY_APPROVED');
   if (cr.status !== 'INTERNAL_APPROVED') throw conflict(`Persetujuan klien dicatat setelah persetujuan internal (status saat ini ${cr.status}).`, 'INVALID_TRANSITION');
+  requireRole(ctx, ['BUDI', 'ADMIN'], 'Bukti persetujuan klien dicatat oleh pengelola proyek (Budi).');
   const decision = oneOf(body, 'decision', ['APPROVED', 'REJECTED'] as const);
+  const linkedDraft = cr.draftId ? project.drafts.find((draft) => draft.id === cr.draftId) : undefined;
+  if (decision === 'APPROVED' && linkedDraft && !['APPROVED', 'EXPORTED', 'REJECTED'].includes(linkedDraft.status)) throw conflict('Tinjau draf dokumen terkait terlebih dahulu. Hendra menyetujui draf untuk dikirim, atau tolak draf jika tidak dipakai.', 'DRAFT_REVIEW_REQUIRED');
   const reference = str(body, 'reference', { max: 300, label: 'Rujukan bukti' });
   const documentId = str(body, 'documentId', { max: 80 }) || undefined;
   if (documentId) {
     const doc = project.documents.find((d) => d.id === documentId);
     if (!doc) throw notFound('Dokumen bukti persetujuan tidak ditemukan.');
+    if (doc.kind !== 'CLIENT_APPROVAL' || ['REJECTED', 'PROCESSING', 'FAILED'].includes(doc.status)) throw badRequest('Pilih dokumen persetujuan klien yang siap diperiksa.', 'INVALID_APPROVAL_EVIDENCE');
   }
   if (!documentId && reference.length < 5) throw badRequest('Lampirkan dokumen persetujuan klien atau tulis rujukan bukti (mis. nomor surat / email tanggal).', 'EVIDENCE_REQUIRED');
   const note = str(body, 'note', { max: 500 }) || undefined;
@@ -918,12 +922,18 @@ export function addDraft(project: Project, draft: GeneratedDocument) {
   );
 }
 
-/** Human approval of a draft: it becomes ready to send. Nothing is sent automatically. */
+/** Human approval of a draft: change documents first need finance and internal approval. Nothing is sent automatically. */
 export function approveDraft(project: Project, draftId: string, ctx: Ctx) {
   const draft = findDraft(project, draftId);
   if (draft.status === 'APPROVED' || draft.status === 'EXPORTED') throw conflict('Draf ini sudah disetujui.', 'ALREADY_APPROVED');
   if (draft.status === 'REJECTED') throw conflict('Draf ini sudah ditolak. Buat ulang atau revisi.', 'INVALID_TRANSITION');
   if (draft.status === 'NEEDS_FIX') throw conflict('Validasi draf belum lolos. Perbaiki isi draf terlebih dahulu.', 'VALIDATION_FAILED');
+  if (draft.type === 'CHANGE_REQUEST' || draft.type === 'ADDENDUM') {
+    const cr = draft.relatedChangeRequestId ? project.changeRequests.find((item) => item.id === draft.relatedChangeRequestId) : undefined;
+    if (!cr) throw conflict('Hubungkan draf ini dengan permintaan perubahan terlebih dahulu. Ajukan permintaan dari tab Perubahan.', 'CHANGE_REQUEST_REQUIRED');
+    if (cr.status !== 'INTERNAL_APPROVED' && cr.status !== 'APPROVED') throw conflict('Draf perubahan baru dapat disetujui setelah ditinjau keuangan dan disetujui pimpinan.', 'CHANGE_APPROVAL_REQUIRED');
+    requireRole(ctx, ['HENDRA', 'ADMIN'], 'Draf perubahan disetujui oleh pimpinan (Hendra).');
+  }
   draft.status = 'APPROVED';
   draft.approvedBy = ctx.actor.label;
   draft.approvedAt = ctx.now;
@@ -941,6 +951,10 @@ export function rejectDraft(project: Project, draftId: string, body: Record<stri
 export function markDraftExported(project: Project, draftId: string, ctx: Ctx) {
   const draft = findDraft(project, draftId);
   if (draft.status !== 'APPROVED' && draft.status !== 'EXPORTED') throw conflict('Hanya draf yang sudah disetujui manusia yang dapat diekspor untuk dikirim.', 'APPROVAL_REQUIRED');
+  if (draft.type === 'CHANGE_REQUEST' || draft.type === 'ADDENDUM') {
+    const cr = draft.relatedChangeRequestId ? project.changeRequests.find((item) => item.id === draft.relatedChangeRequestId) : undefined;
+    if (!cr || (cr.status !== 'INTERNAL_APPROVED' && cr.status !== 'APPROVED')) throw conflict('Dokumen perubahan hanya dapat diekspor setelah persetujuan internal.', 'CHANGE_APPROVAL_REQUIRED');
+  }
   draft.status = 'EXPORTED';
   draft.exportedAt = ctx.now;
   draft.history.push({ at: ctx.now, by: ctx.actor.label, action: 'Diekspor (PDF) untuk dikirim oleh pengguna — CLARA tidak mengirim dokumen ke pihak luar' });

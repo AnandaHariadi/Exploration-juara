@@ -105,7 +105,10 @@ test('pitch: detect → explain → quantify → resolve → approve → monitor
   await expect(page.getByText('Disiapkan CLARA').first()).toBeVisible({ timeout: 60_000 });
   const card = page.locator('article', { hasText: 'Tambahan 2 putaran revisi' }).first();
   await expect(card.getByText(/2 × Rp\s?2\.000\.000 per putaran/)).toBeVisible();
-  await card.getByRole('button', { name: 'Ajukan untuk persetujuan internal' }).click();
+  await tab(page, 'Dokumen');
+  const proposalDraft = page.locator('article').filter({ hasText: 'Validasi draf' }).filter({ hasText: 'Tambahan 2 putaran revisi' }).first();
+  await expect(proposalDraft.getByRole('button', { name: 'Setujui draf' })).toHaveCount(0);
+  await proposalDraft.getByRole('button', { name: 'Ajukan ke keuangan' }).click();
   await notice(page, /diajukan ke keuangan/);
 
   // Phase E — finance review
@@ -122,6 +125,14 @@ test('pitch: detect → explain → quantify → resolve → approve → monitor
   await page.getByRole('button', { name: 'Setujui internal' }).click();
   await notice(page, /disetujui internal/);
   await expect(page.getByText('Acuan V1', { exact: true }).first()).toBeVisible();
+  await tab(page, 'Dokumen');
+  const draftCard = page.locator('article').filter({ hasText: 'Validasi draf' }).filter({ hasText: 'Tambahan 2 putaran revisi' }).first();
+  await draftCard.getByRole('button', { name: 'Setujui dokumen untuk klien' }).click();
+  await notice(page, /siap diekspor/);
+  const download = page.waitForEvent('download');
+  await draftCard.getByRole('button', { name: 'Ekspor PDF untuk dikirim' }).click();
+  expect((await download).suggestedFilename()).toMatch(/\.(pdf|md)$/);
+  await expect(draftCard.getByText('Diekspor untuk dikirim')).toBeVisible();
 
   // Phase G — official change with client evidence
   await persona(page, /Budi Santoso/);
@@ -147,15 +158,6 @@ test('pitch: detect → explain → quantify → resolve → approve → monitor
   await expect(page.locator('article', { hasText: 'revisi di luar acuan' })).toHaveCount(0);
   await page.getByLabel('Tampilkan yang selesai').check();
   await expect(page.locator('article', { hasText: 'revisi di luar acuan' }).getByText('Dijelaskan perubahan resmi')).toBeVisible();
-
-  await tab(page, 'Dokumen');
-  const draftCard = page.locator('article').filter({ hasText: 'Validasi draf' }).filter({ hasText: 'Tambahan 2 putaran revisi' }).first();
-  await draftCard.getByRole('button', { name: 'Setujui draf' }).click();
-  await notice(page, /siap dikirim/);
-  const download = page.waitForEvent('download');
-  await draftCard.getByRole('button', { name: 'Ekspor PDF untuk dikirim' }).click();
-  expect((await download).suggestedFilename()).toMatch(/\.(pdf|md)$/);
-  await expect(draftCard.getByText('Diekspor untuk dikirim')).toBeVisible();
 
   await page.reload();
   await expect(page.getByText('Acuan V2', { exact: true }).first()).toBeVisible();

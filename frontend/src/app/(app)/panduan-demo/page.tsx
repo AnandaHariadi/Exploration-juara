@@ -35,7 +35,7 @@ const approvals = [
   ['Draf', 'Budi', 'Isi pekerjaan, nilai, revisi, atau tambahan waktu; periksa saran AI jika ada.', 'Acuan tetap berlaku.'],
   ['Diajukan', 'Budi', 'Ajukan permintaan ke keuangan.', 'Menunggu Siti.'],
   ['Ditinjau keuangan', 'Siti', 'Periksa angka dan dampak biaya, lalu teruskan.', 'Menunggu Hendra.'],
-  ['Keputusan internal', 'Hendra', 'Setujui atau tolak dengan alasan.', 'Jika setuju, acuan belum berubah. Jika ditolak, Budi dapat merevisi dan mengajukan ulang.'],
+  ['Keputusan internal', 'Hendra', 'Setujui atau tolak dengan alasan. Jika setuju, tinjau dan setujui draf dokumen perubahan untuk dikirim ke klien.', 'Acuan belum berubah. Jika ditolak, Budi dapat merevisi dan mengajukan ulang.'],
   ['Persetujuan klien', 'Budi', 'Catat bukti persetujuan atau penolakan klien.', 'Jika klien setuju, acuan baru aktif dan versi lama masuk riwayat. Jika menolak, acuan lama tetap aktif dan Budi dapat mengajukan ulang.'],
 ] as const;
 
@@ -110,7 +110,7 @@ export default function PanduanDemoPage() {
           </table>
         </div>
         <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">Ada dua cara versi acuan bertambah: melengkapi dokumen yang belum ada dan meresmikan permintaan perubahan. Keduanya menyimpan versi lama. Persetujuan Hendra saja belum meresmikan perubahan; persetujuan klien tetap harus dicatat.</p>
-        <p className="mt-3 text-sm leading-6 text-zinc-700">Jika Hendra atau klien menolak, Budi dapat mengubah permintaan dan mengajukannya lagi. Tinjauan Siti dan keputusan Hendra diulang untuk pengajuan baru itu.</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-700">Persetujuan draf dokumen berbeda dari persetujuan perubahan. Draf yang terhubung baru dapat disetujui Hendra setelah pemeriksaan Siti dan keputusan internal. Dokumen diekspor untuk dikirim oleh pengguna; CLARA tidak mengirimnya otomatis. Jika Hendra atau klien menolak perubahan, Budi dapat mengubah permintaan dan mengajukannya lagi. Tinjauan Siti dan keputusan Hendra diulang.</p>
       </section>
 
       <section id="contoh" className={`${panel} scroll-mt-28`}>

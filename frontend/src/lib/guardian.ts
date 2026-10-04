@@ -47,6 +47,7 @@ function findingsFrom(result: NormalizedAnalysis): DocumentFinding[] {
     basis: 'AI_FINDING' as const,
     origin: r.origin,
     source: r.source,
+    legalBasis: r.legalBasis,
   }));
 }
 

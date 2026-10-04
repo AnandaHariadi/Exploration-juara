@@ -10,6 +10,7 @@ import { InsightBadge, btn, inputClass } from '@/components/shared/ui';
 import { BasisBadge } from '@/components/shared/labels';
 import { formatDate, formatRupiah, isOpenAlert } from '@/lib/utils';
 import { dataClient, documentUrl } from '@/services/dataClient';
+import { useActivePersona } from '@/hooks/useClaraData';
 
 interface EvidenceDrawerProps {
   alert: Alert | null;
@@ -45,6 +46,7 @@ export function impactText(alert: Alert) {
 }
 
 export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, onActionComplete }) => {
+  const { personaId } = useActivePersona();
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [resolving, setResolving] = React.useState(false);
@@ -240,11 +242,12 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ alert, onClose, 
             )}
             {(canProposeChange || canRespond || canReviseClause) && (
               <div className="mt-3 flex flex-wrap gap-2">
-                {canProposeChange && (
+                {canProposeChange && (personaId === 'BUDI' || personaId === 'ADMIN') && (
                   <button type="button" disabled={aiBusy !== null} onClick={() => void remediate('cr', () => dataClient.draftChangeRequestFromAlert(alert.projectId, alert.id), 'change-requests')} className={btn.primary}>
                     {aiBusy === 'cr' ? 'Menyiapkan…' : 'Buat permintaan perubahan (AI)'}
                   </button>
                 )}
+                {canProposeChange && personaId !== 'BUDI' && personaId !== 'ADMIN' && <p className="self-center text-xs text-indigo-900">Budi menyiapkan permintaan perubahan dari temuan ini.</p>}
                 {canRespond && (
                   <button type="button" disabled={aiBusy !== null} onClick={() => void remediate('respond', () => dataClient.generateDocument({ projectId: alert.projectId, type: 'ANOMALY_RESPONSE', alertId: alert.id }), 'documents')} className={btn.primary}>
                     {aiBusy === 'respond' ? 'Menyiapkan…' : 'Buat tindak lanjut (AI)'}

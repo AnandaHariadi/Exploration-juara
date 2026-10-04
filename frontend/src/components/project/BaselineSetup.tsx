@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, Bot, Download, FileSpreadsheet, FileText, Loader2, Plus, RefreshCw, ShieldCheck, Trash2, Upload } from 'lucide-react';
+import { AlertTriangle, Bot, Download, FileSpreadsheet, FileText, Loader2, Plus, RefreshCw, Scale, ShieldCheck, Trash2, Upload } from 'lucide-react';
 import type { CandidateMilestone, CandidateRabItem, ExtractionCandidate, Project } from '@/types';
 import { dataClient, documentUrl } from '@/services/dataClient';
 import { useAiHealth } from '@/hooks/useClaraData';
@@ -304,6 +304,10 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
       <fieldset className="mt-6">
         <legend className={labelClass}>Ketentuan komersial (dipakai mesin rekonsiliasi)</legend>
         <p className="mt-1 text-xs text-zinc-500">Tarif dan denda ini menjadi dasar perhitungan anomali: tarif invoice, nilai revisi tambahan, dan potensi denda.</p>
+        <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-[11px] text-zinc-600">
+          <Scale className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+          <span><strong>Rujukan Hukum:</strong> Asas Kebebasan Berkontrak (Pasal 1338 KUHPerdata) mengikat para pihak; besaran ganti rugi/denda dibatasi asas kepatutan (Pasal 1267 KUHPerdata & kelaziman OJK).</span>
+        </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {([
             ['hourlyRate', 'Tarif pekerjaan tambahan (Rp/jam)', 'hourlyRate'],
@@ -385,12 +389,24 @@ function ReviewPanel({ project, run }: { project: Project; run: Run }) {
 
       {!approved?.agreement && c.risks.length > 0 && (
         <div className="mt-6">
-          <h3 className={labelClass}>Klausul yang perlu diperhatikan</h3>
+          <div className="flex items-center gap-2">
+            <Scale className="h-4 w-4 text-indigo-700" />
+            <h3 className={labelClass}>Klausul yang perlu diperhatikan & Dasar Hukum</h3>
+          </div>
           <ul className="mt-2 space-y-2">
             {c.risks.map((r) => (
               <li key={r.title} className="rounded-xl border border-zinc-200 p-3 text-sm">
                 <span className="font-semibold text-zinc-900">{r.title}</span> <span className="text-xs text-zinc-500">· {r.severity === 'HIGH' ? 'tinggi' : r.severity === 'MEDIUM' ? 'sedang' : 'rendah'}</span>
                 <p className="mt-1 text-zinc-700">{r.detail}</p>
+                {r.legalBasis && (
+                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-indigo-100 bg-indigo-50/60 p-2.5 text-xs text-indigo-950">
+                    <Scale className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-700" />
+                    <div>
+                      <span className="font-semibold text-indigo-900">Dasar Hukum & Batasan:</span>
+                      <p className="mt-0.5 text-indigo-800">{r.legalBasis}</p>
+                    </div>
+                  </div>
+                )}
                 <SourceQuote projectId={project.id} source={r.source} />
               </li>
             ))}

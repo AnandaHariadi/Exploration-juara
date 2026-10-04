@@ -98,7 +98,7 @@ interface RawAnalysis {
   invoice: (Record<string, unknown> & { lineItems?: Record<string, unknown>[] }) | null;
   approval: Record<string, unknown> | null;
   fieldEvidence: Record<string, RawEvidence>;
-  risks: { title: unknown; severity: unknown; detail: unknown; evidence: RawEvidence | null; origin?: unknown }[];
+  risks: { title: unknown; severity: unknown; detail: unknown; legalBasis?: unknown; evidence: RawEvidence | null; origin?: unknown }[];
   warnings: unknown[];
   extractionMeta: { sourceFile?: string; pages?: number | null; processedAt?: string; engine?: string };
 }
@@ -256,6 +256,7 @@ export function normalizeAnalysis(raw: RawAnalysis, documentId: string): Normali
       title: text(r.title, 160) || 'Klausul perlu diperhatikan',
       severity: severity(r.severity),
       detail: text(r.detail, 600),
+      legalBasis: text(r.legalBasis, 300) || undefined,
       source: evidence(r.evidence, documentId),
       origin: r.origin === 'GUARDRAIL' ? ('GUARDRAIL' as const) : ('AI' as const),
     })),

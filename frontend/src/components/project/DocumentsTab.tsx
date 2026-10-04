@@ -201,7 +201,7 @@ export function DocumentsTab({ project, run, onOpenAlert }: { project: Project; 
         {project.drafts.length === 0 ? (
           <EmptyState title="Belum ada draf">Buka bukti sebuah temuan lalu pilih tindakan CLARA, atau gunakan Studio dokumen.</EmptyState>
         ) : (
-          <div className="space-y-3">{project.drafts.map((d) => <DraftCard key={d.id} draft={d} run={run} />)}</div>
+          <div className="space-y-3">{project.drafts.map((d) => <DraftCard key={d.id} draft={d} run={run} changeRequest={project.changeRequests.find((cr) => cr.id === d.relatedChangeRequestId)} />)}</div>
         )}
       </Panel>
     </div>

@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Bot } from 'lucide-react';
-import type { ChangeRequest, Project, UserPersonaId } from '@/types';
+import type { ChangeRequest, GeneratedDocument, Project, UserPersonaId } from '@/types';
 import { dataClient } from '@/services/dataClient';
 import { useActivePersona } from '@/hooks/useClaraData';
 import { formatDate, formatRupiah } from '@/lib/utils';
@@ -56,11 +57,16 @@ const ROLE_HINT: Record<string, { roles: UserPersonaId[]; name: string }> = {
   decision: { roles: ['HENDRA', 'ADMIN'], name: 'Hendra (pimpinan)' },
 };
 
-function Stepper({ cr }: { cr: ChangeRequest }) {
+function Stepper({ cr, draft }: { cr: ChangeRequest; draft?: GeneratedDocument }) {
+  const steps = draft
+    ? [...STEPS.slice(0, 3), { key: 'document', label: 'Tinjau draf dokumen', owner: 'Pimpinan', done: () => ['APPROVED', 'EXPORTED', 'REJECTED'].includes(draft.status) }, ...STEPS.slice(3)]
+    : STEPS;
   const stepState = (key: string, done: boolean) => {
     if (key === 'pic' && (cr.status === 'REJECTED' || cr.status === 'CLIENT_REJECTED')) return 'Perlu diajukan ulang';
     if (key === 'decision' && cr.status === 'REJECTED') return 'Ditolak pimpinan';
     if (key === 'client' && cr.status === 'CLIENT_REJECTED') return 'Ditolak klien';
+    if (key === 'document' && draft?.status === 'NEEDS_FIX') return 'Perlu perbaikan';
+    if (key === 'document' && draft?.status === 'REJECTED') return 'Draf ditolak';
     return done ? 'Selesai' : 'Belum selesai';
   };
   return (
@@ -69,11 +75,11 @@ function Stepper({ cr }: { cr: ChangeRequest }) {
       <div className="mt-3 overflow-x-auto rounded-xl border border-zinc-200">
         <table className="w-full min-w-[620px] border-collapse text-left">
           <thead className="bg-zinc-50"><tr><th scope="col" className="border-b border-r border-zinc-200 px-4 py-2">Tahap</th><th scope="col" className="border-b border-r border-zinc-200 px-4 py-2">Penanggung jawab</th><th scope="col" className="border-b border-zinc-200 px-4 py-2">Status</th></tr></thead>
-          <tbody className="divide-y divide-zinc-200">{STEPS.map((step, index) => (
+          <tbody className="divide-y divide-zinc-200">{steps.map((step, index) => (
             <tr key={step.key}>
               <td className="border-r border-zinc-200 px-4 py-2 font-medium text-zinc-900">{index + 1}. {step.label}</td>
               <td className="border-r border-zinc-200 px-4 py-2 text-zinc-600">{step.owner}</td>
-              <td className={`px-4 py-2 font-medium ${step.done(cr) && !['REJECTED', 'CLIENT_REJECTED'].includes(cr.status) ? 'text-emerald-700' : 'text-zinc-600'}`}>{stepState(step.key, step.done(cr))}</td>
+              <td className={`px-4 py-2 font-medium ${step.done(cr) && (step.key !== 'document' || draft?.status !== 'REJECTED') && !['REJECTED', 'CLIENT_REJECTED'].includes(cr.status) ? 'text-emerald-700' : 'text-zinc-600'}`}>{stepState(step.key, step.done(cr))}</td>
             </tr>
           ))}</tbody>
         </table>
@@ -96,8 +102,9 @@ export function ChangeRequestCard({ cr, project, run, showProject = false }: { c
   const [rejecting, setRejecting] = React.useState(false);
   const [client, setClient] = React.useState({ reference: '', documentId: '' });
   const [form, setForm] = React.useState({ title: cr.title, reason: cr.reason, description: cr.description, scope: cr.additionalScope.join(', '), value: String(cr.additionalValue), revisions: String(cr.additionalRevisions), days: String(cr.deadlineExtensionDays) });
-  const approvals = project.documents.filter((d) => d.kind === 'CLIENT_APPROVAL' && d.status !== 'REJECTED' && d.status !== 'PROCESSING');
+  const approvals = project.documents.filter((d) => d.kind === 'CLIENT_APPROVAL' && !['REJECTED', 'PROCESSING', 'FAILED'].includes(d.status));
   const draft = cr.draftId ? project.drafts.find((d) => d.id === cr.draftId) : undefined;
+  const documentNeedsApproval = draft && !['APPROVED', 'EXPORTED', 'REJECTED'].includes(draft.status);
 
   const act = async (key: string, action: () => Promise<unknown>, text: string, after?: () => void) => {
     setBusy(key);
@@ -123,7 +130,7 @@ export function ChangeRequestCard({ cr, project, run, showProject = false }: { c
         <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${s.className}`}>{s.label}</span>
       </div>
 
-      <p className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800"><strong>Langkah berikutnya:</strong> {nextStep[cr.status]}</p>
+      <p className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800"><strong>Langkah berikutnya:</strong> {cr.status === 'INTERNAL_APPROVED' && documentNeedsApproval ? 'Hendra perlu meninjau dan menyetujui draf di tab Dokumen. Setelah dokumen dikirim dan klien menjawab, Budi mencatat buktinya.' : nextStep[cr.status]}</p>
 
       {editing ? (
         <form className="mt-4 space-y-3" onSubmit={(e) => { e.preventDefault(); void act('edit', () => dataClient.updateChangeRequest(project.id, cr.id, { title: form.title, reason: form.reason, description: form.description, additionalScope: form.scope.split(',').map((x) => x.trim()).filter(Boolean), additionalValue: Number(form.value || 0), additionalRevisions: Number(form.revisions || 0), deadlineExtensionDays: Number(form.days || 0) }), 'Perubahan disimpan.', () => setEditing(false)); }}>
@@ -159,11 +166,11 @@ export function ChangeRequestCard({ cr, project, run, showProject = false }: { c
             </div>
           )}
           {cr.description && !cr.calculation.length && <p className="mt-3 text-sm text-zinc-600">{cr.description}</p>}
-          {draft && <p className="mt-2 text-xs text-zinc-600">Draf dokumen terkait: <strong>{draft.title}</strong> ({draft.status === 'READY_FOR_REVIEW' ? 'siap ditinjau' : draft.status === 'NEEDS_FIX' ? 'perlu perbaikan' : draft.status.toLowerCase()}) — lihat tab Dokumen.</p>}
+          {draft && <p className="mt-2 text-xs text-zinc-600">Draf dokumen terkait: <strong>{draft.title}</strong> ({draft.status === 'READY_FOR_REVIEW' ? 'siap ditinjau' : draft.status === 'NEEDS_FIX' ? 'perlu perbaikan' : draft.status.toLowerCase()}). <Link href={`/projects/${project.id}?tab=documents`} className="font-semibold text-red-700 underline">Buka tab Dokumen</Link>.</p>}
         </>
       )}
 
-      <Stepper cr={cr} />
+      <Stepper cr={cr} draft={draft} />
 
       {cr.financeReview && <p className="mt-3 text-xs text-zinc-600">Keuangan: ditinjau {formatDate(cr.financeReview.at)} oleh {cr.financeReview.by}{cr.financeReview.note ? ` — ${cr.financeReview.note}` : ''}</p>}
       {cr.internalDecision && <p className="mt-1 text-xs text-zinc-600">Pimpinan: {cr.internalDecision.approved ? 'menyetujui internal' : 'menolak'} {formatDate(cr.internalDecision.at)} oleh {cr.internalDecision.by}{cr.internalDecision.note ? ` — ${cr.internalDecision.note}` : ''}</p>}
@@ -176,7 +183,7 @@ export function ChangeRequestCard({ cr, project, run, showProject = false }: { c
             <RoleGate step="pic" personaId={personaId}>
               <div className="flex flex-wrap justify-end gap-2">
                 <button type="button" onClick={() => setEditing(true)} className={btn.secondary}>Ubah</button>
-                <button type="button" disabled={busy !== null} onClick={() => void act('submit', () => dataClient.submitChangeRequest(project.id, cr.id), `${cr.crNumber} diajukan ke keuangan.`)} className={btn.primary}>{busy === 'submit' ? 'Mengajukan…' : cr.status === 'DRAFT' ? 'Ajukan untuk persetujuan internal' : 'Ajukan ulang'}</button>
+                <button type="button" disabled={busy !== null} onClick={() => void act('submit', () => dataClient.submitChangeRequest(project.id, cr.id), `${cr.crNumber} diajukan ke keuangan.`)} className={btn.primary}>{busy === 'submit' ? 'Mengajukan…' : cr.status === 'DRAFT' ? 'Ajukan ke keuangan' : 'Ajukan ulang ke keuangan'}</button>
               </div>
             </RoleGate>
           )}
@@ -209,9 +216,11 @@ export function ChangeRequestCard({ cr, project, run, showProject = false }: { c
             </RoleGate>
           )}
           {cr.status === 'INTERNAL_APPROVED' && (
+            <RoleGate step="pic" personaId={personaId}>
             <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (!window.confirm(`Catat persetujuan klien untuk ${cr.crNumber}? Acuan baru akan dibuat; acuan lama diarsipkan tanpa diubah.`)) return; void act('client', () => dataClient.recordClientApproval(project.id, cr.id, { decision: 'APPROVED', reference: client.reference || undefined, documentId: client.documentId || undefined }), `${cr.crNumber} resmi. Acuan proyek naik versi dan semua angka dihitung ulang.`); }}>
               <p className="text-sm font-semibold text-zinc-900">Bukti persetujuan klien</p>
               <p className="text-xs text-zinc-500">Persetujuan internal belum mengubah kontrak. Lampirkan dokumen persetujuan klien (unggah di tab Dokumen) atau tulis rujukannya.</p>
+              {documentNeedsApproval && <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-900">Untuk mencatat persetujuan klien, draf terkait harus ditinjau dulu di tab Dokumen. Penolakan klien tetap dapat dicatat dengan bukti.</p>}
               <div className="grid gap-2 sm:grid-cols-2">
                 <div>
                   <label htmlFor={`cd-${cr.id}`} className={labelClass}>Dokumen persetujuan</label>
@@ -224,9 +233,10 @@ export function ChangeRequestCard({ cr, project, run, showProject = false }: { c
               </div>
               <div className="flex flex-wrap justify-end gap-2">
                 <button type="button" disabled={busy !== null || (!client.documentId && client.reference.trim().length < 5)} onClick={() => void act('client-reject', () => dataClient.recordClientApproval(project.id, cr.id, { decision: 'REJECTED', reference: client.reference || undefined, documentId: client.documentId || undefined }), `Penolakan klien dicatat. Acuan tidak berubah.`)} className={btn.secondary}>Klien menolak</button>
-                <button type="submit" disabled={busy !== null || (!client.documentId && client.reference.trim().length < 5)} className={btn.success}>{busy === 'client' ? 'Menyimpan…' : 'Catat persetujuan klien & resmikan'}</button>
+                <button type="submit" disabled={busy !== null || Boolean(documentNeedsApproval) || (!client.documentId && client.reference.trim().length < 5)} className={btn.success}>{busy === 'client' ? 'Menyimpan…' : 'Catat persetujuan klien & resmikan'}</button>
               </div>
             </form>
+            </RoleGate>
           )}
         </div>
       )}
@@ -254,6 +264,7 @@ export function ChangeRequestList({ entries, run, showProject = false }: { entri
 }
 
 export function ChangeRequestsTab({ project, run, prefillScope, onPrefillUsed }: { project: Project; run: Run; prefillScope?: string; onPrefillUsed: () => void }) {
+  const { personaId } = useActivePersona();
   const empty = { title: '', reason: '', description: '', scope: '', value: '', revisions: '', days: '' };
   const [form, setForm] = React.useState(empty);
   const [open, setOpen] = React.useState(false);
@@ -261,6 +272,7 @@ export function ChangeRequestsTab({ project, run, prefillScope, onPrefillUsed }:
   const active = project.baselines.find((version) => version.status === 'ACTIVE');
   const available = active ? baselineAvailability(active) : null;
   const canRequestChange = Boolean(available?.contractValue && available.deadline && available.revisionLimit);
+  const canPropose = personaId === 'BUDI' || personaId === 'ADMIN';
 
   React.useEffect(() => {
     if (!prefillScope || !canRequestChange) return;
@@ -297,10 +309,11 @@ export function ChangeRequestsTab({ project, run, prefillScope, onPrefillUsed }:
       <Panel
         title="Permintaan perubahan"
         description="Catat perubahan pekerjaan, biaya, revisi, atau tenggat. Acuan proyek baru berubah setelah disetujui pimpinan dan klien."
-        action={canRequestChange && !open && <button type="button" onClick={() => setOpen(true)} className={btn.secondary}>Buat permintaan</button>}
+        action={canRequestChange && canPropose && !open && <button type="button" onClick={() => setOpen(true)} className={btn.secondary}>Buat permintaan</button>}
       >
         {!canRequestChange && <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Permintaan perubahan memerlukan nilai kesepakatan, tenggat, dan batas revisi yang sudah disetujui. Lengkapi dulu ketiganya di acuan proyek.</p>}
-        {canRequestChange && revisionAlert && !open && (
+        {canRequestChange && !canPropose && <p className="rounded-xl bg-zinc-50 p-4 text-sm text-zinc-700">Budi (pengelola proyek) membuat dan mengajukan permintaan. Ganti pengguna demo di kanan atas untuk melakukannya.</p>}
+        {canRequestChange && canPropose && revisionAlert && !open && (
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-950">
             <Bot className="h-4 w-4" />
             <span className="flex-1">CLARA menemukan: {revisionAlert.title}. CLARA dapat menyiapkan permintaan perubahan dengan nilai sesuai tarif kontrak.</span>
@@ -309,7 +322,7 @@ export function ChangeRequestsTab({ project, run, prefillScope, onPrefillUsed }:
             </button>
           </div>
         )}
-        {canRequestChange && open && (
+        {canRequestChange && canPropose && open && (
           <form onSubmit={(e) => { e.preventDefault(); void save(true); }} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div><label htmlFor="cr-title" className={labelClass}>Judul perubahan</label><input id="cr-title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} /></div>

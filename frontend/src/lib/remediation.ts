@@ -231,6 +231,7 @@ function alertReferences(alert: Alert): string[] {
 /** "Generate Change Request" from an alert: deterministic proposal → CR (DRAFT) + addendum draft for review. */
 export async function draftChangeRequestFromAlert(projectId: string, alertId: string) {
   const ctx = makeCtx();
+  if (ctx.actor.id !== 'BUDI' && ctx.actor.id !== 'ADMIN') throw new HttpError(403, 'ROLE_REQUIRED', 'Permintaan perubahan disiapkan oleh pengelola proyek (Budi). Ganti pengguna demo di kanan atas.');
   const project = claraDb.requireProject(projectId);
   const alert = findAlert(project, alertId);
   const existing = project.changeRequests.find((cr) => cr.relatedAlertIds.includes(alertId) && cr.status !== 'APPROVED' && cr.status !== 'REJECTED' && cr.status !== 'CLIENT_REJECTED');

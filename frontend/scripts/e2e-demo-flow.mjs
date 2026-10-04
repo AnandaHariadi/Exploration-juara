@@ -149,6 +149,8 @@ check('drafting twice for the same alert is refused (409)', (await call('POST', 
 
 console.log('\n8. Governance: PIC → Finance → Decision maker → Client');
 const crUrl = `/api/projects/${P}/change-requests/${aiCr?.id}`;
+const crDraftUrl = `/api/projects/${P}/drafts/${drafted.data?.draftId}/approve`;
+check('PIC cannot approve a change document before finance (409)', (await call('POST', crDraftUrl)).status === 409);
 await as('SITI');
 check('Siti cannot submit (403)', (await call('POST', `${crUrl}/submit`)).status === 403);
 await as('BUDI');
@@ -164,6 +166,11 @@ await as('HENDRA');
 const internal = await call('POST', `${crUrl}/decision`, { decision: 'APPROVE' });
 check('Hendra approves internally → INTERNAL_APPROVED, baseline still V1 120M', internal.data?.changeRequests.find((x) => x.id === aiCr?.id)?.status === 'INTERNAL_APPROVED' && internal.data?.baselineVersion === 'V1' && internal.data?.metrics.contractValue === 120_000_000);
 check('second internal approval refused (409)', (await call('POST', `${crUrl}/decision`, { decision: 'APPROVE' })).status === 409);
+await as('BUDI');
+check('PIC cannot approve the change document after Hendra decision (403)', (await call('POST', crDraftUrl)).status === 403);
+check('client approval waits for linked document review (409)', (await call('POST', `${crUrl}/client-approval`, { decision: 'APPROVED', reference: 'Surat 045/ASL-PROC/X/2026' })).status === 409);
+await as('HENDRA');
+check('Hendra approves the change document after finance review (200)', (await call('POST', crDraftUrl)).data?.drafts.find((d) => d.id === drafted.data?.draftId)?.status === 'APPROVED');
 await as('BUDI');
 check('client approval without evidence refused (400)', (await call('POST', `${crUrl}/client-approval`, { decision: 'APPROVED' })).status === 400);
 await call('POST', `/api/projects/${P}/documents/sample`, { samples: ['persetujuan-klien'] });

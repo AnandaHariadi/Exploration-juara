@@ -91,7 +91,7 @@ export default function AiCenterPage() {
                     <Link href={`/projects/${p.id}?tab=change-requests`} className={btn.secondary}>Tinjau</Link>
                   </div>
                 ))}
-                {drafts.map(({ p, d }) => <DraftCard key={d.id} draft={d} run={run} projectName={p.name} />)}
+                {drafts.map(({ p, d }) => <DraftCard key={d.id} draft={d} run={run} projectName={p.name} changeRequest={p.changeRequests.find((cr) => cr.id === d.relatedChangeRequestId)} />)}
               </div>
             )}
           </Panel>

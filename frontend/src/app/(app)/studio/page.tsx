@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Bot } from 'lucide-react';
 import type { DraftType } from '@/types';
 import { dataClient } from '@/services/dataClient';
@@ -57,7 +58,7 @@ export default function StudioPage() {
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-red-700">CLARA Remediation Copilot</p>
         <h1 className="mt-2 font-heading text-2xl font-bold text-zinc-950 sm:text-3xl">Studio dokumen</h1>
-        <p className="mt-2 text-sm text-zinc-600">Susun adendum, permintaan perubahan, revisi klausul, MoU, LoI, atau PKS dari data proyek. Angka diambil dari acuan dan perhitungan terverifikasi; setiap draf diperiksa ulang (validasi + guardrail) dan hanya siap dikirim setelah Anda setujui.</p>
+        <p className="mt-2 text-sm text-zinc-600">Susun dokumen dari data proyek. Angka diambil dari acuan dan perhitungan terverifikasi. Draf adendum atau permintaan perubahan harus terhubung ke permintaan perubahan dan melewati tinjauan keuangan serta persetujuan pimpinan sebelum bisa dikirim.</p>
       </div>
 
       {health && !health.available && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{health.message} Draf akan dibuat dari templat CLARA dan diberi label “Templat”.</p>}
@@ -74,19 +75,23 @@ export default function StudioPage() {
             </div>
             <div>
               <label htmlFor="studio-type" className={labelClass}>Jenis dokumen</label>
-              <select id="studio-type" value={type} onChange={(e) => setType(e.target.value as DraftType)} className={inputClass}>
+              <select id="studio-type" value={type} onChange={(e) => { setType(e.target.value as DraftType); setCrId(''); }} className={inputClass}>
                 {TYPES.map((t) => <option key={t} value={t}>{draftTypeLabel[t]}</option>)}
               </select>
             </div>
           </div>
           {(type === 'ADDENDUM' || type === 'CHANGE_REQUEST') && crs.length > 0 && (
             <div>
-              <label htmlFor="studio-cr" className={labelClass}>Dasarkan pada permintaan perubahan (opsional)</label>
+              <label htmlFor="studio-cr" className={labelClass}>Hubungkan ke permintaan perubahan</label>
               <select id="studio-cr" value={crId} onChange={(e) => setCrId(e.target.value)} className={inputClass}>
                 <option value="">Tidak ada</option>
                 {crs.map((c) => <option key={c.id} value={c.id}>{c.crNumber} · {c.title}</option>)}
               </select>
+              <p className="mt-1 text-xs text-zinc-600">Tanpa tautan, draf dapat disusun tetapi belum bisa disetujui atau diekspor.</p>
             </div>
+          )}
+          {(type === 'ADDENDUM' || type === 'CHANGE_REQUEST') && project?.metrics.hasBaseline && crs.length === 0 && (
+            <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">Belum ada permintaan perubahan untuk proyek ini. <Link href={`/projects/${project.id}?tab=change-requests`} className="font-semibold underline">Buat permintaan perubahan</Link> agar draf bisa masuk alur keuangan dan pimpinan.</p>
           )}
           {type === 'CLAUSE_REVISION' && (
             <div>
@@ -116,7 +121,7 @@ export default function StudioPage() {
           </select>
         }
       >
-        {drafts.length === 0 ? <EmptyState title="Belum ada draf." /> : <div className="space-y-3">{drafts.map(({ p, d }) => <DraftCard key={d.id} draft={d} run={run} projectName={p.name} />)}</div>}
+        {drafts.length === 0 ? <EmptyState title="Belum ada draf." /> : <div className="space-y-3">{drafts.map(({ p, d }) => <DraftCard key={d.id} draft={d} run={run} projectName={p.name} changeRequest={p.changeRequests.find((cr) => cr.id === d.relatedChangeRequestId)} />)}</div>}
       </Panel>
     </div>
   );

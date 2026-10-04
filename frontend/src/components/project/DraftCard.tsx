@@ -1,17 +1,20 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Bot, CheckCircle2, Download, XCircle } from 'lucide-react';
-import type { GeneratedDocument } from '@/types';
+import type { ChangeRequest, GeneratedDocument } from '@/types';
 import { dataClient } from '@/services/dataClient';
+import { useActivePersona } from '@/hooks/useClaraData';
 import { formatDate } from '@/lib/utils';
 import { btn, inputClass } from '@/components/shared/ui';
 import { draftStatus, draftTypeLabel } from '@/components/shared/labels';
 
 type Run = <T>(action: () => Promise<T>, success: string | ((r: T) => string)) => Promise<T | undefined>;
 
-/** Detect → Generate → Self-review → Human review → Approve → Ready to send → Export. */
-export function DraftCard({ draft, run, projectName, defaultOpen = false }: { draft: GeneratedDocument; run: Run; projectName?: string; defaultOpen?: boolean }) {
+/** Change documents follow the related request through finance and management before approval. */
+export function DraftCard({ draft, run, projectName, changeRequest, defaultOpen = false }: { draft: GeneratedDocument; run: Run; projectName?: string; changeRequest?: ChangeRequest; defaultOpen?: boolean }) {
+  const { personaId } = useActivePersona();
   const [open, setOpen] = React.useState(defaultOpen);
   const [editing, setEditing] = React.useState(false);
   const [content, setContent] = React.useState(draft.content);
@@ -28,6 +31,18 @@ export function DraftCard({ draft, run, projectName, defaultOpen = false }: { dr
   const s = draftStatus[draft.status];
   const locked = draft.status === 'EXPORTED' || draft.status === 'REJECTED';
   const passed = draft.validation.checks.filter((c) => c.ok).length;
+  const changeDocument = draft.type === 'CHANGE_REQUEST' || draft.type === 'ADDENDUM';
+  const awaitingSubmission = changeRequest && ['DRAFT', 'REJECTED', 'CLIENT_REJECTED'].includes(changeRequest.status);
+  const internalApproved = changeRequest?.status === 'INTERNAL_APPROVED' || changeRequest?.status === 'APPROVED';
+  const canApprove = !changeDocument || (internalApproved && (personaId === 'HENDRA' || personaId === 'ADMIN'));
+  const canExport = !changeDocument || internalApproved;
+  const changeMessage = !changeRequest
+    ? 'Draf ini belum terhubung ke permintaan perubahan. Buat permintaan di tab Perubahan sebelum dokumen dapat disetujui.'
+    : awaitingSubmission ? 'Permintaan belum diajukan. Budi perlu mengirimnya ke Siti untuk pemeriksaan biaya.'
+    : changeRequest.status === 'PENDING' ? 'Menunggu Siti memeriksa dampak biaya. Draf belum dapat disetujui.'
+    : changeRequest.status === 'FINANCE_REVIEWED' ? 'Siti sudah meninjau. Menunggu keputusan Hendra.'
+    : internalApproved ? 'Hendra sudah menyetujui perubahan secara internal. Dokumen dapat disetujui untuk dikirim ke klien.'
+    : 'Perubahan ditolak. Periksa status permintaan sebelum memakai draf ini.';
 
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -45,6 +60,14 @@ export function DraftCard({ draft, run, projectName, defaultOpen = false }: { dr
         </div>
         <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${s.className}`}>{s.label}</span>
       </div>
+
+      {changeDocument && (
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+          <p className="font-semibold">Persetujuan perubahan bertahap</p>
+          <p className="mt-1">{changeMessage}</p>
+          <Link href={`/projects/${draft.projectId}?tab=change-requests`} className="mt-2 inline-block font-semibold text-red-700 underline">Buka permintaan perubahan{changeRequest ? ` ${changeRequest.crNumber}` : ''}</Link>
+        </div>
+      )}
 
       <div className="mt-3 rounded-xl bg-zinc-50 p-3">
         <p className="text-xs font-semibold text-zinc-700">Validasi draf · {passed}/{draft.validation.checks.length} lolos · {draft.status === 'NEEDS_FIX' ? 'PERLU PERBAIKAN' : 'SIAP DITINJAU MANUSIA'}</p>
@@ -88,15 +111,20 @@ export function DraftCard({ draft, run, projectName, defaultOpen = false }: { dr
       )}
 
       <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-zinc-100 pt-4">
+        {changeDocument && draft.status !== 'REJECTED' && awaitingSubmission && (personaId === 'BUDI' || personaId === 'ADMIN') && changeRequest && (
+          <button type="button" disabled={busy !== null} onClick={() => void act('submit', () => dataClient.submitChangeRequest(draft.projectId, changeRequest.id), `${changeRequest.crNumber} diajukan ke keuangan. Siti dapat meninjaunya di dashboard.`)} className={btn.primary}>
+            {busy === 'submit' ? 'Mengajukan…' : 'Ajukan ke keuangan'}
+          </button>
+        )}
         {(draft.status === 'READY_FOR_REVIEW' || draft.status === 'NEEDS_FIX') && (
           <>
-            <button type="button" disabled={busy !== null} onClick={() => void act('reject', () => dataClient.rejectDraft(draft.projectId, draft.id), 'Draf ditolak dan disimpan di riwayat.')} className={btn.ghost}>Tolak</button>
-            <button type="button" disabled={busy !== null || draft.status === 'NEEDS_FIX'} title={draft.status === 'NEEDS_FIX' ? 'Perbaiki draf hingga validasi lolos' : undefined} onClick={() => { if (window.confirm('Setujui draf ini? Status menjadi siap dikirim. CLARA tidak mengirim dokumen secara otomatis.')) void act('approve', () => dataClient.approveDraft(draft.projectId, draft.id), 'Draf disetujui — siap dikirim.'); }} className={btn.success}>
-              {busy === 'approve' ? 'Menyimpan…' : 'Setujui draf'}
-            </button>
+            <button type="button" disabled={busy !== null} onClick={() => void act('reject', () => dataClient.rejectDraft(draft.projectId, draft.id), 'Draf ditolak dan disimpan di riwayat.')} className={btn.ghost}>Tolak draf</button>
+            {canApprove && <button type="button" disabled={busy !== null || draft.status === 'NEEDS_FIX'} title={draft.status === 'NEEDS_FIX' ? 'Perbaiki draf hingga validasi lolos' : undefined} onClick={() => { if (window.confirm(changeDocument ? 'Setujui dokumen ini untuk dikirim ke klien? Persetujuan klien tetap harus dicatat terpisah.' : 'Setujui draf ini? Status menjadi siap dikirim. CLARA tidak mengirim dokumen secara otomatis.')) void act('approve', () => dataClient.approveDraft(draft.projectId, draft.id), changeDocument ? 'Dokumen disetujui Hendra dan siap diekspor untuk dikirim ke klien.' : 'Draf disetujui — siap dikirim.'); }} className={btn.success}>
+              {busy === 'approve' ? 'Menyimpan…' : changeDocument ? 'Setujui dokumen untuk klien' : 'Setujui draf'}
+            </button>}
           </>
         )}
-        {(draft.status === 'APPROVED' || draft.status === 'EXPORTED') && (
+        {(draft.status === 'APPROVED' || draft.status === 'EXPORTED') && canExport && (
           <button type="button" disabled={busy !== null} onClick={async () => { setBusy('export'); await run(() => dataClient.exportDraft(draft.projectId, draft.id), (name: string) => `Diekspor: ${name}. Kirim dokumen ini melalui saluran resmi Anda — CLARA tidak mengirimkannya.`); setBusy(null); }} className={btn.primary}>
             <Download className="h-4 w-4" />{busy === 'export' ? 'Mengekspor…' : 'Ekspor PDF untuk dikirim'}
           </button>

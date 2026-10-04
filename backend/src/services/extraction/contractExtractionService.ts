@@ -83,7 +83,7 @@ export interface DocumentExtraction {
   invoice: InvoiceExtraction | null;
   approval: { approved: boolean | null; approver: string | null; date: string | null; reference: string | null } | null;
   fieldEvidence: Record<string, EvidenceRef>;
-  risks: { title: string; severity: "LOW" | "MEDIUM" | "HIGH"; detail: string; evidence: EvidenceRef | null; origin: "AI" | "GUARDRAIL" }[];
+  risks: { title: string; severity: "LOW" | "MEDIUM" | "HIGH"; detail: string; legalBasis?: string; evidence: EvidenceRef | null; origin: "AI" | "GUARDRAIL" }[];
   warnings: string[];
   extractionMeta: { sourceFile: string; pages: number | null; processedAt: string; engine: string; textLength: number };
 }
@@ -145,7 +145,7 @@ const CONTRACT_PROMPT = `Anda adalah pembaca kontrak. Baca teks dokumen di bawah
   },
   "milestones": [{"name": string, "billing_percentage": number|null, "trigger": string, "target_date": "YYYY-MM-DD"|null, "evidence_quote": string|null}],
   "field_evidence": {"contract_number": string|null, "contract_value": string|null, "start_date": string|null, "deadline": string|null, "revision_limit": string|null, "scope": string|null, "hourly_rate": string|null, "revision_unit_price": string|null, "penalty": string|null},
-  "risks": [{"title": string, "severity": "LOW"|"MEDIUM"|"HIGH", "detail": string, "evidence_quote": string|null}],  // klausul tidak lazim, samar, saling bertentangan, atau paparan denda/tanggung jawab tinggi
+  "risks": [{"title": string, "severity": "LOW"|"MEDIUM"|"HIGH", "detail": string, "legal_basis": string|null, "evidence_quote": string|null}],  // klausul tidak lazim, samar, saling bertentangan, atau paparan denda tinggi (cantumkan pasal KUHPerdata/UU terkait bila relevan)
   "confidence": number,
   "warnings": [string]
 }
@@ -272,6 +272,7 @@ async function guardrailRisks(raw: string): Promise<DocumentExtraction["risks"]>
         title: `Guardrail: ${c.name.replace(/_/g, " ")}`,
         severity: c.severity === "CRITICAL" ? ("HIGH" as const) : c.severity === "WARNING" ? ("MEDIUM" as const) : ("LOW" as const),
         detail: `${c.message} ${c.advice}${c.legal_basis ? ` (Dasar: ${c.legal_basis})` : ""}`.trim(),
+        legalBasis: c.legal_basis || undefined,
         evidence: null,
         origin: "GUARDRAIL" as const,
       }));
@@ -312,6 +313,7 @@ export async function analyzeDocument(buffer: Buffer, mimeType: string, fileName
     title: strOrNull(r.title, 160) ?? "Klausul perlu diperhatikan",
     severity: severity(r.severity),
     detail: strOrNull(r.detail, 600) ?? "",
+    legalBasis: strOrNull(r.legal_basis as string | null, 200) ?? undefined,
     evidence: locateQuote(raw, r.evidence_quote as string | null),
     origin: "AI" as const,
   }));
