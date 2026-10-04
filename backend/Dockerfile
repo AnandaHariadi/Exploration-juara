@@ -7,5 +7,5 @@ RUN npm install
 
 COPY . .
 
-# We use a shell script or command chain to run init-schema, then seed:pdf (ignoring errors), then dev
-CMD ["sh", "-c", "npm run init-schema && (npm run seed:pdf || true) && npm run dev"]
+# Run init-schema and seed:pdf gracefully without crashing the container, then start server
+CMD ["sh", "-c", "(npm run init-schema || true) && (npm run seed:pdf || true) && npm run dev"]
